@@ -8,7 +8,7 @@ import config
 def install():
 
     print "db thingie: ", db_proxy.database, dir(db_proxy.database)
-    db_proxy.create_tables()
+    db_proxy.create_tables(BaseModel.children())
     return "oink"
 
 
