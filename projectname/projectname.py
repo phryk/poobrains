@@ -1,4 +1,4 @@
-from flask import Flask, Blueprint
+from flask import Flask
 from playhouse.db_url import connect
 
 from .db import BaseModel, db_proxy
@@ -7,16 +7,15 @@ import config
 
 def install():
 
-    print "db thingie: ", db_proxy.database, dir(db_proxy.database)
     db_proxy.create_tables(BaseModel.children())
-    return "oink"
+    return "Installation procedure complete."
 
 
-def db_connect():
+def request_setup():
     db_proxy.connect()
 
 
-def db_close(dunnolol):
+def request_teardown(dunnolol):
     if not db_proxy.is_closed():
         db_proxy.close()
 
@@ -24,12 +23,15 @@ def db_close(dunnolol):
 class ProjectName(Flask):
 
     db = None
-    config_whitelist = ['DATABASE', 'DEBUG', 'SECRET', 'MAY_INSTALL']
+    config_whitelist = ['DATABASE', 'DEBUG', 'SECRET', 'MAY_INSTALL', 'THEME']
+    menus = None
 
 
     def __init__(self, *args, **kwargs):
 
         super(ProjectName, self).__init__(*args, **kwargs)
+
+        self.menus = {}
 
         for option in self.config_whitelist:
             if hasattr(config, option):
@@ -37,9 +39,6 @@ class ProjectName(Flask):
 
         if not self.config.has_key('MAY_INSTALL'):
             self.config['MAY_INSTALL'] = False
-
-        if not self.config.has_key('THEME'):
-            self.config['THEME'] = 'default'
 
         self.template_folder = 'themes/%s' % (self.config['THEME'],)
 
@@ -51,5 +50,9 @@ class ProjectName(Flask):
 
 
         # Make sure that each request has a proper database connection
-        self.before_request(db_connect)
-        self.teardown_request(db_close)
+        self.before_request(request_setup)
+        self.teardown_request(request_teardown)
+
+
+    def add_menu(self, menu):
+        self.menus[menu.name] = menu

@@ -1,4 +1,4 @@
 DATABASE = 'sqlite:///oink.db'
 MAY_INSTALL = True
-#THEME = 'special'
+THEME = 'default'
 DEBUG = True
