@@ -1,4 +1,7 @@
-from flask import Flask
+from os.path import join, dirname
+from flask import Flask, g
+from flask.helpers import locked_cached_property
+from jinja2 import FileSystemLoader
 from playhouse.db_url import connect
 
 from .db import BaseModel, db_proxy
@@ -24,14 +27,14 @@ class ProjectName(Flask):
 
     db = None
     config_whitelist = ['DATABASE', 'DEBUG', 'SECRET', 'MAY_INSTALL', 'THEME']
-    menus = None
+    boxes = None
 
 
     def __init__(self, *args, **kwargs):
 
         super(ProjectName, self).__init__(*args, **kwargs)
 
-        self.menus = {}
+        self.boxes = {}
 
         for option in self.config_whitelist:
             if hasattr(config, option):
@@ -40,7 +43,8 @@ class ProjectName(Flask):
         if not self.config.has_key('MAY_INSTALL'):
             self.config['MAY_INSTALL'] = False
 
-        self.template_folder = 'themes/%s' % (self.config['THEME'],)
+        if not self.config.has_key('THEME'):
+            self.config['THEME'] = 'default'
 
         self.db = connect(self.config['DATABASE'])
         db_proxy.initialize(self.db)
@@ -53,6 +57,37 @@ class ProjectName(Flask):
         self.before_request(request_setup)
         self.teardown_request(request_teardown)
 
+        self.before_request(self.build_boxes)
 
-    def add_menu(self, menu):
-        self.menus[menu.name] = menu
+    def build_boxes(self):
+
+        g.boxes = {}
+        print "build_boxes function called.", self
+        for name, f in self.boxes.iteritems():
+            print "dem f: ", f, f()
+            g.boxes[name] = f()
+    
+    
+    @locked_cached_property
+    def jinja_loader(self):
+
+        paths = []
+
+        if self.config['THEME'] != 'default':
+            print "THEME: ", self.config['THEME']
+            paths.append(join(self.root_path, 'themes', self.config['THEME']))
+            paths.append(join(dirname(__file__), 'themes', self.config['THEME']))
+
+        paths.append(join(self.root_path, 'themes', 'default'))
+        paths.append(join(dirname(__file__), 'themes', 'default'))
+
+        return FileSystemLoader(paths)
+
+
+    def box(self, name):
+
+        def decorator(f):
+            self.boxes[name] = f
+            return f
+
+        return decorator

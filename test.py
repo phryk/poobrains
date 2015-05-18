@@ -20,12 +20,14 @@ def testa_load(id_or_name):
     return TestA.load(id_or_name)
 
 
+@app.box('menu-main')
+def menu_main():
+    menu = Menu('main')
+    menu.append('foo', 'Foo')
+    menu.append('bar', 'Bar')
+
+    return menu
+
+
 if __name__ == '__main__':
-
-    main_menu = Menu('main')
-    main_menu.append('foo', 'Foo')
-    main_menu.append('bar', 'Bar')
-
-    app.add_menu(main_menu)
-    
     app.run()
