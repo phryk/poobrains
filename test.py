@@ -16,30 +16,30 @@ class TestB1(TestB):
     pass
 
 
-@app.route('/testa/<id_or_name>')
+@app.site.route('/testa/<id_or_name>')
 @view
 def testa_load(id_or_name):
 
     return TestA.load(id_or_name)
 
 
-#@app.route('/lista/')
-#@app.route('/lista/<int:offset>/')
-@app.listroute('/lista/')
+@app.site.route('/lista/')
+@app.site.route('/lista/<int:offset>/')
+#@app.site.listroute('/lista/')
 @view
 def testa_list(offset=0):
 
     return Listing(TestA, offset)
 
 
-@app.listroute('/listb')
+@app.site.listroute('/listb')
 @view
 def testb_list(offset=0):
 
     return Listing(TestB, offset)
 
 
-@app.box('menu-main')
+@app.site.box('menu-main')
 def menu_main():
     menu = Menu('main')
     menu.append(url_for('testa_list'), 'TestA')

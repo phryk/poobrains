@@ -1,7 +1,7 @@
 # -*-  coding: utf-8 -*-
 
 from os.path import join, exists, basename, dirname, isdir, isfile
-from flask import Flask, g, abort, send_from_directory
+from flask import Flask, Blueprint, current_app, g, abort, send_from_directory
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader
 from playhouse.db_url import connect
@@ -33,16 +33,18 @@ class ErrorPage(Renderable):
 
 class Poobrain(Flask):
 
-    db = None
-    boxes = None
-    poobrain_path = None
-    resource_extension_whitelist = None
+    site = None
+    admin = None
+
 
     def __init__(self, *args, **kwargs):
 
         super(Poobrain, self).__init__(*args, **kwargs)
+        
 
-        self.boxes = {}
+        self.site = Pooprint('Site', 'site')
+        self.admin = Pooprint('Admin', 'admin')
+        
         self.poobrain_path = dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
 
@@ -58,41 +60,27 @@ class Poobrain(Flask):
         self.db = connect(self.config['DATABASE'])
         db_proxy.initialize(self.db)
 
-        self.add_url_rule('/theme/<string:filename>', 'Poobrain.serve_theme_resources', self.serve_theme_resources)
+        self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
 
         if self.config['MAY_INSTALL']:
             self.add_url_rule('/install', 'Poobrain.install', self.install)
 
+        self.error_handler_spec[None][404] = self.errorpage
+        self.error_handler_spec[None][500] = self.errorpage
 
         # Make sure that each request has a proper database connection
         self.before_request(self.request_setup)
         self.teardown_request(self.request_teardown)
 
-        self.error_handler_spec[None][404] = self.errorpage
-        self.error_handler_spec[None][500] = self.errorpage
+        self.register_blueprint(self.site)
+        self.register_blueprint(self.admin, url_prefix='/admin')
+
 
     @view
     def errorpage(self, error):
         return ErrorPage(error)
-
-
-    def listroute(self, rule, **options):
-
-        offset_rule = join(rule, '<int:offset>/')
-
-        def decorator(f):
-
-            #endpoint = options.pop('endpoint', None)
-            endpoint = f.__name__
-            offset_endpoint = '%s_offset' % (f.__name__,)
-            self.add_url_rule(rule, endpoint, f, **options)
-            self.add_url_rule(offset_rule, offset_endpoint, f, **options)
-
-            return f
-
-        return decorator
-
-
+    
+    
     def install(self):
 
         self.db.create_tables(BaseModel.children())
@@ -140,7 +128,6 @@ class Poobrain(Flask):
     def request_setup(self):
 
         self.db.connect()
-        self.build_boxes()
 
 
     def request_teardown(self, exception):
@@ -149,7 +136,51 @@ class Poobrain(Flask):
             self.db.close()
 
 
-    def build_boxes(self):
+
+class Pooprint(Blueprint):
+
+    app = None
+    db = None
+    boxes = None
+    poobrain_path = None
+    resource_extension_whitelist = None
+
+    def __init__(self, *args, **kwargs):
+
+        super(Pooprint, self).__init__(*args, **kwargs)
+
+        self.boxes = {}
+        self.poobrain_path = dirname(__file__)
+        
+        self.before_request(self.request_setup)
+        print "DEM INIT DINGSIE"
+
+    def register(self, app, options, first_registration=False):
+
+        super(Pooprint, self).register(app, options, first_registration)
+        self.app = app
+        self.db = app.db
+
+    def listroute(self, rule, **options):
+
+        offset_rule = join(rule, '<int:offset>/')
+
+        def decorator(f):
+
+            #endpoint = options.pop('endpoint', None)
+            endpoint = f.__name__
+            offset_endpoint = '%s_offset' % (f.__name__,)
+            self.add_url_rule(rule, endpoint, f, **options)
+            self.add_url_rule(offset_rule, offset_endpoint, f, **options)
+
+            return f
+
+        return decorator
+
+
+    def request_setup(self):
+
+        print "##################################BUILDING BOXES######"#
 
         g.boxes = {}
         for name, f in self.boxes.iteritems():
@@ -161,9 +192,9 @@ class Poobrain(Flask):
 
         paths = []
 
-        if self.config['THEME'] != 'default':
-            paths.append(join(self.root_path, 'themes', self.config['THEME']))
-            paths.append(join(self.poobrain_path, 'themes', self.config['THEME']))
+        if self.app.config['THEME'] != 'default':
+            paths.append(join(self.root_path, 'themes', self.app.config['THEME']))
+            paths.append(join(self.poobrain_path, 'themes', self.app.config['THEME']))
 
         paths.append(join(self.root_path, 'themes', 'default'))
         paths.append(join(self.poobrain_path, 'themes', 'default'))
