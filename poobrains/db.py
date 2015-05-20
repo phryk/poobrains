@@ -1,11 +1,11 @@
-from flask import abort
+from flask import abort, current_app
 import peewee
-from .rendering import Renderable
+from .rendering import ChildAware, Renderable
 
 db_proxy = peewee.Proxy()
 
 
-class BaseModel(peewee.Model):
+class BaseModel(peewee.Model, ChildAware):
 
     class Meta:
         database = db_proxy
@@ -21,28 +21,47 @@ class BaseModel(peewee.Model):
             else:
                 instance = cls.get(cls.name == id_or_name)
 
-        except Exception as e:
+        except cls.DoesNotExist as e:
             print e
             print type(id_or_name), id_or_name
-            abort(500, 'ZOMG')
+            #raise
+            abort(404, "It is pitch black. You are likely to be eaten by a grue.")
+
+        except peewee.OperationalError as e:
+            print e
+            abort(500, "Someone has set up us the bomb!")
 
         return instance
 
 
-    @classmethod
-    def children(cls):
-
-        children = cls.__subclasses__()
-
-        if len(children):
-            for child in children:
-                grandchildren = child.children()
-
-            for grandchild in grandchildren:
-                children.append(grandchild)
-
-        return children
-
 
 class Storable(BaseModel, Renderable):
-    pass
+
+    name = peewee.CharField()
+    title = peewee.CharField()
+
+
+class Listing(Renderable):
+
+    cls = None
+    offset = None
+    limit = None
+    items = None
+
+    def __init__(self, cls, offset=0, limit=None):
+
+        super(Listing, self).__init__()
+
+        self.cls = cls
+        self.offset = offset
+
+        if limit is None:
+            self.limit = current_app.config['PAGINATION_COUNT']
+        else:
+            self.limit = limit
+
+        self.items = []
+        items = cls.select().offset(self.offset).limit(self.limit)
+
+        for item in items:
+            self.items.append(item)

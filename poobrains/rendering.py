@@ -1,26 +1,60 @@
 from os.path import join, exists, dirname
-from flask import abort, render_template
+from functools import wraps
+from flask import abort, render_template, current_app, g
+
 
 
 def view(f):
 
+    @wraps(f)
     def decorator(*args, **kwargs):
 
         # TODO: see if this can be obsoleted with abort and Flask.error_handler[_spec]
         try:
             content = f(*args, **kwargs)
         except Exception as e:
-            print e
+
+            if current_app.debug:
+                print e
+                raise
             abort(500, "VERY ERROR. SUCH DISGRACE. MANY SORRY.")
 
+        g.title = content.title
         return render_template('main.jinja', content=content)
 
     return decorator
 
 
 
-class Renderable(object):
+class ChildAware(object):
 
+    @classmethod
+    def children(cls):
+
+        children = cls.__subclasses__()
+
+        if len(children):
+            for child in children:
+                grandchildren = child.children()
+
+            for grandchild in grandchildren:
+                children.append(grandchild)
+
+        return children
+
+
+
+class Renderable(ChildAware):
+
+    name = None
+    title = None
+
+    def __init__(self):
+
+        self.name = self.__class__.__name__.lower()
+        self.title = self.__class__.__name__
+
+    
     def render(self, mode='full'):
 
         tpl_base = self.__class__.__name__.lower()

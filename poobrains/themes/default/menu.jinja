@@ -1,5 +1,7 @@
-MENU START
-{% for item in content.items: %}
-    {{ item }}
-{% endfor %}
-MENU END
+<nav id="{{ content.name }}">
+    <ul>
+    {% for item in content.items: %}
+        <li><a href="{{ item[0] }}">{{ item[1] }}</a></li>
+    {% endfor %}
+    </ul>
+</nav>

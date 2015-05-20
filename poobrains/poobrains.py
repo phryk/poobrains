@@ -8,6 +8,7 @@ from jinja2 import FileSystemLoader
 from playhouse.db_url import connect
 
 from .db import BaseModel, db_proxy
+from .rendering import Renderable, view
 import defaults
 
 try:
@@ -17,6 +18,17 @@ except ImportError as e:
 
     print "Poobrains: This application has no config module. Just so you know…"
     config = False
+
+
+class ErrorPage(Renderable):
+
+    error = None
+
+    def __init__(self, error):
+
+        super(ErrorPage, self).__init__()
+        self.title = "Ermahgerd, %d!" % (error.code,)
+        self.error = error
 
 
 
@@ -56,6 +68,28 @@ class Poobrain(Flask):
         # Make sure that each request has a proper database connection
         self.before_request(self.request_setup)
         self.teardown_request(self.request_teardown)
+
+        self.error_handler_spec[None][404] = self.errorpage
+        self.error_handler_spec[None][500] = self.errorpage
+
+    @view
+    def errorpage(self, error):
+        return ErrorPage(error)
+
+
+    def listroute(self, rule, **options):
+
+        offset_rule = join(rule, '<int:offset>/')
+
+        def decorator(f):
+
+            endpoint = options.pop('endpoint', None)
+            self.add_url_rule(rule, endpoint, f, **options)
+            self.add_url_rule(offset_rule, endpoint, f, **options)
+
+            return f
+
+        return decorator
 
 
     def install(self):

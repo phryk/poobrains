@@ -1,5 +1,6 @@
 from peewee import CharField
-from poobrains import Poobrain, BaseModel, Storable, Menu, view
+from flask import url_for
+from poobrains import Poobrain, BaseModel, Storable, Menu, Listing, view
 
 print __name__, __file__
 
@@ -22,10 +23,19 @@ def testa_load(id_or_name):
     return TestA.load(id_or_name)
 
 
+#@app.route('/lista/')
+#@app.route('/lista/<int:offset>/')
+@app.listroute('/lista/')
+@view
+def testa_list(offset=0):
+
+    return Listing(TestA, offset)
+
+
 @app.box('menu-main')
 def menu_main():
     menu = Menu('main')
-    menu.append('foo', 'Foo')
+    menu.append(url_for('testa_list'), 'TestA')
     menu.append('bar', 'Bar')
 
     return menu

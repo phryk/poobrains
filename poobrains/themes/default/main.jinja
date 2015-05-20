@@ -9,8 +9,9 @@
         <header>
             {{ g.boxes['menu-main'].render() }}
         </header>
-        <section id="main">
+        <main>
+            <h1>{{ g.title }}</h1>
             {{ content.render('full') }}
-        </section>
+        </main>
     </body>
 </html>
