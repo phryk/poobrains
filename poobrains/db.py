@@ -29,7 +29,7 @@ class BaseModel(peewee.Model, ChildAware):
             if current_app.debug:
                 raise
 
-            abort(500, "Someone has set up us the bomb!")
+            abort(500, "Somebody set up us the bomb.")
 
         return instance
 
