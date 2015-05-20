@@ -1,36 +1,57 @@
-from os.path import join, exists, dirname
+from os.path import join, exists
 from flask import abort, render_template
 import config
 
 
 def view(f):
 
-    def decorator(*args, **kwargs):
+    def wrap(*args, **kwargs):
 
-        # TODO: see if this can be obsoleted with abort and Flask.error_handler[_spec]
         try:
             content = f(*args, **kwargs)
         except Exception as e:
             abort(500, "VERY ERROR. SUCH DISGRACE. MANY SORRY.")
 
-        return render_template('main.jinja', content=content)
 
-    return decorator
+        tpls = []
+        if config.THEME != 'default':
+            tpls.append(join(config.THEME, 'main.jinja'))
+        tpls.append('default/main.jinja')
+
+        return render_template(tpls, content=content)
+
+    return wrap
 
 
 
 class Renderable(object):
 
-    def render(self, mode='full'):
+    theme = None
 
-        tpl_base = self.__class__.__name__.lower()
+    def __init__(self, theme=None):
 
-        tpls = [
-            '%s-%s.jinja' % (tpl_base, mode),
-            '%s.jinja' % (tpl_base,)
-        ]
+        if theme is not None:
+            self.theme = theme
+        else:
+            self.theme = config.THEME
 
-        return render_template(tpls, content=self)
+
+    def render(mode='full'):
+
+        tpl_default = self.__class__
+        tpl_mode = '%s-%s' % (self.__class__, mode)
+
+        tpls = []
+        
+        if self.theme is not 'default':
+            tpls.append(join(self.theme, tpl_mode))
+            tpl.append(join(self.theme, tpl_default))
+        
+        tpls.append(join('default', tpl_mode))
+        tpls.append(join('default', tpl_default))
+
+
+        return render_template(tpls, {'obj': self})
 
 
 class Menu(Renderable):
@@ -38,9 +59,9 @@ class Menu(Renderable):
     name = None
     items = None
 
-    def __init__(self, name):
+    def __init__(self, name, theme=None):
 
-        super(Menu, self).__init__()
+        super(Menu, self).__init__(theme=theme)
 
         self.name = name
         self.items = []
