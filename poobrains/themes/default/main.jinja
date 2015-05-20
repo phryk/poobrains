@@ -1,0 +1,16 @@
+<!doctype html>
+<html<
+    <head>
+        <title>{{ g.title }}</title>
+        <link rel="stylesheet" type="text/css" href="/theme/main.css">
+    </head>
+    
+    <body>
+        <header>
+            {{ g.boxes['menu-main'].render() }}
+        </header>
+        <section id="main">
+            {{ content.render('full') }}
+        </section>
+    </body>
+</html>
