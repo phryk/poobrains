@@ -32,11 +32,18 @@ def testa_list(offset=0):
     return Listing(TestA, offset)
 
 
+@app.listroute('/listb')
+@view
+def testb_list(offset=0):
+
+    return Listing(TestB, offset)
+
+
 @app.box('menu-main')
 def menu_main():
     menu = Menu('main')
     menu.append(url_for('testa_list'), 'TestA')
-    menu.append('bar', 'Bar')
+    menu.append(url_for('testb_list'), 'TestB')
 
     return menu
 

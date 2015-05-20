@@ -1,6 +1,7 @@
-from flask import abort, current_app
+from math import ceil, floor
+from flask import abort, url_for, current_app, request
 import peewee
-from .rendering import ChildAware, Renderable
+from .rendering import ChildAware, Renderable, Menu
 
 db_proxy = peewee.Proxy()
 
@@ -22,13 +23,12 @@ class BaseModel(peewee.Model, ChildAware):
                 instance = cls.get(cls.name == id_or_name)
 
         except cls.DoesNotExist as e:
-            print e
-            print type(id_or_name), id_or_name
-            #raise
             abort(404, "It is pitch black. You are likely to be eaten by a grue.")
 
         except peewee.OperationalError as e:
-            print e
+            if current_app.debug:
+                raise
+
             abort(500, "Someone has set up us the bomb!")
 
         return instance
@@ -47,6 +47,10 @@ class Listing(Renderable):
     offset = None
     limit = None
     items = None
+    pagecount = None
+    count = None
+    pagination = None
+    current_page = None
 
     def __init__(self, cls, offset=0, limit=None):
 
@@ -60,8 +64,39 @@ class Listing(Renderable):
         else:
             self.limit = limit
 
+        select = cls.select()
+        self.count = select.count()
+
+        self.pagecount = int(ceil(self.count/float(self.limit)))
+        self.current_page = int(floor(self.offset / float(self.limit))) + 1
+
         self.items = []
-        items = cls.select().offset(self.offset).limit(self.limit)
+        items = select.offset(self.offset).limit(self.limit)
 
         for item in items:
             self.items.append(item)
+       
+        # Build pagination if matching endpoint and enough rows exist
+        pagination_endpoint = request.endpoint
+        if not pagination_endpoint.endswith('_offset'):
+            pagination_endpoint = '%s_offset' % (pagination_endpoint,)
+        
+        if current_app.view_functions.has_key(pagination_endpoint):
+
+            self.pagination = Menu('pagination')
+            for i in range(0, self.pagecount):
+
+                page_num = i+1
+                active = self.current_page == page_num
+
+                self.pagination.append(
+                    url_for(pagination_endpoint, offset=i*self.limit),
+                    page_num,
+                    active
+                )
+
+            if len(self.pagination) < 2:
+                self.pagination = False
+
+        else:
+            self.pagination = False

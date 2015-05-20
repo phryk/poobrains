@@ -3,3 +3,10 @@
         <li>{{ item.render('teaser') }}</li>
     {% endfor %}
 </ul>
+
+{% if content.pagination %}
+    <footer>
+        {{ content.pagination.render() }}
+    </footer>
+{% endif %}
+

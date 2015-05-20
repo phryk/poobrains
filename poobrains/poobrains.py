@@ -1,5 +1,4 @@
 # -*-  coding: utf-8 -*-
-print __name__, __file__
 
 from os.path import join, exists, basename, dirname, isdir, isfile
 from flask import Flask, g, abort, send_from_directory
@@ -83,9 +82,11 @@ class Poobrain(Flask):
 
         def decorator(f):
 
-            endpoint = options.pop('endpoint', None)
+            #endpoint = options.pop('endpoint', None)
+            endpoint = f.__name__
+            offset_endpoint = '%s_offset' % (f.__name__,)
             self.add_url_rule(rule, endpoint, f, **options)
-            self.add_url_rule(offset_rule, endpoint, f, **options)
+            self.add_url_rule(offset_rule, offset_endpoint, f, **options)
 
             return f
 

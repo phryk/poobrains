@@ -15,11 +15,12 @@ def view(f):
         except Exception as e:
 
             if current_app.debug:
-                print e
                 raise
+
             abort(500, "VERY ERROR. SUCH DISGRACE. MANY SORRY.")
 
         g.title = content.title
+        g.content = content
         return render_template('main.jinja', content=content)
 
     return decorator
@@ -67,6 +68,20 @@ class Renderable(ChildAware):
         return render_template(tpls, content=self)
 
 
+class MenuItem(object):
+
+    url = None
+    caption = None
+    active = None
+
+    def __init__(self, url, caption, active=False):
+
+        self.url = url
+        self.caption = caption
+        self.active = active
+
+
+
 class Menu(Renderable):
 
     name = None
@@ -100,5 +115,5 @@ class Menu(Renderable):
         return self.items.__iter__()
 
     
-    def append(self, path, caption):
-        self.items.append((path, caption))
+    def append(self, url, caption, active=False):
+        self.items.append(MenuItem(url, caption, active))
