@@ -42,8 +42,8 @@ class Poobrain(Flask):
         super(Poobrain, self).__init__(*args, **kwargs)
         
 
-        self.site = Pooprint('Site', 'site')
-        self.admin = Pooprint('Admin', 'admin')
+        self.site = Pooprint('site', 'site')
+        self.admin = Pooprint('admin', 'admin')
         
         self.poobrain_path = dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
@@ -72,8 +72,6 @@ class Poobrain(Flask):
         self.before_request(self.request_setup)
         self.teardown_request(self.request_teardown)
 
-        self.register_blueprint(self.site)
-        self.register_blueprint(self.admin, url_prefix='/admin')
 
 
     @view
@@ -128,12 +126,22 @@ class Poobrain(Flask):
     def request_setup(self):
 
         self.db.connect()
+        print "ZOMG"
+        print self.view_functions
 
 
     def request_teardown(self, exception):
 
         if not self.db.is_closed():
             self.db.close()
+
+
+    def run(self, *args, **kwargs):
+
+        self.register_blueprint(self.site, url_prefix='/site')
+        self.register_blueprint(self.admin, url_prefix='/admin')
+
+        super(Poobrain, self).run(*args, **kwargs)
 
 
 
@@ -151,15 +159,16 @@ class Pooprint(Blueprint):
 
         self.boxes = {}
         self.poobrain_path = dirname(__file__)
-        
         self.before_request(self.request_setup)
-        print "DEM INIT DINGSIE"
+        
 
     def register(self, app, options, first_registration=False):
 
-        super(Pooprint, self).register(app, options, first_registration)
+        super(Pooprint, self).register(app, options, first_registration=first_registration)
+        
         self.app = app
         self.db = app.db
+
 
     def listroute(self, rule, **options):
 
@@ -172,6 +181,8 @@ class Pooprint(Blueprint):
             offset_endpoint = '%s_offset' % (f.__name__,)
             self.add_url_rule(rule, endpoint, f, **options)
             self.add_url_rule(offset_rule, offset_endpoint, f, **options)
+
+            print "dem endpoints: ", endpoint, offset_endpoint
 
             return f
 

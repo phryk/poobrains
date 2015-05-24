@@ -32,7 +32,7 @@ def testa_list(offset=0):
     return Listing(TestA, offset)
 
 
-@app.site.listroute('/listb')
+@app.site.listroute('/listb/')
 @view
 def testb_list(offset=0):
 
@@ -41,13 +41,17 @@ def testb_list(offset=0):
 
 @app.site.box('menu-main')
 def menu_main():
+
+    print "MENU_MAIN"
     menu = Menu('main')
-    menu.append(url_for('testa_list'), 'TestA')
-    menu.append(url_for('testb_list'), 'TestB')
+    menu.append(url_for('site.testa_list'), 'TestA')
+    menu.append(url_for('site.testb_list'), 'TestB')
 
     return menu
 
 
 if __name__ == '__main__':
+
+    print app.view_functions
 
     app.run()
