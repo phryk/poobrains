@@ -1,8 +1,6 @@
 from peewee import CharField
 from flask import url_for
-from poobrains import Poobrain, BaseModel, Storable, Menu, Listing, view
-
-print __name__, __file__
+from poobrains import Poobrain, BaseModel, Storable, Menu, Listing, render
 
 app = Poobrain('Poobrains')
 
@@ -10,39 +8,46 @@ class TestA(Storable):
     test = CharField()
 
 class TestB(Storable):
-    pass
+    
+    def __call__(self, *args, **kw):
+        print "TestB called w/: ", args
+        print kw
+
+        return "dem wat"
 
 class TestB1(TestB):
     pass
 
 
 @app.site.route('/testa/<id_or_name>')
-@view
+@render
 def testa_load(id_or_name):
 
     return TestA.load(id_or_name)
 
+@app.site.view(TestB, '/oinks/')
+def wtf(instance):
+    print "DEM INSTANCE: ", instance
 
-@app.site.route('/lista/')
-@app.site.route('/lista/<int:offset>/')
-#@app.site.listroute('/lista/')
-@view
-def testa_list(offset=0):
+    return instance
 
-    return Listing(TestA, offset)
+#@app.site.route('/lista/')
+#@app.site.route('/lista/<int:offset>/')
+@app.site.listing(TestA, '/lista/')
+def testa_list(instance):
 
-
-@app.site.listroute('/listb/')
-@view
-def testb_list(offset=0):
-
-    return Listing(TestB, offset)
+    return instance
 
 
-@app.site.box('menu-main')
+@app.site.listing(TestB, '/listb/')
+def testb_list(instance):
+
+    return instance
+
+
+@app.box('menu-main')
 def menu_main():
 
-    print "MENU_MAIN"
     menu = Menu('main')
     menu.append(url_for('site.testa_list'), 'TestA')
     menu.append(url_for('site.testb_list'), 'TestB')
@@ -50,8 +55,8 @@ def menu_main():
     return menu
 
 
-if __name__ == '__main__':
+app.site.add_listing(TestA, '/barf/')
 
-    print app.view_functions
+if __name__ == '__main__':
 
     app.run()

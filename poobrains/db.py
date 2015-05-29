@@ -1,5 +1,6 @@
 from math import ceil, floor
 from flask import abort, url_for, current_app, request
+from werkzeug.routing import BuildError
 import peewee
 from .rendering import ChildAware, Renderable, Menu
 
@@ -77,11 +78,13 @@ class Listing(Renderable):
             self.items.append(item)
        
         # Build pagination if matching endpoint and enough rows exist
-        pagination_endpoint = request.endpoint
-        if not pagination_endpoint.endswith('_offset'):
-            pagination_endpoint = '%s_offset' % (pagination_endpoint,)
-        
-        if current_app.view_functions.has_key(pagination_endpoint):
+        endpoint = request.endpoint
+        print "WTF ENDPOINT: ", endpoint
+        if not endpoint.endswith('_offset'):
+            endpoint = '%s_offset' % (endpoint,)
+        print "DEM  ENDPOINT", endpoint
+
+        try:
 
             self.pagination = Menu('pagination')
             for i in range(0, self.pagecount):
@@ -90,7 +93,7 @@ class Listing(Renderable):
                 active = self.current_page == page_num
 
                 self.pagination.append(
-                    url_for(pagination_endpoint, offset=i*self.limit),
+                    url_for(endpoint, offset=i*self.limit),
                     page_num,
                     active
                 )
@@ -98,5 +101,6 @@ class Listing(Renderable):
             if len(self.pagination) < 2:
                 self.pagination = False
 
-        else:
+        except BuildError as e:
+            print "well, fuck", e
             self.pagination = False

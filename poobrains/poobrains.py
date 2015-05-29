@@ -1,13 +1,14 @@
 # -*-  coding: utf-8 -*-
 
 from os.path import join, exists, basename, dirname, isdir, isfile
+from functools import wraps
 from flask import Flask, Blueprint, current_app, g, abort, send_from_directory
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader
 from playhouse.db_url import connect
 
-from .db import BaseModel, db_proxy
-from .rendering import Renderable, view
+from .db import BaseModel, Listing, db_proxy
+from .rendering import Renderable, render 
 import defaults
 
 try:
@@ -17,6 +18,7 @@ except ImportError as e:
 
     print "Poobrains: This application has no config module. Just so you know…"
     config = False
+
 
 
 class ErrorPage(Renderable):
@@ -35,15 +37,17 @@ class Poobrain(Flask):
 
     site = None
     admin = None
+    boxes = None
+    resource_extension_whitelist = None
 
 
     def __init__(self, *args, **kwargs):
 
         super(Poobrain, self).__init__(*args, **kwargs)
-        
 
         self.site = Pooprint('site', 'site')
         self.admin = Pooprint('admin', 'admin')
+        self.boxes = {}
         
         self.poobrain_path = dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
@@ -65,6 +69,7 @@ class Poobrain(Flask):
         if self.config['MAY_INSTALL']:
             self.add_url_rule('/install', 'Poobrain.install', self.install)
 
+        self.error_handler_spec[None][403] = self.errorpage
         self.error_handler_spec[None][404] = self.errorpage
         self.error_handler_spec[None][500] = self.errorpage
 
@@ -74,7 +79,7 @@ class Poobrain(Flask):
 
 
 
-    @view
+    @render
     def errorpage(self, error):
         return ErrorPage(error)
     
@@ -126,8 +131,10 @@ class Poobrain(Flask):
     def request_setup(self):
 
         self.db.connect()
-        print "ZOMG"
-        print self.view_functions
+
+        g.boxes = {}
+        for name, f in self.boxes.iteritems():
+            g.boxes[name] = f()
 
 
     def request_teardown(self, exception):
@@ -136,9 +143,18 @@ class Poobrain(Flask):
             self.db.close()
 
 
+    def box(self, name):
+
+        def decorator(f):
+            self.boxes[name] = f
+            return f
+
+        return decorator
+
+
     def run(self, *args, **kwargs):
 
-        self.register_blueprint(self.site, url_prefix='/site')
+        self.register_blueprint(self.site)
         self.register_blueprint(self.admin, url_prefix='/admin')
 
         super(Poobrain, self).run(*args, **kwargs)
@@ -149,18 +165,17 @@ class Pooprint(Blueprint):
 
     app = None
     db = None
-    boxes = None
+    views = None
     poobrain_path = None
-    resource_extension_whitelist = None
+
 
     def __init__(self, *args, **kwargs):
 
         super(Pooprint, self).__init__(*args, **kwargs)
 
-        self.boxes = {}
+        self.views = {}
         self.poobrain_path = dirname(__file__)
-        self.before_request(self.request_setup)
-        
+
 
     def register(self, app, options, first_registration=False):
 
@@ -170,33 +185,74 @@ class Pooprint(Blueprint):
         self.db = app.db
 
 
-    def listroute(self, rule, **options):
+    def add_view(self, rule, cls, endpoint=None, view_func=None, mode='full', primary=False, **options):
+
+        rule = join(rule, '<id_or_name>')
+
+        if endpoint is None:
+            endpoint = view_func.__name__
+
+        self.add_url_rule(rule, endpoint, view_func, **options)
+
+
+    def add_listing(self, cls, rule, endpoint=None, view_func=None, **options):
+
+        if view_func is None:
+
+            @render
+            def view_func(offset=0):
+
+                print "OMGWTF:", offset
+                return Listing(cls, offset)
+
+            endpoint = '%s_lambda' % (cls.__name__,)
+        
+        if endpoint is None:
+            endpoint = view_func.__name__
 
         offset_rule = join(rule, '<int:offset>/')
+        offset_endpoint = '%s_offset' % (endpoint,)
+
+        self.add_url_rule(rule, endpoint=endpoint, view_func=view_func, **options)
+        self.add_url_rule(offset_rule, endpoint=offset_endpoint, view_func=view_func, **options)
+
+    
+
+    def listing(self, cls, rule, **options):
 
         def decorator(f):
 
-            #endpoint = options.pop('endpoint', None)
-            endpoint = f.__name__
-            offset_endpoint = '%s_offset' % (f.__name__,)
-            self.add_url_rule(rule, endpoint, f, **options)
-            self.add_url_rule(offset_rule, offset_endpoint, f, **options)
+            @wraps(f)
+            @render
+            def real(offset=0):
 
-            print "dem endpoints: ", endpoint, offset_endpoint
+                instance = Listing(cls, offset)
+                return f(instance)
 
-            return f
+            self.add_listing(cls, rule, view_func=real, **options)
+
+            return real
 
         return decorator
 
 
-    def request_setup(self):
+    def view(self, cls, rule, mode='full', primary=False, **options):
 
-        print "##################################BUILDING BOXES######"#
 
-        g.boxes = {}
-        for name, f in self.boxes.iteritems():
-            g.boxes[name] = f()
-    
+        def decorator(f):
+
+            @wraps(f)
+            @render
+            def real(id_or_name):
+
+                instance = cls.load(id_or_name)
+                return f(instance)
+
+            self.add_view(rule, cls=cls, view_func=real, mode=mode, primary=primary, **options)
+            return real
+
+        return decorator
+
     
     @locked_cached_property
     def jinja_loader(self):
@@ -211,12 +267,3 @@ class Pooprint(Blueprint):
         paths.append(join(self.poobrain_path, 'themes', 'default'))
 
         return FileSystemLoader(paths)
-
-
-    def box(self, name):
-
-        def decorator(f):
-            self.boxes[name] = f
-            return f
-
-        return decorator

@@ -4,21 +4,12 @@ from flask import abort, render_template, current_app, g
 
 
 
-def view(f):
+def render(f):
 
     @wraps(f)
     def decorator(*args, **kwargs):
 
-        # TODO: see if this can be obsoleted with abort and Flask.error_handler[_spec]
-        try:
-            content = f(*args, **kwargs)
-        except Exception as e:
-
-            if current_app.debug:
-                raise
-
-            abort(500, "VERY ERROR. SUCH DISGRACE. MANY SORRY.")
-
+        content = f(*args, **kwargs)
         g.title = content.title
         g.content = content
         return render_template('main.jinja', content=content)
