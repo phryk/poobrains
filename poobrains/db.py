@@ -38,7 +38,7 @@ class BaseModel(peewee.Model, ChildAware):
 
 class Storable(BaseModel, Renderable):
 
-    name = peewee.CharField()
+    name = peewee.CharField(index=True, unique=True)
     title = peewee.CharField()
 
 
