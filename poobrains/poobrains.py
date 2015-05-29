@@ -2,6 +2,7 @@
 
 from os.path import join, exists, basename, dirname, isdir, isfile
 from functools import wraps
+from collections import OrderedDict
 from flask import Flask, Blueprint, current_app, g, abort, send_from_directory
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader
@@ -166,6 +167,7 @@ class Pooprint(Blueprint):
     app = None
     db = None
     views = None
+    listings = None
     poobrain_path = None
 
 
@@ -174,6 +176,7 @@ class Pooprint(Blueprint):
         super(Pooprint, self).__init__(*args, **kwargs)
 
         self.views = {}
+        self.listings = {}
         self.poobrain_path = dirname(__file__)
 
 
@@ -185,27 +188,53 @@ class Pooprint(Blueprint):
         self.db = app.db
 
 
-    def add_view(self, rule, cls, endpoint=None, view_func=None, mode='full', primary=False, **options):
+    def add_view(self, cls, rule, endpoint=None, view_func=None, mode='full', primary=False, **options):
 
         rule = join(rule, '<id_or_name>')
+        if not self.views.has_key(cls):
+            self.views[cls] = []
+
+        if view_func is None:
+
+            @render
+            def view_func(id_or_name):
+                
+                return cls.load(id_or_name)
+
+#            endpoint = '%s_view_autogen_1' % (cls.__name__,) # TODO: make sure endpoint is unique
+#
+#            if endpoint in self.views[cls]:
+#                print "all dem views: ", self.views[cls]
+#                latest = self.views[cls][-1].split('_')[-1]
+#                print latest
+
+            i = 1
+            endpoint = '%s_view_autogen_%d' % (cls.__name__, i) # TODO: make sure endpoint is unique
+            while endpoint in self.views[cls]:
+                endpoint = '%s_view_autogen_%d' % (cls.__name__, i) # TODO: make sure endpoint is unique
+                i += 1
+
 
         if endpoint is None:
             endpoint = view_func.__name__
 
         self.add_url_rule(rule, endpoint, view_func, **options)
+        self.views[cls].append(endpoint)
 
 
     def add_listing(self, cls, rule, endpoint=None, view_func=None, **options):
+        
+        if not self.listings.has_key(cls):
+            self.listings[cls] = []
 
         if view_func is None:
 
             @render
             def view_func(offset=0):
 
-                print "OMGWTF:", offset
                 return Listing(cls, offset)
 
-            endpoint = '%s_lambda' % (cls.__name__,)
+            endpoint = '%s_listing_autogen' % (cls.__name__,) # TODO: make sure endpoint is unique
         
         if endpoint is None:
             endpoint = view_func.__name__
@@ -215,6 +244,8 @@ class Pooprint(Blueprint):
 
         self.add_url_rule(rule, endpoint=endpoint, view_func=view_func, **options)
         self.add_url_rule(offset_rule, endpoint=offset_endpoint, view_func=view_func, **options)
+
+        self.listings[cls].append([endpoint, offset_endpoint])
 
     
 
@@ -238,7 +269,6 @@ class Pooprint(Blueprint):
 
     def view(self, cls, rule, mode='full', primary=False, **options):
 
-
         def decorator(f):
 
             @wraps(f)
@@ -248,8 +278,20 @@ class Pooprint(Blueprint):
                 instance = cls.load(id_or_name)
                 return f(instance)
 
-            self.add_view(rule, cls=cls, view_func=real, mode=mode, primary=primary, **options)
+            self.add_view(cls, rule, view_func=real, mode=mode, primary=primary, **options)
             return real
+
+        return decorator
+
+
+    def expose(self, rule):
+
+        def decorator(cls):
+
+            self.add_listing(cls, rule)
+            self.add_view(cls, rule)
+
+            return cls
 
         return decorator
 

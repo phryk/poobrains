@@ -19,6 +19,10 @@ class TestB1(TestB):
     pass
 
 
+@app.site.expose('/x/')
+class TestX(Storable):
+    pass
+
 @app.site.route('/testa/<id_or_name>')
 @render
 def testa_load(id_or_name):
@@ -56,6 +60,8 @@ def menu_main():
 
 
 app.site.add_listing(TestA, '/barf/')
+app.site.add_view(TestX, '/barf/')
+app.site.add_view(TestX, '/barf42/')
 
 if __name__ == '__main__':
 
