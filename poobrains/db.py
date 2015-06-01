@@ -42,6 +42,23 @@ class Storable(BaseModel, Renderable):
     title = peewee.CharField()
 
 
+    def __init__(self, *args, **kwargs):
+
+        super(Storable, self).__init__(*args, **kwargs)
+        self.url = self.instance_url
+
+    
+    @classmethod
+    def url(cls):
+        blueprint = request.blueprint if request.blueprint else 'site'
+        return current_app.blueprints[blueprint].get_url(cls)
+
+
+    def instance_url(self):
+        print "INSTANCE URL: ", self
+        blueprint = request.blueprint if request.blueprint else 'site'
+        return current_app.blueprints[blueprint].get_url(self.__class__, self.name)
+
 class Listing(Renderable):
 
     cls = None
@@ -79,10 +96,8 @@ class Listing(Renderable):
        
         # Build pagination if matching endpoint and enough rows exist
         endpoint = request.endpoint
-        print "WTF ENDPOINT: ", endpoint
         if not endpoint.endswith('_offset'):
             endpoint = '%s_offset' % (endpoint,)
-        print "DEM  ENDPOINT", endpoint
 
         try:
 

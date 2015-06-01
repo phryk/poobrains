@@ -4,6 +4,7 @@ from poobrains import Poobrain, BaseModel, Storable, Menu, Listing, render
 
 app = Poobrain('Poobrains')
 
+@app.site.expose('/testa')
 class TestA(Storable):
     test = CharField()
 
@@ -23,13 +24,13 @@ class TestB1(TestB):
 class TestX(Storable):
     pass
 
-@app.site.route('/testa/<id_or_name>')
-@render
-def testa_load(id_or_name):
+#@app.site.route('/testa/<id_or_name>')
+#@render
+#def testa_load(id_or_name):
+#
+#    return TestA.load(id_or_name)
 
-    return TestA.load(id_or_name)
-
-@app.site.view(TestB, '/oinks/')
+@app.site.view(TestA, '/oinks/', primary=True)
 def wtf(instance):
     print "DEM INSTANCE: ", instance
 
@@ -37,24 +38,24 @@ def wtf(instance):
 
 #@app.site.route('/lista/')
 #@app.site.route('/lista/<int:offset>/')
-@app.site.listing(TestA, '/lista/')
-def testa_list(instance):
+#@app.site.listing(TestA, '/lista/')
+#def testa_list(instance):
 
-    return instance
+#    return instance
 
 
-@app.site.listing(TestB, '/listb/')
-def testb_list(instance):
-
-    return instance
+#@app.site.listing(TestB, '/listb/')
+#def testb_list(instance):
+#
+#    return instance
 
 
 @app.box('menu-main')
 def menu_main():
 
     menu = Menu('main')
-    menu.append(url_for('site.testa_list'), 'TestA')
-    menu.append(url_for('site.testb_list'), 'TestB')
+    menu.append(TestA.url(), 'TestA')
+#    menu.append(url_for('site.testb_list'), 'TestB')
 
     return menu
 
@@ -62,6 +63,7 @@ def menu_main():
 app.site.add_listing(TestA, '/barf/')
 app.site.add_view(TestX, '/barf/')
 app.site.add_view(TestX, '/barf42/')
+
 
 if __name__ == '__main__':
 

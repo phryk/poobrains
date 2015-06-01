@@ -2,14 +2,15 @@
 
 from os.path import join, exists, basename, dirname, isdir, isfile
 from functools import wraps
-from collections import OrderedDict
-from flask import Flask, Blueprint, current_app, g, abort, send_from_directory
+from flask import Flask, Blueprint, current_app, g, abort, url_for, send_from_directory
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader
 from playhouse.db_url import connect
 
+from collections import OrderedDict
 from .db import BaseModel, Listing, db_proxy
 from .rendering import Renderable, render 
+from .helpers import TrueDict 
 import defaults
 
 try:
@@ -192,8 +193,8 @@ class Pooprint(Blueprint):
 
         rule = join(rule, '<id_or_name>')
         if not self.views.has_key(cls):
-            self.views[cls] = []
-
+            self.views[cls] = TrueDict()
+        
         if view_func is None:
 
             @render
@@ -201,17 +202,10 @@ class Pooprint(Blueprint):
                 
                 return cls.load(id_or_name)
 
-#            endpoint = '%s_view_autogen_1' % (cls.__name__,) # TODO: make sure endpoint is unique
-#
-#            if endpoint in self.views[cls]:
-#                print "all dem views: ", self.views[cls]
-#                latest = self.views[cls][-1].split('_')[-1]
-#                print latest
-
             i = 1
-            endpoint = '%s_view_autogen_%d' % (cls.__name__, i) # TODO: make sure endpoint is unique
-            while endpoint in self.views[cls]:
-                endpoint = '%s_view_autogen_%d' % (cls.__name__, i) # TODO: make sure endpoint is unique
+            endpoint = '%s_view_autogen_%d' % (cls.__name__, i)
+            while endpoint in self.views[cls].keys():
+                endpoint = '%s_view_autogen_%d' % (cls.__name__, i)
                 i += 1
 
 
@@ -219,13 +213,15 @@ class Pooprint(Blueprint):
             endpoint = view_func.__name__
 
         self.add_url_rule(rule, endpoint, view_func, **options)
-        self.views[cls].append(endpoint)
+        self.views[cls][endpoint] = primary
 
 
-    def add_listing(self, cls, rule, endpoint=None, view_func=None, **options):
-        
+    def add_listing(self, cls, rule, endpoint=None, view_func=None, primary=False, **options):
+    
+        print "ADD LISTING: ", cls.__name__, rule
+
         if not self.listings.has_key(cls):
-            self.listings[cls] = []
+            self.listings[cls] = TrueDict()
 
         if view_func is None:
 
@@ -234,8 +230,12 @@ class Pooprint(Blueprint):
 
                 return Listing(cls, offset)
 
-            endpoint = '%s_listing_autogen' % (cls.__name__,) # TODO: make sure endpoint is unique
-        
+            i = 1
+            endpoint = '%s_listing_autogen_%d' % (cls.__name__, i)
+            while endpoint in self.listings[cls].keys():
+                endpoint = '%s_listing_autogen_%d' % (cls.__name__, i)
+                i += 1
+
         if endpoint is None:
             endpoint = view_func.__name__
 
@@ -245,8 +245,8 @@ class Pooprint(Blueprint):
         self.add_url_rule(rule, endpoint=endpoint, view_func=view_func, **options)
         self.add_url_rule(offset_rule, endpoint=offset_endpoint, view_func=view_func, **options)
 
-        self.listings[cls].append([endpoint, offset_endpoint])
-
+        self.listings[cls][endpoint] = primary
+        #print self.listings
     
 
     def listing(self, cls, rule, **options):
@@ -295,7 +295,45 @@ class Pooprint(Blueprint):
 
         return decorator
 
-    
+
+    def get_url(self, cls, id_or_name=None):
+
+        if id_or_name:
+            print "ID OR NAME INSTANCE SHIT" 
+            if not self.views.has_key(cls):
+                if current_app.debug:
+                    raise LookupError("No registered views for class %s." % (cls.__name__,))
+                return ''
+
+            endpoints = self.views[cls]
+            print "INSTANCE ENDPOINTS: ", endpoints
+        else:
+
+            if not self.listings.has_key(cls):
+                if current_app.debug:
+                    raise LookupError("No registered listings for class %s." % (cls.__name__,))
+
+            endpoints = self.listings[cls]
+
+        if True in endpoints.values():
+            for endpoint, primary in endpoints.iteritems():
+                print "endpoint iteration."
+                if primary == True:
+                    print "breaking."
+                    break
+        else:
+            print "USING DEFAULT ENDPOINT"
+            print endpoints
+            endpoint = endpoints.keys()[0]
+
+        endpoint = '%s.%s' % (self.name, endpoint)
+        print "final endpoint: ", endpoint
+        if id_or_name:
+            return url_for(endpoint, id_or_name=id_or_name)
+
+        return url_for(endpoint)
+
+
     @locked_cached_property
     def jinja_loader(self):
 
