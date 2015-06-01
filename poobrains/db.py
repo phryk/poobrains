@@ -65,9 +65,13 @@ class Storable(BaseModel, Renderable):
         blueprint = request.blueprint if request.blueprint else 'site'
         return current_app.blueprints[blueprint].get_url(self.__class__, self.name)
 
+
+
 class Listing(Renderable):
 
     cls = None
+    mode = None
+    title = None
     offset = None
     limit = None
     items = None
@@ -76,12 +80,18 @@ class Listing(Renderable):
     pagination = None
     current_page = None
 
-    def __init__(self, cls, offset=0, limit=None):
+    def __init__(self, cls, mode='teaser', title=None, offset=0, limit=None):
 
         super(Listing, self).__init__()
 
         self.cls = cls
+        self.mode = mode
         self.offset = offset
+
+        if title != None:
+            self.title = title
+        else:
+            self.title = cls.__name__
 
         if limit is None:
             self.limit = current_app.config['PAGINATION_COUNT']

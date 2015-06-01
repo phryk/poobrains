@@ -226,7 +226,7 @@ class Pooprint(Blueprint):
             @render
             def view_func(offset=0):
 
-                return Listing(cls, offset)
+                return Listing(cls, offset=offset)
 
             i = 1
             endpoint = '%s_listing_autogen_%d' % (cls.__name__, i)
@@ -254,7 +254,7 @@ class Pooprint(Blueprint):
             @render
             def real(offset=0):
 
-                instance = Listing(cls, offset)
+                instance = Listing(cls, offset=offset)
                 return f(instance)
 
             self.add_listing(cls, rule, view_func=real, **options)
