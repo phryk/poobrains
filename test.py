@@ -19,6 +19,16 @@ class TestB(Storable):
 class TestB1(TestB):
     pass
 
+@app.site.view(TestA, '/oinks/', primary=True)
+def wtf(instance):
+    print "DEM INSTANCE: ", instance
+
+    return instance
+
+@app.site.view(TestA, '/asdf/')
+def wtf2(instance):
+
+    return instance
 
 @app.site.expose('/x/')
 class TestX(Storable):
@@ -30,11 +40,6 @@ class TestX(Storable):
 #
 #    return TestA.load(id_or_name)
 
-@app.site.view(TestA, '/oinks/', primary=True)
-def wtf(instance):
-    print "DEM INSTANCE: ", instance
-
-    return instance
 
 #@app.site.route('/lista/')
 #@app.site.route('/lista/<int:offset>/')

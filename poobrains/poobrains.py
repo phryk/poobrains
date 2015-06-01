@@ -218,8 +218,6 @@ class Pooprint(Blueprint):
 
     def add_listing(self, cls, rule, endpoint=None, view_func=None, primary=False, **options):
     
-        print "ADD LISTING: ", cls.__name__, rule
-
         if not self.listings.has_key(cls):
             self.listings[cls] = TrueDict()
 
@@ -246,7 +244,6 @@ class Pooprint(Blueprint):
         self.add_url_rule(offset_rule, endpoint=offset_endpoint, view_func=view_func, **options)
 
         self.listings[cls][endpoint] = primary
-        #print self.listings
     
 
     def listing(self, cls, rule, **options):
@@ -299,14 +296,12 @@ class Pooprint(Blueprint):
     def get_url(self, cls, id_or_name=None):
 
         if id_or_name:
-            print "ID OR NAME INSTANCE SHIT" 
             if not self.views.has_key(cls):
                 if current_app.debug:
                     raise LookupError("No registered views for class %s." % (cls.__name__,))
                 return ''
 
             endpoints = self.views[cls]
-            print "INSTANCE ENDPOINTS: ", endpoints
         else:
 
             if not self.listings.has_key(cls):
@@ -317,17 +312,12 @@ class Pooprint(Blueprint):
 
         if True in endpoints.values():
             for endpoint, primary in endpoints.iteritems():
-                print "endpoint iteration."
                 if primary == True:
-                    print "breaking."
                     break
         else:
-            print "USING DEFAULT ENDPOINT"
-            print endpoints
             endpoint = endpoints.keys()[0]
 
         endpoint = '%s.%s' % (self.name, endpoint)
-        print "final endpoint: ", endpoint
         if id_or_name:
             return url_for(endpoint, id_or_name=id_or_name)
 
