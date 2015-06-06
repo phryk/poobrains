@@ -5,18 +5,18 @@ from poobrains import Poobrain, Storable, Menu
 app = Poobrain('Poobrains Example')
 
 
-@app.site.route('/')
+@app.route('/')
 def front():
     return redirect(News.url())
 
 
-@app.site.expose('/news')
+@app.expose('/news')
 class News(Storable):
 
     text = TextField()
 
 
-@app.site.expose('/paste')
+@app.expose('/paste')
 class Paste(Storable):
 
     type = CharField()

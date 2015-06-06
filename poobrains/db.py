@@ -50,20 +50,11 @@ class Storable(BaseModel, Renderable):
     
     @classmethod
     def url(cls):
-        #blueprint = request.blueprint if request.blueprint and request.blueprint in current_app.blueprints else 'site'
-
-        if request.blueprint is not None and request.blueprint in current_app.blueprints:
-            blueprint = request.blueprint
-
-        else:
-            blueprint = 'site'
-
-        return current_app.blueprints[blueprint].get_url(cls)
+        return current_app.get_url(cls)
 
 
     def instance_url(self):
-        blueprint = request.blueprint if request.blueprint else 'site'
-        return current_app.blueprints[blueprint].get_url(self.__class__, self.name)
+        return current_app.get_url(self.__class__, self.name)
 
 
 

@@ -154,6 +154,23 @@ class Poobrain(Flask):
         return decorator
 
 
+    def expose(self, rule):
+        return self.site.expose(rule)
+
+    
+    def get_url(self, cls, id_or_name=None, mode=None):
+
+        try:
+            return self.site.get_url(cls, id_or_name=id_or_name, mode=mode)
+
+        except LookupError:
+
+            try: 
+                return self.admin.get_url(cls, id_or_name=id_or_name, mode=mode)
+            except LookupError:
+                return None
+
+
     def run(self, *args, **kwargs):
 
         self.register_blueprint(self.site)
@@ -193,7 +210,10 @@ class Pooprint(Blueprint):
 
         rule = join(rule, '<id_or_name>')
         if not self.views.has_key(cls):
-            self.views[cls] = TrueDict()
+            self.views[cls] = {}
+
+        if not self.views[cls].has_key(mode):
+            self.views[cls][mode] = TrueDict()
         
         if view_func is None:
 
@@ -204,7 +224,7 @@ class Pooprint(Blueprint):
 
             i = 1
             endpoint = '%s_view_autogen_%d' % (cls.__name__, i)
-            while endpoint in self.views[cls].keys():
+            while endpoint in self.views[cls][mode].keys():
                 endpoint = '%s_view_autogen_%d' % (cls.__name__, i)
                 i += 1
 
@@ -213,7 +233,7 @@ class Pooprint(Blueprint):
             endpoint = view_func.__name__
 
         self.add_url_rule(rule, endpoint, view_func, **options)
-        self.views[cls][endpoint] = primary
+        self.views[cls][mode][endpoint] = primary
 
 
     def add_listing(self, cls, rule, endpoint=None, view_func=None, primary=False, **options):
@@ -293,7 +313,7 @@ class Pooprint(Blueprint):
         return decorator
 
 
-    def get_url(self, cls, id_or_name=None):
+    def get_url(self, cls, id_or_name=None, mode=None):
 
         if id_or_name:
             if not self.views.has_key(cls):
@@ -301,14 +321,21 @@ class Pooprint(Blueprint):
                     raise LookupError("No registered views for class %s." % (cls.__name__,))
                 return ''
 
-            endpoints = self.views[cls]
+            if mode == None:
+                mode = 'full'
+
+            if not self.views[cls].has_key(mode):
+                if current_app.debug:
+                    raise LookupError("No registered views for class %s with mode %s." % (cls.__name__, mode))
+
+            endpoints = self.views[cls][mode] # view url lookup
         else:
 
             if not self.listings.has_key(cls):
                 if current_app.debug:
                     raise LookupError("No registered listings for class %s." % (cls.__name__,))
 
-            endpoints = self.listings[cls]
+            endpoints = self.listings[cls] # listing url lookup
 
         if True in endpoints.values():
             for endpoint, primary in endpoints.iteritems():
