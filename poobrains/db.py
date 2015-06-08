@@ -13,6 +13,19 @@ class BaseModel(peewee.Model, ChildAware):
         database = db_proxy
 
 
+
+class Storable(BaseModel, Renderable):
+
+    name = peewee.CharField(index=True, unique=True)
+    title = peewee.CharField()
+
+
+    def __init__(self, *args, **kwargs):
+
+        super(Storable, self).__init__(*args, **kwargs)
+        self.url = self.instance_url # hack to make .url callable for class and instances
+
+
     @classmethod
     def load(cls, id_or_name):
 
@@ -35,19 +48,6 @@ class BaseModel(peewee.Model, ChildAware):
         return instance
 
 
-
-class Storable(BaseModel, Renderable):
-
-    name = peewee.CharField(index=True, unique=True)
-    title = peewee.CharField()
-
-
-    def __init__(self, *args, **kwargs):
-
-        super(Storable, self).__init__(*args, **kwargs)
-        self.url = self.instance_url
-
-    
     @classmethod
     def url(cls):
         return current_app.get_url(cls)
@@ -55,6 +55,12 @@ class Storable(BaseModel, Renderable):
 
     def instance_url(self):
         return current_app.get_url(self.__class__, self.name)
+
+
+    def render(self, mode='full'):
+
+        #TODO: get form if mode is 'add' or 'edit'
+        return super(Storable, self).render(mode=mode)
 
 
 

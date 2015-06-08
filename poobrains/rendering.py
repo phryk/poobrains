@@ -1,7 +1,7 @@
 from os.path import join, exists, dirname
 from functools import wraps
 from flask import abort, render_template, current_app, g
-
+from werkzeug.exceptions import HTTPException
 
 
 def render(f):
@@ -9,10 +9,27 @@ def render(f):
     @wraps(f)
     def decorator(*args, **kwargs):
 
-        content = f(*args, **kwargs)
-        g.title = content.title
-        g.content = content
-        return render_template('main.jinja', content=content)
+        try:
+            rv = f(*args, **kwargs)
+
+            if isinstance(rv, tuple):
+                content = rv[0]
+                status_code = rv[1]
+
+            else:
+                content = rv
+                status_code = 200
+
+            g.title = content.title
+            g.content = content # TODO: Is this used? Is this needed?
+
+            return render_template('main.jinja', content=content), status_code
+
+        except Exception as e:
+            if isinstance(e, HTTPException) or current_app.debug:
+                raise # let exceptions raised by abort() pass up
+
+            abort(500, "Somebody set up us the bomb. @render error.")
 
     return decorator
 
@@ -25,14 +42,37 @@ class ChildAware(object):
 
         children = cls.__subclasses__()
 
-        if len(children):
-            for child in children:
-                grandchildren = child.children()
-
-            for grandchild in grandchildren:
-                children.append(grandchild)
+        for child in children:
+            children += child.children()
 
         return children
+
+
+    @classmethod
+    def ancestors(cls, top=None):
+
+        """
+        params:
+            * top: class, when this class is reached, the iteration is stopped
+        """
+
+        if top is None:
+            top = ChildAware
+
+        whitelist = [top] + top.children()
+        ancestors = []
+
+        for base in cls.__bases__:
+
+            if base in whitelist:
+                ancestors.append(base)
+
+                if base is top:
+                    break
+
+                ancestors += base.ancestors(top)
+
+        return ancestors
 
 
 
@@ -47,16 +87,25 @@ class Renderable(ChildAware):
         self.title = self.__class__.__name__
 
     
-    def render(self, mode='full'):
+    def render(self, mode='full'): 
 
-        tpl_base = self.__class__.__name__.lower()
+        clsname = self.__class__.__name__.lower()
 
         tpls = [
-            '%s-%s.jinja' % (tpl_base, mode),
-            '%s.jinja' % (tpl_base,)
+            '%s-%s.jinja' % (clsname, mode),
+            '%s.jinja' % (clsname,)
         ]
 
-        return render_template(tpls, content=self)
+        for ancestor in self.__class__.ancestors(Renderable):
+
+            clsname = ancestor.__name__.lower()
+
+            tpls += [
+                '%s-%s.jinja' % (clsname, mode),
+                '%s.jinja' % (clsname,)
+            ]
+
+        return render_template(tpls, content=self, mode=mode)
 
 
 class MenuItem(object):

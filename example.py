@@ -1,6 +1,6 @@
 from peewee import CharField, TextField
 from flask import redirect
-from poobrains import Poobrain, Storable, Menu
+from poobrains import Poobrain, Storable, Menu, Renderable
 
 app = Poobrain('Poobrains Example')
 
@@ -31,6 +31,21 @@ def menu_main():
     menu.append(Paste.url(), 'Pastes')
 
     return menu
+
+
+class NonExposed(Storable):
+
+    text = TextField()
+
+
+class NonExposedB(NonExposed):
+    pass
+
+
+@app.site.listing(NonExposedB, '/custom', mode='full')
+def list_nonexposed(listing):
+
+    return listing
 
 
 if __name__ == '__main__':

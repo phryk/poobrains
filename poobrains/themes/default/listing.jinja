@@ -2,7 +2,7 @@
     <ul class="listing">
 
         {% for item in content.items %}
-            <li>{{ item.render('teaser') }}</li>
+            <li>{{ item.render(content.mode) }}</li>
         {% endfor %}
     </ul>
 

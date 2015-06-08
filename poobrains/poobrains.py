@@ -83,7 +83,7 @@ class Poobrain(Flask):
 
     @render
     def errorpage(self, error):
-        return ErrorPage(error)
+        return ErrorPage(error), error.code
     
     
     def install(self):
@@ -237,7 +237,9 @@ class Pooprint(Blueprint):
 
 
     def add_listing(self, cls, rule, endpoint=None, view_func=None, primary=False, **options):
-    
+
+        rule = join(rule, '') # make sure rule has trailing slash
+
         if not self.listings.has_key(cls):
             self.listings[cls] = TrueDict()
 
@@ -266,7 +268,7 @@ class Pooprint(Blueprint):
         self.listings[cls][endpoint] = primary
     
 
-    def listing(self, cls, rule, **options):
+    def listing(self, cls, rule, mode='teaser', **options):
 
         def decorator(f):
 
@@ -274,7 +276,7 @@ class Pooprint(Blueprint):
             @render
             def real(offset=0):
 
-                instance = Listing(cls, offset=offset)
+                instance = Listing(cls, offset=offset, mode=mode)
                 return f(instance)
 
             self.add_listing(cls, rule, view_func=real, **options)

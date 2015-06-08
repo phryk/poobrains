@@ -1,5 +1,6 @@
 from collections import OrderedDict
 
+
 class TrueDict(OrderedDict):
 
     def __setitem__(self, key, value):
