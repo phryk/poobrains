@@ -16,7 +16,7 @@ class News(Storable):
     text = TextField()
 
 
-@app.expose('/paste')
+@app.expose('/paste', title='Copypasta')
 class Paste(Storable):
 
     type = CharField()
@@ -42,7 +42,7 @@ class NonExposedB(NonExposed):
     pass
 
 
-@app.site.listing(NonExposedB, '/custom', mode='full')
+@app.site.listing(NonExposedB, '/custom', mode='full', title='Custom Listing')
 def list_nonexposed(listing):
 
     return listing

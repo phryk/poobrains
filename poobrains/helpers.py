@@ -9,3 +9,15 @@ class TrueDict(OrderedDict):
             raise ValueError('Only one item may be True.')
 
         return super(TrueDict, self).__setitem__(key, value)
+
+
+    def choose(self):
+
+        if True in self.values():
+            for choice, primary in self.iteritems():
+                if primary == True:
+                    break
+        else:
+            choice = self.keys()[0]
+
+        return choice

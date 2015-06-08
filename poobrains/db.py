@@ -85,7 +85,7 @@ class Listing(Renderable):
         self.mode = mode
         self.offset = offset
 
-        if title != None:
+        if title is not None:
             self.title = title
         else:
             self.title = cls.__name__
