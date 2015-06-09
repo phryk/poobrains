@@ -1,3 +1,7 @@
 <article id="news-{{ content.id }}">
     {{ content.text }}
+
+    {% if mode == 'full' %}
+        <a href="{{ content.url('teaser') }}">Goto teaser</a>
+    {% endif %}
 </article>

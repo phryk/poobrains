@@ -264,7 +264,7 @@ class Pooprint(Blueprint):
         if endpoint is None:
             endpoint = view_func.__name__
 
-        offset_rule = join(rule, '<int:offset>/')
+        offset_rule = rule+'+<int:offset>'
         offset_endpoint = '%s_offset' % (endpoint,)
 
         self.add_url_rule(rule, endpoint=endpoint, view_func=view_func, **options)
@@ -322,10 +322,10 @@ class Pooprint(Blueprint):
 
     def get_url(self, cls, id_or_name=None, mode=None):
 
-        if id_or_name:
+        if id_or_name and (mode is None or not mode.startswith('teaser')):
             return self.get_view_url(cls, id_or_name, mode=mode)
-        else:
-            return self.get_listing_url(cls, mode=mode)
+
+        return self.get_listing_url(cls, mode=mode, id_or_name=id_or_name)
 
 
     def get_view_url(self, cls, id_or_name, mode=None):
@@ -352,10 +352,14 @@ class Pooprint(Blueprint):
         return url_for(endpoint, id_or_name=id_or_name)
 
 
-    def get_listing_url(self, cls, mode=None, offset=0):
+    def get_listing_url(self, cls, mode=None, offset=0, id_or_name=None):
 
         if mode == None:
             mode = 'teaser'
+
+        if id_or_name is not None:
+            instance = cls.load(id_or_name)
+            offset = cls.select().where(cls.id > instance.id).count()
 
         if not self.listings.has_key(cls):
             if current_app.debug:
@@ -369,6 +373,9 @@ class Pooprint(Blueprint):
 
         endpoint = endpoints.choose()
         endpoint = '%s.%s' % (self.name, endpoint)
+
+        if isinstance(offset, int) and offset > 0:
+            return url_for(endpoint+'_offset', offset=offset)
 
         return url_for(endpoint)
 

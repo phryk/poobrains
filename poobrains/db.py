@@ -8,17 +8,21 @@ db_proxy = peewee.Proxy()
 
 
 class BaseModel(peewee.Model, ChildAware):
-
+    
     class Meta:
         database = db_proxy
 
 
 
 class Storable(BaseModel, Renderable):
-
+    
     name = peewee.CharField(index=True, unique=True)
     title = peewee.CharField()
 
+
+    class Meta:
+        order_by = ['-id']
+    
 
     def __init__(self, *args, **kwargs):
 
@@ -30,7 +34,7 @@ class Storable(BaseModel, Renderable):
     def load(cls, id_or_name):
 
         try:
-            if type(id_or_name) is int or (type(id_or_name) is unicode and id_or_name.isdigit()):
+            if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
                 instance = cls.get(cls.id == id_or_name)
 
             else:
@@ -53,8 +57,8 @@ class Storable(BaseModel, Renderable):
         return current_app.get_url(cls)
 
 
-    def instance_url(self):
-        return current_app.get_url(self.__class__, self.name)
+    def instance_url(self, mode=None):
+        return current_app.get_url(self.__class__, id_or_name=self.name, mode=mode)
 
 
     def render(self, mode='full'):
