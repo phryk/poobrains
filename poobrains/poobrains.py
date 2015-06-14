@@ -80,7 +80,6 @@ class Poobrain(Flask):
         self.teardown_request(self.request_teardown)
 
 
-
     @render
     def errorpage(self, error):
         return ErrorPage(error), error.code
@@ -168,6 +167,7 @@ class Poobrain(Flask):
             try: 
                 return self.admin.get_url(cls, id_or_name=id_or_name, mode=mode)
             except LookupError:
+                self.logger.error("Failed generating URL for %s[%s]. No matching route found." % (cls.__name__, id_or_name))
                 return None
 
 
@@ -196,6 +196,7 @@ class Pooprint(Blueprint):
         self.views = {}
         self.listings = {}
         self.poobrain_path = dirname(__file__)
+        print "%%%%% Pooprint.__init__ %%%%%"
 
 
     def register(self, app, options, first_registration=False):
@@ -391,5 +392,7 @@ class Pooprint(Blueprint):
 
         paths.append(join(self.root_path, 'themes', 'default'))
         paths.append(join(self.poobrain_path, 'themes', 'default'))
+
+        print "%%%%% If you see this, jinja_loader was called %%%%%"
 
         return FileSystemLoader(paths)

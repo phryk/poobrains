@@ -1,5 +1,10 @@
-<form>
+<form name="{{ content.name }}" method="{{ content.method }}" {% if content.action %}action="{{ content.action }}"{% endif %}>
 
 {{ content.render_fields() }}
+
+<div class="controls">
+    <button type="reset">Reset</button>
+    <button type="submit" name="submit" value="submit">Submit</button>
+</div>
 
 </form>

@@ -47,12 +47,13 @@ class Storable(BaseModel, Renderable):
 
     class Meta:
         order_by = ['-id']
-    
+
 
     def __init__(self, *args, **kwargs):
 
         super(Storable, self).__init__(*args, **kwargs)
-        self.url = self.instance_url # hack to make .url callable for class and instances
+        self.url = self.instance_url # make .url callable for class and instances
+        self.form = self.instance_form # make .form callable for class and instance
 
 
     def __setattr__(self, name, value):
@@ -103,8 +104,22 @@ class Storable(BaseModel, Renderable):
         return current_app.get_url(self.__class__, id_or_name=self.name, mode=mode)
 
 
-    def form(self):
-        form = Form()
+    @classmethod
+    def form(cls):
+
+        form = Form(self.__class__.__name__.lower()+'-add', action=cls.url('add'))
+
+        fields = cls._meta.get_fields()
+
+        for field in fields:
+            form.add_field(field.name, field.__class__.__name__.lower())
+
+        return form
+
+
+    def instance_form(self):
+
+        form = Form(self.__class__.__name__.lower()+'-edit', action=self.url('edit'))
 
         fields = self.__class__._meta.get_fields()
 
@@ -204,17 +219,19 @@ class Listing(Renderable):
 
 class Form(Renderable):
 
+    name = None
     title = None
     fields = None
     rendered = None
 
-    def __init__(self, title=''):
-        
+    def __init__(self, name, title='', method='POST', action=None):
+       
+        self.name = name
         self.title = title
+        self.method = method
+        self.action = action
         self.fields = OrderedDict()
         self.render_reset()
-
-        #TODO: add Storable.form() for class and instance
 
 
     def add_field(self, name, field_type, value=None):
