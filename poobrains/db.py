@@ -1,4 +1,7 @@
+# -*- coding: utf-8 -*-
+
 from math import ceil, floor
+from re import match
 from flask import abort, url_for, current_app, request
 from werkzeug.routing import BuildError
 import peewee
@@ -28,6 +31,14 @@ class Storable(BaseModel, Renderable):
 
         super(Storable, self).__init__(*args, **kwargs)
         self.url = self.instance_url # hack to make .url callable for class and instances
+
+
+    def __setattr__(self, name, value):
+
+        if name == 'name' and not match('^[a-zA-ZäÄöÖüÜ_\-]*$', value):
+            raise ValueError("Invalid value for name: %s" % (value,))
+
+        super(Storable, self).__setattr__(name, value)
 
 
     @classmethod
@@ -108,9 +119,19 @@ class Listing(Renderable):
         self.items = []
         items = select.offset(self.offset).limit(self.limit)
 
-        for item in items:
-            self.items.append(item)
-       
+        iteration_done = False
+        iterator = items.__iter__()
+        while not iteration_done:
+            try:
+                item = next(iterator)
+                self.items.append(item)
+
+            except StopIteration:
+                iteration_done = True
+
+            except ValueError as e:
+                current_app.logger.error(e.message)
+
         # Build pagination if matching endpoint and enough rows exist
         endpoint = request.endpoint
         if not endpoint.endswith('_offset'):
@@ -134,5 +155,37 @@ class Listing(Renderable):
                 self.pagination = False
 
         except BuildError as e:
-            print "well, fuck", e
+            current_app.logger.debug('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
+
+
+
+class Form(Renderable):
+
+    rendered = None
+
+    def __init__(self, model_or_instance):
+
+        self.render_reset()
+
+        if isinstance(BaseModel, model_or_instance):
+            model = model_or_instance.__class__
+            instance = model_or_instance
+
+        else:
+            model = model_or_instance
+            instance = None
+
+        #TODO: add Storable.form() for class and instance
+
+
+    def render_reset(self):
+        self.rendered = []
+
+
+    def render_field(self, name):
+        pass
+
+
+    def render_fields(self):
+        pass
