@@ -3,5 +3,6 @@
 
     {% if mode == 'full' %}
         <a href="{{ content.url('teaser') }}">Goto teaser</a>
+        {{ content.form().render() }}
     {% endif %}
 </article>
