@@ -3,8 +3,9 @@
 from os.path import join, exists, basename, dirname, isdir, isfile
 from functools import wraps
 from flask import Flask, Blueprint, current_app, g, abort, url_for, send_from_directory
+from flask.signals import appcontext_pushed
 from flask.helpers import locked_cached_property
-from jinja2 import FileSystemLoader
+from jinja2 import FileSystemLoader, DictLoader
 from playhouse.db_url import connect
 
 from collections import OrderedDict
@@ -78,6 +79,16 @@ class Poobrain(Flask):
         # Make sure that each request has a proper database connection
         self.before_request(self.request_setup)
         self.teardown_request(self.request_teardown)
+
+
+    def try_trigger_before_first_request_functions(self):
+
+        # this function is the latest possible place to call @setupmethod functions
+        if not self._got_first_request:
+            self.register_blueprint(self.site)
+            self.register_blueprint(self.admin, url_prefix='/admin')
+
+        super(Poobrain, self).try_trigger_before_first_request_functions()
 
 
     @render
@@ -171,14 +182,6 @@ class Poobrain(Flask):
                 return None
 
 
-    def run(self, *args, **kwargs):
-
-        self.register_blueprint(self.site)
-        self.register_blueprint(self.admin, url_prefix='/admin')
-
-        super(Poobrain, self).run(*args, **kwargs)
-
-
 
 class Pooprint(Blueprint):
 
@@ -196,7 +199,6 @@ class Pooprint(Blueprint):
         self.views = {}
         self.listings = {}
         self.poobrain_path = dirname(__file__)
-        print "%%%%% Pooprint.__init__ %%%%%"
 
 
     def register(self, app, options, first_registration=False):
@@ -392,7 +394,5 @@ class Pooprint(Blueprint):
 
         paths.append(join(self.root_path, 'themes', 'default'))
         paths.append(join(self.poobrain_path, 'themes', 'default'))
-
-        print "%%%%% If you see this, jinja_loader was called %%%%%"
 
         return FileSystemLoader(paths)
