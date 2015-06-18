@@ -40,7 +40,8 @@ class BaseModel(peewee.Model, ChildAware):
 
 
 class Storable(BaseModel, Renderable):
-    
+
+    field_blacklist = ['id']
     name = peewee.CharField(index=True, unique=True)
     title = peewee.CharField()
 
@@ -107,7 +108,11 @@ class Storable(BaseModel, Renderable):
     @classmethod
     def form(cls):
 
-        form = Form(self.__class__.__name__.lower()+'-add', action=cls.url('add'))
+        form = Form(
+            self.__class__.__name__.lower()+'-add',
+            action=cls.url('add'),
+            tpls=self.form_template_candidates()
+        )
 
         fields = cls._meta.get_fields()
 
@@ -119,7 +124,11 @@ class Storable(BaseModel, Renderable):
 
     def instance_form(self):
 
-        form = Form(self.__class__.__name__.lower()+'-edit', action=self.url('edit'))
+        form = Form(
+            self.__class__.__name__.lower()+'-edit',
+            action=self.url('edit'),
+            tpls=self.form_template_candidates()
+        )
 
         fields = self.__class__._meta.get_fields()
 
@@ -127,11 +136,35 @@ class Storable(BaseModel, Renderable):
             form.add_field(field.name, field.__class__.__name__.lower(), getattr(self, field.name))
 
         return form
+        
+    
+    def form_template_candidates(self):
+
+        tpls = []
+        clsname = self.__class__.__name__.lower()
+        tpls.append('%s-form.jinja' % (clsname,))
+
+        for ancestor in self.__class__.ancestors(Storable):
+            clsname = ancestor.__name__.lower()
+            tpls.append('%s-form.jinja' % (clsname,))
+
+        return tpls
 
 
     def render(self, mode='full'):
 
-        #TODO: get form if mode is 'add' or 'edit'
+        tpls = self.form_template_candidates()
+
+        if mode in ('add', 'edit'):
+
+            if mode == 'add':
+                form = self.__class__.form()
+
+            else:
+                form = self.form()
+
+            return form.render()
+
         return super(Storable, self).render(mode=mode)
 
 
@@ -152,7 +185,6 @@ class Listing(Renderable):
     def __init__(self, cls, mode='teaser', title=None, offset=0, limit=None):
 
         super(Listing, self).__init__()
-
         self.cls = cls
         self.mode = mode
         self.offset = offset
@@ -224,14 +256,25 @@ class Form(Renderable):
     fields = None
     rendered = None
 
-    def __init__(self, name, title='', method='POST', action=None):
+    def __init__(self, name, title='', method='POST', action=None, tpls=None):
        
         self.name = name
         self.title = title
         self.method = method
         self.action = action
         self.fields = OrderedDict()
+
+        self.tpls = []
+        if tpls:
+            self.tpls += tpls
+        
+        self.tpls.append('form.jinja')
+
         self.render_reset()
+
+
+    def template_candidates(self, mode):
+        return self.tpls
 
 
     def add_field(self, name, field_type, value=None):
@@ -249,7 +292,7 @@ class Form(Renderable):
         tpls.append("fields/field.jinja")
 
         self.rendered.append(name)
-        return render_template(tpls, field_type=field_type, value=value)
+        return render_template(tpls, field_type=field_type, name=name, value=value)
 
 
     def render_fields(self):

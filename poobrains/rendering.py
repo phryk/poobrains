@@ -1,35 +1,43 @@
 from os.path import join, exists, dirname
 from functools import wraps
 from flask import abort, render_template, current_app, g
+from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException
 
 
-def render(f):
+def render(mode):
 
-    @wraps(f)
-    def decorator(*args, **kwargs):
+    def decorator(f):
 
-        try:
-            rv = f(*args, **kwargs)
+        @wraps(f)
+        def real(*args, **kwargs):
 
-            if isinstance(rv, tuple):
-                content = rv[0]
-                status_code = rv[1]
+            try:
+                rv = f(*args, **kwargs)
 
-            else:
-                content = rv
-                status_code = 200
+                if isinstance(rv, tuple):
+                    content = rv[0]
+                    status_code = rv[1]
 
-            g.title = content.title
-            g.content = content # TODO: Is this used? Is this needed?
+                else:
+                    content = rv
+                    status_code = 200
 
-            return render_template('main.jinja', content=content), status_code
+                if isinstance(content, Response):
+                    return rv # pass Responses (i.e. redirects) upwards
 
-        except Exception as e:
-            if isinstance(e, HTTPException) or current_app.debug:
-                raise # let exceptions raised by abort() pass up
+                g.title = content.title
+                g.content = content # TODO: Is this used? Is this needed?
 
-            abort(500, "Somebody set up us the bomb. @render error.")
+                return render_template('main.jinja', content=content, mode=mode), status_code
+
+            except Exception as e:
+                if isinstance(e, HTTPException) or current_app.debug:
+                    raise # let exceptions raised by abort() pass up
+
+                abort(500, "Somebody set up us the bomb. @render error.")
+
+        return real
 
     return decorator
 
@@ -89,6 +97,12 @@ class Renderable(ChildAware):
     
     def render(self, mode='full'): 
 
+        tpls = self.template_candidates(mode)
+        return render_template(tpls, content=self, mode=mode)
+
+
+    def template_candidates(self, mode):
+
         clsname = self.__class__.__name__.lower()
 
         tpls = [
@@ -105,7 +119,19 @@ class Renderable(ChildAware):
                 '%s.jinja' % (clsname,)
             ]
 
-        return render_template(tpls, content=self, mode=mode)
+        return tpls
+
+
+class RenderString(Renderable):
+
+    value = None
+
+    def __init__(self, value):
+        self.value = value
+
+
+    def render(self, mode=None):
+        return self.value
 
 
 class MenuItem(object):
