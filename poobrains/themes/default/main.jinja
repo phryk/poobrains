@@ -11,6 +11,15 @@
         </header>
         <main>
             <h1>{{ g.title }}</h1>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="messages">
+                        {% for category, message in messages %}
+                            <li>{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
             {{ content.render(mode) }}
         </main>
     </body>

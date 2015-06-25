@@ -1,18 +1,27 @@
-{% if content.items|length %}
-    <ul class="listing">
+<div class="listing-wrapper">
 
-        {% for item in content.items %}
-            <li>{{ item.render(content.mode) }}</li>
-        {% endfor %}
-    </ul>
-
-    {% if content.pagination %}
-        <footer>
-            {{ content.pagination.render(content.mode) }}
-        </footer>
+    {% if content.actions %}
+        <header>
+            {{ content.actions.render() }}
+        </header>
     {% endif %}
 
-{% else %}
-    <p>You have entered the {{ content.cls.__name__ }} crypt. It is empty, save for some cobwebs.</p>
-{% endif %}
+    {% if content.items|length %}
+        <ul class="listing">
 
+            {% for item in content.items %}
+                <li>{{ item.render(content.mode) }}</li>
+            {% endfor %}
+        </ul>
+
+        {% if content.pagination %}
+            <footer>
+                {{ content.pagination.render(content.mode) }}
+            </footer>
+        {% endif %}
+
+    {% else %}
+        <p>You have entered the {{ content.cls.__name__ }} crypt. It is empty, save for some cobwebs.</p>
+    {% endif %}
+
+</div>

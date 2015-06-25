@@ -7,6 +7,7 @@ from flask import abort, render_template, url_for, current_app, request
 from werkzeug.routing import BuildError
 import peewee
 from .rendering import ChildAware, Renderable, Menu
+from .helpers import CustomOrderedDict
 
 db_proxy = peewee.Proxy()
 
@@ -59,7 +60,7 @@ class Storable(BaseModel, Renderable):
 
     def __setattr__(self, name, value):
 
-        if name == 'name' and not match('^[a-zA-ZäÄöÖüÜ_\-]*$', value):
+        if name == 'name' and not match('^[a-zA-ZäÄöÖüÜ0-9_\-]*$', value):
             raise ValidationError(self.__class__, getattr(self.__class__, name), value)
 
         super(Storable, self).__setattr__(name, value)
@@ -97,8 +98,8 @@ class Storable(BaseModel, Renderable):
 
 
     @classmethod
-    def url(cls):
-        return current_app.get_url(cls)
+    def url(cls, mode=None):
+        return current_app.get_url(cls, mode=mode)
 
 
     def instance_url(self, mode=None):
@@ -108,32 +109,36 @@ class Storable(BaseModel, Renderable):
     @classmethod
     def form(cls):
 
+        return cls().form('add')
+
+
+    def instance_form(self, mode='edit'):
+
+        if mode == 'add':
+            title = 'Add new %s' % (self.__class__.__name__,)
+        else:
+            title = self.title
+
         form = Form(
-            self.__class__.__name__.lower()+'-add',
-            action=cls.url('add'),
+            '%s-%s' % (self.__class__.__name__.lower(), mode),
+            title=title,
+            action=self.url(mode),
             tpls=self.form_template_candidates()
         )
 
-        fields = cls._meta.get_fields()
+        if mode == 'delete':
 
-        for field in fields:
-            form.add_field(field.name, field.__class__.__name__.lower())
+            form.add_field('warning', 'message', value='Deletion is not revocable. Proceed?')
+            form.add_button('submit', name='submit', value='delete', label='KILL')
 
-        return form
+        else:
+            fields = self.__class__._meta.get_fields()
 
+            for field in fields:
+                form.add_field(field.name, field.__class__.__name__.lower(), getattr(self, field.name))
 
-    def instance_form(self):
-
-        form = Form(
-            self.__class__.__name__.lower()+'-edit',
-            action=self.url('edit'),
-            tpls=self.form_template_candidates()
-        )
-
-        fields = self.__class__._meta.get_fields()
-
-        for field in fields:
-            form.add_field(field.name, field.__class__.__name__.lower(), getattr(self, field.name))
+            form.add_button('reset', name='reset', label='Reset')
+            form.add_button('submit', name='submit', value='save', label='Save')
 
         return form
         
@@ -161,7 +166,7 @@ class Storable(BaseModel, Renderable):
                 form = self.__class__.form()
 
             else:
-                form = self.form()
+                form = self.form(mode=mode)
 
             return form.render()
 
@@ -181,13 +186,15 @@ class Listing(Renderable):
     count = None
     pagination = None
     current_page = None
+    actions = None
 
-    def __init__(self, cls, mode='teaser', title=None, offset=0, limit=None):
+    def __init__(self, cls, mode='teaser', title=None, offset=0, limit=None, actions=None):
 
         super(Listing, self).__init__()
         self.cls = cls
         self.mode = mode
         self.offset = offset
+        self.actions = actions
 
         if title is not None:
             self.title = title
@@ -253,8 +260,11 @@ class Form(Renderable):
 
     name = None
     title = None
+    method = None
     fields = None
+    controls = None
     rendered = None
+    field_associations = None
 
     def __init__(self, name, title='', method='POST', action=None, tpls=None):
        
@@ -263,6 +273,7 @@ class Form(Renderable):
         self.method = method
         self.action = action
         self.fields = OrderedDict()
+        self.controls = CustomOrderedDict()
 
         self.tpls = []
         if tpls:
@@ -279,6 +290,12 @@ class Form(Renderable):
 
     def add_field(self, name, field_type, value=None):
         self.fields[name] = (field_type, value)
+
+
+    def add_button(self, type, name=None, value=None, label=None):
+
+        self.controls[name] = Button(type, name=name, value=value, label=label)
+
 
     def render_reset(self):
         self.rendered = []
@@ -305,3 +322,22 @@ class Form(Renderable):
                 rendered_fields += self.render_field(name)
 
         return rendered_fields
+
+
+
+class Button(Renderable):
+
+    name = None
+    type = None
+    value = None
+    label = None
+
+    
+    def __init__(self, type, name=None, value=None, label=None):
+
+        super(Button, self).__init__()
+
+        self.name = name
+        self.type = type
+        self.value = value
+        self.label = label

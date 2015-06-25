@@ -2,7 +2,7 @@
 
 from os.path import join, exists, basename, dirname, isdir, isfile
 from functools import wraps
-from flask import Flask, Blueprint, current_app, request, g, abort, redirect, url_for, send_from_directory
+from flask import Flask, Blueprint, current_app, request, g, abort, flash, redirect, url_for, send_from_directory
 from flask.signals import appcontext_pushed
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader, DictLoader
@@ -10,7 +10,7 @@ from playhouse.db_url import connect
 
 from collections import OrderedDict
 from .db import BaseModel, Listing, db_proxy
-from .rendering import Renderable, RenderString, render 
+from .rendering import Renderable, RenderString, Menu, render 
 from .helpers import TrueDict 
 import defaults
 
@@ -55,7 +55,7 @@ class Poobrain(Flask):
         self.poobrain_path = dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
 
-        if config is not False:
+        if config:
             for name in dir(config):
                 if name.isupper():
                     self.config[name] = getattr(config, name)
@@ -168,10 +168,17 @@ class Poobrain(Flask):
 
         def decorator(cls):
 
+            def admin_listing_actions():
+                m = Menu('admin-listin-actions')
+                m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
+
+                return m
+
             self.site.add_listing(cls, rule, title=title)
             self.site.add_view(cls, rule)
-            self.admin.add_listing(cls, rule, title=title, mode='edit-teaser')
+            self.admin.add_listing(cls, rule, title=title, mode='teaser-edit', action_func=admin_listing_actions)
             self.admin.add_view(cls, rule, mode='edit')
+            self.admin.add_view(cls, rule, mode='delete')
             self.admin.add_view(cls, rule+'/add', mode='add')
 
             return cls
@@ -231,15 +238,19 @@ class Pooprint(Blueprint):
         if mode != 'add':
             rule = join(rule, '<id_or_name>')
 
-        if mode in ('add', 'edit'):
+        # Why the fuck does HTML not support DELETE!?
+        if mode in ('add', 'edit', 'delete'): 
             options['methods'] = ['GET', 'POST']
+            if mode == 'delete':
+                rule = join(rule, 'delete')
+                options['methods'].append('DELETE')
 
         if not view_func:
-
             @render(mode)
             def view_func(id_or_name=None):
 
-                if request.method == 'POST':
+                # handle POST for add and edit
+                if mode in ('add', 'edit') and request.method == 'POST':
 
                     field_names = cls._meta.get_field_names()
 
@@ -253,17 +264,32 @@ class Pooprint(Blueprint):
                             try:
                                 setattr(instance, field_name, request.form[field_name])
                             except Exception as e:
-                                current_app.logger.debug("default view_func catchall")
+                                current_app.logger.error("Possible bug. default view_func catchall.")
+                                current_app.logger.error('%s.%s' % (cls.__name__, field_name))
 
                     instance.save()
 
                     return redirect(self.get_url(cls, id_or_name=instance.name, mode='edit'))
 
-                if id_or_name:
-                    return cls.load(id_or_name)
-                else: # should only happen for 'add' mode
-                    return cls()
+                # Why the fuck does HTML not support DELETE!?
+                elif mode == 'delete' and request.method in ('POST', 'DELETE') and id_or_name:
+                    instance = cls.load(id_or_name)
+                    message = "Deleted %s '%s'." % (cls.__name__, instance.name)
+                    instance.delete_instance()
+                    flash(message)
+                    return redirect(cls.url('teaser-edit'))#HERE
 
+                # handle 
+                elif id_or_name:
+                    instance = cls.load(id_or_name)
+                    if mode in ('edit', 'delete'):
+                        return instance.form(mode)
+
+                    return instance
+
+                else: # should only happen for 'add' mode
+                    instance = cls()
+                    return instance.form('add')
 
             i = 1
             endpoint = '%s_view_%s_autogen_%d' % (cls.__name__, mode, i)
@@ -278,7 +304,7 @@ class Pooprint(Blueprint):
         self.views[cls][mode][endpoint] = primary
 
 
-    def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, **options):
+    def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, **options):
 
         if not mode:
             mode = 'teaser'
@@ -296,7 +322,12 @@ class Pooprint(Blueprint):
             @render('full')
             def view_func(offset=0):
 
-                return Listing(cls, offset=offset, title=title, mode=mode)
+                if action_func:
+                    actions = action_func()
+                else:
+                    actions = None
+
+                return Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
 
             #TODO: Document endpoint generation
             i = 1
@@ -356,7 +387,7 @@ class Pooprint(Blueprint):
 
     def get_url(self, cls, id_or_name=None, mode=None):
 
-        if id_or_name and (mode is None or not mode.startswith('teaser')):
+        if mode == 'add' or (id_or_name and (mode is None or not mode.startswith('teaser'))):
             return self.get_view_url(cls, id_or_name, mode=mode)
 
         return self.get_listing_url(cls, mode=mode, id_or_name=id_or_name)
@@ -368,18 +399,14 @@ class Pooprint(Blueprint):
             mode = 'full'
 
         if not self.views.has_key(cls):
-            if current_app.debug:
-                raise LookupError("No registered views for class %s." % (cls.__name__,))
-            return ''
+            raise LookupError("No registered views for class %s." % (cls.__name__,))
 
         if not self.views[cls].has_key(mode):
-            if current_app.debug:
-                raise LookupError("No registered views for class %s with mode %s." % (cls.__name__, mode))
+            raise LookupError("No registered views for class %s with mode %s." % (cls.__name__, mode))
 
-            return ''
 
         endpoints = self.views[cls][mode]
-        
+       
         endpoint = endpoints.choose()
         endpoint = '%s.%s' % (self.name, endpoint)
 
@@ -390,18 +417,16 @@ class Pooprint(Blueprint):
 
         if mode == None:
             mode = 'teaser'
-
+        
         if id_or_name is not None:
             instance = cls.load(id_or_name)
             offset = cls.select().where(cls.id > instance.id).count()
 
         if not self.listings.has_key(cls):
-            if current_app.debug:
-                raise LookupError("No registered listings for class %s." % (cls.__name__,))
+            raise LookupError("No registered listings for class %s." % (cls.__name__,))
 
         if not self.listings[cls].has_key(mode):
-            if current_app.debug:
-                raise LookupError("No registered listings for class %s with mode %s." % (cls.__name__, mode))
+            raise LookupError("No registered listings for class %s with mode %s." % (cls.__name__, mode))
 
         endpoints = self.listings[cls][mode]
 
@@ -427,3 +452,5 @@ class Pooprint(Blueprint):
         paths.append(join(self.poobrain_path, 'themes', 'default'))
 
         return FileSystemLoader(paths)
+
+

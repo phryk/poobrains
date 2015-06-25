@@ -2,9 +2,12 @@
 
 {{ content.render_fields() }}
 
-<div class="controls">
-    <button type="reset">Reset</button>
-    <button type="submit" name="submit" value="submit">Submit</button>
-</div>
+{% if content.controls %}
+    <ul class="controls">
+        {% for control in content.controls %}
+            <li>{{ control.render() }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
 
 </form>
