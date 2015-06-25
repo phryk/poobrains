@@ -283,7 +283,10 @@ class Pooprint(Blueprint):
                 elif id_or_name:
                     instance = cls.load(id_or_name)
                     if mode in ('edit', 'delete'):
-                        return instance.form(mode)
+                        form = instance.form(mode)
+                        form.actions = instance.actions
+
+                        return form
 
                     return instance
 

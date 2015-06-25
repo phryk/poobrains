@@ -45,6 +45,7 @@ class Storable(BaseModel, Renderable):
     field_blacklist = ['id']
     name = peewee.CharField(index=True, unique=True)
     title = peewee.CharField()
+    actions = None
 
 
     class Meta:
@@ -56,6 +57,7 @@ class Storable(BaseModel, Renderable):
         super(Storable, self).__init__(*args, **kwargs)
         self.url = self.instance_url # make .url callable for class and instances
         self.form = self.instance_form # make .form callable for class and instance
+
 
 
     def __setattr__(self, name, value):
@@ -93,6 +95,17 @@ class Storable(BaseModel, Renderable):
                 raise
 
             abort(500, "VERY ERROR. SUCH DISGRACE. MANY SORRY.")
+
+        current_app.logger.debug('Filling Storable actions')
+        instance.actions = Menu('%s-%d.actions' % (instance.__class__.__name__, instance.id))
+        try:
+            instance.actions.append(instance.url('full'), 'View')
+            instance.actions.append(instance.url('edit'), 'Edit')
+            instance.actions.append(instance.url('delete'), 'Delete')
+
+        except Exception as e:
+            current_app.logger.debug('Action menu generation failure.')
+            current_app.logger.debug(e)
 
         return instance
 
