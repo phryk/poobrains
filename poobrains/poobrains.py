@@ -294,11 +294,8 @@ class Pooprint(Blueprint):
                     instance = cls()
                     return instance.form('add')
 
-            i = 1
-            endpoint = '%s_view_%s_autogen_%d' % (cls.__name__, mode, i)
-            while endpoint in self.views[cls][mode].keys():
-                endpoint = '%s_view_%s_autogen_%d' % (cls.__name__, mode, i)
-                i += 1
+            endpoint = self.next_endpoint(cls, mode, 'view')
+
 
         if endpoint is None:
             endpoint = view_func.__name__
@@ -332,12 +329,7 @@ class Pooprint(Blueprint):
 
                 return Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
 
-            #TODO: Document endpoint generation
-            i = 1
-            endpoint = '%s_listing_autogen_%d' % (cls.__name__, i)
-            while endpoint in self.listings[cls][mode].keys():
-                endpoint = '%s_listing_autogen_%d' % (cls.__name__, i)
-                i += 1
+            endpoint = self.next_endpoint(cls, mode, 'listing')
 
         if endpoint is None:
             endpoint = view_func.__name__
@@ -440,6 +432,20 @@ class Pooprint(Blueprint):
             return url_for(endpoint+'_offset', offset=offset)
 
         return url_for(endpoint)
+
+    
+    def next_endpoint(self, cls, mode, context):
+
+            format = '%s_%s_%s_autogen_%%d' % (cls.__name__, context, mode)
+
+            i = 1
+            endpoint = format % (i,)
+            endpoints = self.views[cls][mode].keys() if context == 'view' else self.listings[cls][mode].keys()
+            while endpoint in endpoints:
+                endpoint = format % (i,)
+                i += 1
+
+            return endpoint
 
 
     @locked_cached_property
