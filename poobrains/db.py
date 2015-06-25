@@ -26,7 +26,7 @@ class ValidationError(ValueError):
         self.field = field
         self.value = value
 
-        self.message = "Tried assigning invalid value to %s.%s: %s" % (self.model.__name__, self.field.name, str(value))
+        self.message = "Tried assigning invalid value to %s.%s: %s. This error may be caused by faulty data in the base." % (self.model.__name__, self.field.name, str(value))
 
 
     def __str__(self):
