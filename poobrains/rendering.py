@@ -26,6 +26,18 @@ def render(mode):
                 if isinstance(content, Response):
                     return rv # pass Responses (i.e. redirects) upwards
 
+                # This logic is redundant to Storable.render(mode).
+                # It is "needed" in order for title to be set correctly
+                # TODO: Don't Repeat Yourself.
+                # Maybe move mode parameter to Storable.load?
+                if mode in ('add', 'edit', 'delete'):
+                    if mode == 'add':
+                        content = content.__class__.form()
+
+                    else:
+                        content = content.form(mode=mode)
+
+
                 g.title = content.title
                 g.content = content
 

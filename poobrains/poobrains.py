@@ -8,9 +8,10 @@ from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader, DictLoader
 from playhouse.db_url import connect
 from sqlite3 import Connection as SqliteConnection
+import peewee
 
 from collections import OrderedDict
-from .db import BaseModel, Listing, db_proxy
+from .db import BaseModel, Storable, Listing, db_proxy
 from .rendering import Renderable, RenderString, Menu, render 
 from .helpers import TrueDict 
 import defaults
@@ -22,6 +23,20 @@ except ImportError as e:
 
     print "Poobrains: This application has no config module. Just so you know…"
     config = False
+
+
+def admin_menu():
+
+    menu = Menu('main')
+
+    for storable in Storable.children():
+        try:
+            menu.append(storable.url('teaser-edit'), storable.__name__)
+        except Exception as e:
+            print "oh noes, failed getting url for: ", storable
+            print e
+
+    return menu
 
 
 
@@ -41,7 +56,6 @@ class Poobrain(Flask):
 
     site = None
     admin = None
-    boxes = None
     resource_extension_whitelist = None
 
 
@@ -51,7 +65,6 @@ class Poobrain(Flask):
 
         self.site = Pooprint('site', 'site')
         self.admin = Pooprint('admin', 'admin')
-        self.boxes = {}
         
         self.poobrain_path = dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
@@ -143,33 +156,23 @@ class Poobrain(Flask):
 
     def request_setup(self):
 
+        self.logger.debug('APP BEFORE REQUEST')
+        self.logger.debug(request.blueprint)
+        self.logger.debug(type(request.blueprint))
+
+        g.boxes = {}
         self.db.connect()
         connection = self.db.get_conn()
         if isinstance(connection, SqliteConnection): 
-            print "================================================================================"
-            print "we got sqlite, sire!"
             connection.enable_load_extension(True)
             connection.load_extension('/usr/local/libexec/sqlite-ext/pcre.so')
             connection.enable_load_extension(False)
-
-        g.boxes = {}
-        for name, f in self.boxes.iteritems():
-            g.boxes[name] = f()
 
 
     def request_teardown(self, exception):
 
         if not self.db.is_closed():
             self.db.close()
-
-
-    def box(self, name):
-
-        def decorator(f):
-            self.boxes[name] = f
-            return f
-
-        return decorator
 
 
     def expose(self, rule, title=None):
@@ -204,8 +207,8 @@ class Poobrain(Flask):
             try: 
                 return self.admin.get_url(cls, id_or_name=id_or_name, mode=mode)
             except LookupError:
-                self.logger.error("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, id_or_name, mode))
-                return None
+                #self.logger.error("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, id_or_name, mode))
+                raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, id_or_name, mode))
 
 
 
@@ -215,6 +218,7 @@ class Pooprint(Blueprint):
     db = None
     views = None
     listings = None
+    boxes = None
     poobrain_path = None
 
 
@@ -224,7 +228,11 @@ class Pooprint(Blueprint):
 
         self.views = {}
         self.listings = {}
+        self.boxes = {}
         self.poobrain_path = dirname(__file__)
+        
+        self.before_request(self.box_setup)
+        self.box('menu-main')(admin_menu)
 
 
     def register(self, app, options, first_registration=False):
@@ -275,7 +283,12 @@ class Pooprint(Blueprint):
                                 current_app.logger.error("Possible bug. default view_func catchall.")
                                 current_app.logger.error('%s.%s' % (cls.__name__, field_name))
 
-                    instance.save()
+                    try:
+                        instance.save()
+
+                    except peewee.IntegrityError as e:
+                        flash('Integrity error: %s' % e.message, 'error')
+                        return redirect(self.get_url(cls, mode='teaser-edit'))
 
                     return redirect(self.get_url(cls, id_or_name=instance.name, mode='edit'))
 
@@ -305,6 +318,14 @@ class Pooprint(Blueprint):
 
         self.add_url_rule(rule, endpoint, view_func, **options)
         self.views[cls][mode][endpoint] = primary
+
+
+    def box_setup(self):
+        self.app.logger.debug('POOPRINT BEFORE REQUEST')
+        self.app.logger.debug(g.boxes)
+        
+        for name, f in self.boxes.iteritems():
+            g.boxes[name] = f()
 
 
     def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, **options):
@@ -380,7 +401,14 @@ class Pooprint(Blueprint):
 
         return decorator
 
+    
+    def box(self, name, ):
 
+        def decorator(f):
+            self.boxes[name] = f
+            return f
+
+        return decorator
 
 
     def get_url(self, cls, id_or_name=None, mode=None):

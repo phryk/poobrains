@@ -81,14 +81,6 @@ class Storable(BaseModel, Renderable):
 
 
 
-    def __setattr__(self, name, value):
-
-#        if name == 'name' and not match('^[a-zA-ZäÄöÖüÜ0-9_\-]*$', value):
-#            raise ValidationError(self.__class__, getattr(self.__class__, name), value)
-
-        super(Storable, self).__setattr__(name, value)
-
-
     @classmethod
     def load(cls, id_or_name):
 
@@ -108,16 +100,6 @@ class Storable(BaseModel, Renderable):
 
             abort(500, "Somebody set up us the bomb.")
 
-        except ValidationError as e:
-
-            current_app.logger.error("Database integrity impaired. Invalid data in %s.%s: %s" % (cls.__name__, e.field.name, e.value))
-
-            if current_app.debug:
-                raise
-
-            abort(500, "VERY ERROR. SUCH DISGRACE. MANY SORRY.")
-
-        current_app.logger.debug('Filling Storable actions')
         instance.actions = Menu('%s-%d.actions' % (instance.__class__.__name__, instance.id))
         try:
             instance.actions.append(instance.url('full'), 'View')
@@ -125,8 +107,8 @@ class Storable(BaseModel, Renderable):
             instance.actions.append(instance.url('delete'), 'Delete')
 
         except Exception as e:
-            current_app.logger.debug('Action menu generation failure.')
-            current_app.logger.debug(e)
+            current_app.logger.error('Action menu generation failure.')
+            current_app.logger.error(e)
 
         return instance
 
@@ -160,6 +142,8 @@ class Storable(BaseModel, Renderable):
             tpls=self.form_template_candidates()
         )
 
+        form.actions = self.actions
+
         if mode == 'delete':
 
             form.add_field('warning', 'message', value='Deletion is not revocable. Proceed?')
@@ -191,8 +175,6 @@ class Storable(BaseModel, Renderable):
 
 
     def render(self, mode='full'):
-
-        tpls = self.form_template_candidates()
 
         if mode in ('add', 'edit', 'delete'):
 
@@ -258,9 +240,6 @@ class Listing(Renderable):
 
             except StopIteration:
                 iteration_done = True
-
-            except ValidationError as e:
-                current_app.logger.error(e.message)
 
         # Build pagination if matching endpoint and enough rows exist
         endpoint = request.endpoint
