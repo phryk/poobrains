@@ -8,29 +8,50 @@ from werkzeug.routing import BuildError
 import peewee
 from .rendering import ChildAware, Renderable, Menu
 from .helpers import CustomOrderedDict
-
+import logging
+logger = logging.getLogger('peewee')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 db_proxy = peewee.Proxy()
 
 
-class ValidationError(ValueError):
+class Regexp(peewee.Entity):
 
-    model = None
-    field = None
-    value = None
+    def __getattr__(self, attr):
 
-    def __init__(self, model, field, value):
-
-        super(ValidationError, self).__init__()
-
-        self.model = model
-        self.field = field
-        self.value = value
-
-        self.message = "Tried assigning invalid value to %s.%s: %s. This error may be caused by faulty data in the base." % (self.model.__name__, self.field.name, str(value))
+        return super(peewee.Node, self).__getattr__(attr) # Is this a good idea?
 
 
-    def __str__(self):
-        return "<%s: %s>" % (self.__class__.__name__, self.message)
+def RegexpConstraint(field_name, regexp):
+    return peewee.Clause(
+            peewee.SQL('CHECK('),
+            peewee.Expression(
+                peewee.SQL(field_name),
+                peewee.OP.REGEXP,
+                Regexp(regexp),
+                flat=True
+            ),
+            peewee.SQL(')'),
+    )
+#class ValidationError(ValueError):
+#
+#    model = None
+#    field = None
+#    value = None
+#
+#    def __init__(self, model, field, value):
+#
+#        super(ValidationError, self).__init__()
+#
+#        self.model = model
+#        self.field = field
+#        self.value = value
+#
+#        self.message = "Tried assigning invalid value to %s.%s: %s. This error may be caused by faulty data in the base." % (self.model.__name__, self.field.name, str(value))
+#
+#
+#    def __str__(self):
+#        return "<%s: %s>" % (self.__class__.__name__, self.message)
 
 
 class BaseModel(peewee.Model, ChildAware):
@@ -43,7 +64,7 @@ class BaseModel(peewee.Model, ChildAware):
 class Storable(BaseModel, Renderable):
 
     field_blacklist = ['id']
-    name = peewee.CharField(index=True, unique=True)
+    name = peewee.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]*$')])
     title = peewee.CharField()
     actions = None
 
@@ -62,8 +83,8 @@ class Storable(BaseModel, Renderable):
 
     def __setattr__(self, name, value):
 
-        if name == 'name' and not match('^[a-zA-ZäÄöÖüÜ0-9_\-]*$', value):
-            raise ValidationError(self.__class__, getattr(self.__class__, name), value)
+#        if name == 'name' and not match('^[a-zA-ZäÄöÖüÜ0-9_\-]*$', value):
+#            raise ValidationError(self.__class__, getattr(self.__class__, name), value)
 
         super(Storable, self).__setattr__(name, value)
 
@@ -173,7 +194,7 @@ class Storable(BaseModel, Renderable):
 
         tpls = self.form_template_candidates()
 
-        if mode in ('add', 'edit'):
+        if mode in ('add', 'edit', 'delete'):
 
             if mode == 'add':
                 form = self.__class__.form()

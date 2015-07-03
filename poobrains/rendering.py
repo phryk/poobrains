@@ -27,7 +27,7 @@ def render(mode):
                     return rv # pass Responses (i.e. redirects) upwards
 
                 g.title = content.title
-                g.content = content # TODO: Is this used? Is this needed?
+                g.content = content
 
                 return render_template('main.jinja', content=content, mode=mode), status_code
 

@@ -7,6 +7,7 @@ from flask.signals import appcontext_pushed
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader, DictLoader
 from playhouse.db_url import connect
+from sqlite3 import Connection as SqliteConnection
 
 from collections import OrderedDict
 from .db import BaseModel, Listing, db_proxy
@@ -143,6 +144,13 @@ class Poobrain(Flask):
     def request_setup(self):
 
         self.db.connect()
+        connection = self.db.get_conn()
+        if isinstance(connection, SqliteConnection): 
+            print "================================================================================"
+            print "we got sqlite, sire!"
+            connection.enable_load_extension(True)
+            connection.load_extension('/usr/local/libexec/sqlite-ext/pcre.so')
+            connection.enable_load_extension(False)
 
         g.boxes = {}
         for name, f in self.boxes.iteritems():
@@ -169,7 +177,7 @@ class Poobrain(Flask):
         def decorator(cls):
 
             def admin_listing_actions():
-                m = Menu('admin-listin-actions')
+                m = Menu('admin-listing-actions')
                 m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
 
                 return m
@@ -282,17 +290,12 @@ class Pooprint(Blueprint):
                 # handle 
                 elif id_or_name:
                     instance = cls.load(id_or_name)
-                    if mode in ('edit', 'delete'):
-                        form = instance.form(mode)
-                        form.actions = instance.actions
-
-                        return form
-
-                    return instance
 
                 else: # should only happen for 'add' mode
                     instance = cls()
-                    return instance.form('add')
+
+                return instance
+
 
             endpoint = self.next_endpoint(cls, mode, 'view')
 
