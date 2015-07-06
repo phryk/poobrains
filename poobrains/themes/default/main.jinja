@@ -7,7 +7,9 @@
     
     <body>
         <header>
-            {{ g.boxes['menu-main'].render() }}
+            {% if g.boxes.menu_main %}
+                {{ g.boxes.menu_main.render() }}
+            {% endif %}
         </header>
         <main>
             <header>
@@ -29,5 +31,8 @@
             </header>
             {{ content.render(mode) }}
         </main>
+        <footer>
+            Awesome footer shit
+        </footer>
     </body>
 </html>

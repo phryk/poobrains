@@ -1,17 +1,17 @@
 # -*-  coding: utf-8 -*-
 
-from os.path import join, exists, basename, dirname, isdir, isfile
+from os import path
 from functools import wraps
 from flask import Flask, Blueprint, current_app, request, g, abort, flash, redirect, url_for, send_from_directory
 from flask.signals import appcontext_pushed
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader, DictLoader
 from playhouse.db_url import connect
-from sqlite3 import Connection as SqliteConnection
 import peewee
 
 from collections import OrderedDict
-from .db import BaseModel, Storable, Listing, db_proxy
+
+import db
 from .rendering import Renderable, RenderString, Menu, render 
 from .helpers import TrueDict 
 import defaults
@@ -28,16 +28,19 @@ except ImportError as e:
 def admin_menu():
 
     menu = Menu('main')
+    menu.title = 'Administration'
 
-    for storable in Storable.children():
+    for storable in db.Storable.children():
         try:
             menu.append(storable.url('teaser-edit'), storable.__name__)
         except Exception as e:
-            print "oh noes, failed getting url for: ", storable
-            print e
+            pass
 
     return menu
 
+@render()
+def admin_index():
+    return admin_menu()
 
 
 class ErrorPage(Renderable):
@@ -65,8 +68,10 @@ class Poobrain(Flask):
 
         self.site = Pooprint('site', 'site')
         self.admin = Pooprint('admin', 'admin')
-        
-        self.poobrain_path = dirname(__file__)
+
+        self.admin.box('menu_main')(admin_menu)
+
+        self.poobrain_path = path.dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
 
         if config:
@@ -79,16 +84,19 @@ class Poobrain(Flask):
                 self.config[name] = getattr(defaults, name)
 
         self.db = connect(self.config['DATABASE'])
-        db_proxy.initialize(self.db)
+        self.db.exceptions['OperationalError'] = db.OperationalError
+        self.db.exceptions['IntegrityError'] = db.IntegrityError
+        db.proxy.initialize(self.db)
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
 
         if self.config['MAY_INSTALL']:
             self.add_url_rule('/install', 'Poobrain.install', self.install)
 
-        self.error_handler_spec[None][403] = self.errorpage
-        self.error_handler_spec[None][404] = self.errorpage
-        self.error_handler_spec[None][500] = self.errorpage
+        self.register_error_handler(404, self.errorpage)
+        self.register_error_handler(db.OperationalError, self.errorpage)
+        self.register_error_handler(db.IntegrityError, self.errorpage)
+        self.register_error_handler(db.DoesNotExist, self.errorpage)
 
         # Make sure that each request has a proper database connection
         self.before_request(self.request_setup)
@@ -112,7 +120,7 @@ class Poobrain(Flask):
     
     def install(self):
 
-        self.db.create_tables(BaseModel.children())
+        self.db.create_tables(db.Model.children())
         return "Installation procedure complete."
 
 
@@ -131,42 +139,34 @@ class Poobrain(Flask):
             abort(404) # extension not allowed
 
         if self.config['THEME'] != 'default':
-            paths.append(join(
+            paths.append(path.join(
                 self.root_path, 'themes', self.config['THEME'],
                 filename))
 
-            paths.append(join(
+            paths.append(path.join(
                 self.poobrain_path, 'themes', self.config['THEME'],
                 filename))
 
-        paths.append(join(
+        paths.append(path.join(
             self.root_path, 'themes', 'default',
             filename))
 
-        paths.append(join(
+        paths.append(path.join(
             self.poobrain_path, 'themes', 'default',
             filename))
 
-        for path in paths:
-            if exists(path):
-                return send_from_directory(dirname(path), basename(path))
+        for current_path in paths:
+            if path.exists(current_path):
+                return send_from_directory(path.dirname(current_path), path.basename(current_path))
 
         abort(404)
 
 
     def request_setup(self):
 
-        self.logger.debug('APP BEFORE REQUEST')
-        self.logger.debug(request.blueprint)
-        self.logger.debug(type(request.blueprint))
-
         g.boxes = {}
         self.db.connect()
         connection = self.db.get_conn()
-        if isinstance(connection, SqliteConnection): 
-            connection.enable_load_extension(True)
-            connection.load_extension('/usr/local/libexec/sqlite-ext/pcre.so')
-            connection.enable_load_extension(False)
 
 
     def request_teardown(self, exception):
@@ -187,6 +187,7 @@ class Poobrain(Flask):
 
             self.site.add_listing(cls, rule, title=title)
             self.site.add_view(cls, rule)
+            self.admin.add_url_rule('/', 'index', admin_index)
             self.admin.add_listing(cls, rule, title=title, mode='teaser-edit', action_func=admin_listing_actions)
             self.admin.add_view(cls, rule, mode='edit')
             self.admin.add_view(cls, rule, mode='delete')
@@ -229,10 +230,9 @@ class Pooprint(Blueprint):
         self.views = {}
         self.listings = {}
         self.boxes = {}
-        self.poobrain_path = dirname(__file__)
+        self.poobrain_path = path.dirname(__file__)
         
         self.before_request(self.box_setup)
-        self.box('menu-main')(admin_menu)
 
 
     def register(self, app, options, first_registration=False):
@@ -252,13 +252,13 @@ class Pooprint(Blueprint):
             self.views[cls][mode] = TrueDict()
 
         if mode != 'add':
-            rule = join(rule, '<id_or_name>')
+            rule = path.join(rule, '<id_or_name>')
 
         # Why the fuck does HTML not support DELETE!?
         if mode in ('add', 'edit', 'delete'): 
             options['methods'] = ['GET', 'POST']
             if mode == 'delete':
-                rule = join(rule, 'delete')
+                rule = path.join(rule, 'delete')
                 options['methods'].append('DELETE')
 
         if not view_func:
@@ -288,6 +288,10 @@ class Pooprint(Blueprint):
 
                     except peewee.IntegrityError as e:
                         flash('Integrity error: %s' % e.message, 'error')
+
+                        if mode == 'edit':
+                            return redirect(cls.load(instance.id).url('edit'))
+
                         return redirect(self.get_url(cls, mode='teaser-edit'))
 
                     return redirect(self.get_url(cls, id_or_name=instance.name, mode='edit'))
@@ -321,8 +325,6 @@ class Pooprint(Blueprint):
 
 
     def box_setup(self):
-        self.app.logger.debug('POOPRINT BEFORE REQUEST')
-        self.app.logger.debug(g.boxes)
         
         for name, f in self.boxes.iteritems():
             g.boxes[name] = f()
@@ -333,7 +335,7 @@ class Pooprint(Blueprint):
         if not mode:
             mode = 'teaser'
 
-        rule = join(rule, '') # make sure rule has trailing slash
+        rule = path.join(rule, '') # make sure rule has trailing slash
 
         if not self.listings.has_key(cls):
             self.listings[cls] = {}
@@ -351,7 +353,7 @@ class Pooprint(Blueprint):
                 else:
                     actions = None
 
-                return Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
+                return db.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
 
             endpoint = self.next_endpoint(cls, mode, 'listing')
 
@@ -375,7 +377,7 @@ class Pooprint(Blueprint):
             @render('full')
             def real(offset=0):
 
-                instance = Listing(cls, title=title, offset=offset, mode=mode)
+                instance = db.Listing(cls, title=title, offset=offset, mode=mode)
                 return f(instance)
 
             self.add_listing(cls, rule, view_func=real, **options)
@@ -485,11 +487,11 @@ class Pooprint(Blueprint):
         paths = []
 
         if self.app.config['THEME'] != 'default':
-            paths.append(join(self.root_path, 'themes', self.app.config['THEME']))
-            paths.append(join(self.poobrain_path, 'themes', self.app.config['THEME']))
+            paths.append(path.join(self.root_path, 'themes', self.app.config['THEME']))
+            paths.append(path.join(self.poobrain_path, 'themes', self.app.config['THEME']))
 
-        paths.append(join(self.root_path, 'themes', 'default'))
-        paths.append(join(self.poobrain_path, 'themes', 'default'))
+        paths.append(path.join(self.root_path, 'themes', 'default'))
+        paths.append(path.join(self.poobrain_path, 'themes', 'default'))
 
         return FileSystemLoader(paths)
 

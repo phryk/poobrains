@@ -1,53 +1,45 @@
 from os.path import join, exists, dirname
 from functools import wraps
-from flask import abort, render_template, current_app, g
+from flask import abort, render_template, g
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException
 
 
-def render(mode):
+def render(mode='full'):
 
     def decorator(f):
 
         @wraps(f)
         def real(*args, **kwargs):
 
-            try:
-                rv = f(*args, **kwargs)
+            rv = f(*args, **kwargs)
 
-                if isinstance(rv, tuple):
-                    content = rv[0]
-                    status_code = rv[1]
+            if isinstance(rv, tuple):
+                content = rv[0]
+                status_code = rv[1]
+
+            else:
+                content = rv
+                status_code = 200
+
+            if isinstance(content, Response):
+                return rv # pass Responses (i.e. redirects) upwards
+
+            # This logic is redundant to Storable.render(mode).
+            # It is "needed" in order for title to be set correctly
+            # TODO: Don't Repeat Yourself.
+            if mode in ('add', 'edit', 'delete'):
+                if mode == 'add':
+                    content = content.__class__.form()
 
                 else:
-                    content = rv
-                    status_code = 200
-
-                if isinstance(content, Response):
-                    return rv # pass Responses (i.e. redirects) upwards
-
-                # This logic is redundant to Storable.render(mode).
-                # It is "needed" in order for title to be set correctly
-                # TODO: Don't Repeat Yourself.
-                # Maybe move mode parameter to Storable.load?
-                if mode in ('add', 'edit', 'delete'):
-                    if mode == 'add':
-                        content = content.__class__.form()
-
-                    else:
-                        content = content.form(mode=mode)
+                    content = content.form(mode=mode)
 
 
-                g.title = content.title
-                g.content = content
+            g.title = content.title
+            g.content = content
 
-                return render_template('main.jinja', content=content, mode=mode), status_code
-
-            except Exception as e:
-                if isinstance(e, HTTPException) or current_app.debug:
-                    raise # let exceptions raised by abort() pass up
-
-                abort(500, "Somebody set up us the bomb. @render error.")
+            return render_template('main.jinja', content=content, mode=mode), status_code
 
         return real
 

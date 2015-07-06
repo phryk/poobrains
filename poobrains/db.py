@@ -1,21 +1,34 @@
 # -*- coding: utf-8 -*-
 
-from math import ceil, floor
-from re import match
+import math
 from collections import OrderedDict
 from flask import abort, render_template, url_for, current_app, request
-from werkzeug.routing import BuildError
+import werkzeug.routing
 import peewee
 from .rendering import ChildAware, Renderable, Menu
 from .helpers import CustomOrderedDict
+
 import logging
 logger = logging.getLogger('peewee')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
-db_proxy = peewee.Proxy()
+
+proxy = peewee.Proxy()
 
 
-class Regexp(peewee.Entity):
+class OperationalError(peewee.OperationalError):
+    code = 500
+
+
+class IntegrityError(peewee.IntegrityError):
+    code = 400
+
+
+class DoesNotExist(peewee.DoesNotExist):
+    code = 404
+
+
+class QuotedSQL(peewee.Entity):
 
     def __getattr__(self, attr):
 
@@ -26,42 +39,26 @@ def RegexpConstraint(field_name, regexp):
     return peewee.Clause(
             peewee.SQL('CHECK('),
             peewee.Expression(
-                peewee.SQL(field_name),
+                QuotedSQL(field_name),
                 peewee.OP.REGEXP,
-                Regexp(regexp),
+                QuotedSQL(regexp),
                 flat=True
             ),
             peewee.SQL(')'),
     )
-#class ValidationError(ValueError):
-#
-#    model = None
-#    field = None
-#    value = None
-#
-#    def __init__(self, model, field, value):
-#
-#        super(ValidationError, self).__init__()
-#
-#        self.model = model
-#        self.field = field
-#        self.value = value
-#
-#        self.message = "Tried assigning invalid value to %s.%s: %s. This error may be caused by faulty data in the base." % (self.model.__name__, self.field.name, str(value))
-#
-#
-#    def __str__(self):
-#        return "<%s: %s>" % (self.__class__.__name__, self.message)
 
 
-class BaseModel(peewee.Model, ChildAware):
+class Model(peewee.Model, ChildAware):
     
     class Meta:
-        database = db_proxy
+        database = proxy
 
 
+    class DoesNotExist(DoesNotExist):
+        pass
 
-class Storable(BaseModel, Renderable):
+
+class Storable(Model, Renderable):
 
     field_blacklist = ['id']
     name = peewee.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]*$')])
@@ -84,21 +81,21 @@ class Storable(BaseModel, Renderable):
     @classmethod
     def load(cls, id_or_name):
 
-        try:
-            if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
-                instance = cls.get(cls.id == id_or_name)
+#        try:
+        if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
+            instance = cls.get(cls.id == id_or_name)
 
-            else:
-                instance = cls.get(cls.name == id_or_name)
+        else:
+            instance = cls.get(cls.name == id_or_name)
 
-        except cls.DoesNotExist:
-            abort(404, "It is pitch black. You are likely to be eaten by a grue.")
-
-        except peewee.OperationalError:
-            if current_app.debug:
-                raise
-
-            abort(500, "Somebody set up us the bomb.")
+#        except cls.DoesNotExist:
+#            abort(404, "It is pitch black. You are likely to be eaten by a grue.")
+#
+#        except peewee.OperationalError:
+#            if current_app.debug:
+#                raise
+#
+#            abort(500, "Somebody set up us the bomb.")
 
         instance.actions = Menu('%s-%d.actions' % (instance.__class__.__name__, instance.id))
         try:
@@ -225,8 +222,8 @@ class Listing(Renderable):
         select = cls.select()
         self.count = select.count()
 
-        self.pagecount = int(ceil(self.count/float(self.limit)))
-        self.current_page = int(floor(self.offset / float(self.limit))) + 1
+        self.pagecount = int(math.ceil(self.count/float(self.limit)))
+        self.current_page = int(math.floor(self.offset / float(self.limit))) + 1
 
         self.items = []
         items = select.offset(self.offset).limit(self.limit)
@@ -263,7 +260,7 @@ class Listing(Renderable):
             if len(self.pagination) < 2:
                 self.pagination = False
 
-        except BuildError as e:
+        except werkzeug.routing.BuildError as e:
             current_app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
 

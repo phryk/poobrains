@@ -23,7 +23,7 @@ class Paste(Storable):
     text = TextField()
 
 
-@app.site.box('menu-main')
+@app.site.box('menu_main')
 def menu_main():
 
     menu = Menu('main')
