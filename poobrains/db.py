@@ -15,26 +15,6 @@ logger.addHandler(logging.StreamHandler())
 
 proxy = peewee.Proxy()
 
-
-class OperationalError(peewee.OperationalError):
-    code = 500
-
-
-class IntegrityError(peewee.IntegrityError):
-    code = 400
-
-
-class DoesNotExist(peewee.DoesNotExist):
-    code = 404
-
-
-class QuotedSQL(peewee.Entity):
-
-    def __getattr__(self, attr):
-
-        return super(peewee.Node, self).__getattr__(attr) # Is this a good idea?
-
-
 def RegexpConstraint(field_name, regexp):
     return peewee.Clause(
             peewee.SQL('CHECK('),
@@ -48,14 +28,20 @@ def RegexpConstraint(field_name, regexp):
     )
 
 
+
+class QuotedSQL(peewee.Entity):
+
+    def __getattr__(self, attr):
+
+        return super(peewee.Node, self).__getattr__(attr) # Is this a good idea?
+
+
+
 class Model(peewee.Model, ChildAware):
     
     class Meta:
         database = proxy
 
-
-    class DoesNotExist(DoesNotExist):
-        pass
 
 
 class Storable(Model, Renderable):
@@ -87,15 +73,6 @@ class Storable(Model, Renderable):
 
         else:
             instance = cls.get(cls.name == id_or_name)
-
-#        except cls.DoesNotExist:
-#            abort(404, "It is pitch black. You are likely to be eaten by a grue.")
-#
-#        except peewee.OperationalError:
-#            if current_app.debug:
-#                raise
-#
-#            abort(500, "Somebody set up us the bomb.")
 
         instance.actions = Menu('%s-%d.actions' % (instance.__class__.__name__, instance.id))
         try:

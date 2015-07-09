@@ -60,6 +60,11 @@ class Poobrain(Flask):
     site = None
     admin = None
     resource_extension_whitelist = None
+    error_codes = {
+        peewee.OperationalError: 500,
+        peewee.IntegrityError: 400,
+        peewee.DoesNotExist: 404
+    }
 
 
     def __init__(self, *args, **kwargs):
@@ -84,8 +89,6 @@ class Poobrain(Flask):
                 self.config[name] = getattr(defaults, name)
 
         self.db = connect(self.config['DATABASE'])
-        self.db.exceptions['OperationalError'] = db.OperationalError
-        self.db.exceptions['IntegrityError'] = db.IntegrityError
         db.proxy.initialize(self.db)
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
@@ -94,9 +97,9 @@ class Poobrain(Flask):
             self.add_url_rule('/install', 'Poobrain.install', self.install)
 
         self.register_error_handler(404, self.errorpage)
-        self.register_error_handler(db.OperationalError, self.errorpage)
-        self.register_error_handler(db.IntegrityError, self.errorpage)
-        self.register_error_handler(db.DoesNotExist, self.errorpage)
+        self.register_error_handler(peewee.OperationalError, self.errorpage)
+        self.register_error_handler(peewee.IntegrityError, self.errorpage)
+        self.register_error_handler(peewee.DoesNotExist, self.errorpage)
 
         # Make sure that each request has a proper database connection
         self.before_request(self.request_setup)
@@ -115,7 +118,14 @@ class Poobrain(Flask):
 
     @render('full')
     def errorpage(self, error):
-        return ErrorPage(error), error.code
+        if hasattr(error, 'code') and isinstance(error.code, int):
+            status_code = error.code
+        elif errror.__class__ in self.error_codes:
+            status_code = self.error_codess[error.__class__]
+        else:
+            status_code = 500
+
+        return ErrorPage(error), status_code
     
     
     def install(self):
