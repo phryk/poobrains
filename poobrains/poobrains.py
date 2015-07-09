@@ -1,5 +1,6 @@
 # -*-  coding: utf-8 -*-
 
+import sys
 from os import path
 from functools import wraps
 from flask import Flask, Blueprint, current_app, request, g, abort, flash, redirect, url_for, send_from_directory
@@ -12,6 +13,7 @@ import peewee
 from collections import OrderedDict
 
 import storage
+import cli
 from rendering import Renderable, RenderString, Menu, render 
 from helpers import TrueDict 
 import defaults
@@ -47,10 +49,10 @@ class ErrorPage(Renderable):
 
     error = None
 
-    def __init__(self, error):
+    def __init__(self, error, status_code):
 
         super(ErrorPage, self).__init__()
-        self.title = "Ermahgerd, %d!" % (error.code,)
+        self.title = "Ermahgerd, %d!" % (status_code,)
         self.error = error
 
 
@@ -120,12 +122,16 @@ class Poobrain(Flask):
     def errorpage(self, error):
         if hasattr(error, 'code') and isinstance(error.code, int):
             status_code = error.code
-        elif errror.__class__ in self.error_codes:
-            status_code = self.error_codess[error.__class__]
+        
         else:
             status_code = 500
+            for cls, code in self.error_codes.iteritems():
+                if isinstance(error, cls):
+                    status_code = code
+                    break
 
-        return ErrorPage(error), status_code
+
+        return ErrorPage(error, status_code), status_code
     
     
     def install(self):
@@ -221,6 +227,15 @@ class Poobrain(Flask):
                 #self.logger.error("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, id_or_name, mode))
                 raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, id_or_name, mode))
 
+
+    def run(self, *args, **kw):
+
+        if len(sys.argv) > 1 and sys.argv[1] == 'shell':
+            shell = cli.Shell(config=self.config)
+            shell.start()
+
+        else:
+            return super(Poobrain, self).run(*args, **kw)
 
 
 class Pooprint(Blueprint):

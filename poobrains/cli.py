@@ -1,14 +1,11 @@
 from sys import exit, stdout
 from playhouse.db_url import connect
+from collections import OrderedDict
+import peewee
 import helpers
 import storage
-import defaults
 
-try:
-    import config
 
-except ImportError:
-    config = False
 
 
 class ShellException(Exception):
@@ -16,6 +13,10 @@ class ShellException(Exception):
 
 
 class NoSuchCommand(ShellException):
+    pass
+
+
+class NoSuchParameter(ShellException):
     pass
 
 
@@ -27,55 +28,8 @@ class TooManyParams(ShellException):
     pass
 
 
-class MissingParam(ShellException):
+class MissingParameter(ShellException):
     pass
-
-
-def get_storables():
-    
-    storables = {}
-    children = storage.Storable.children()
-    for child in children:
-        storables[child.__name__.lower()] = child
-
-    return storables
-
-
-def coerce_int(value):
-
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        raise InvalidValue("Invalid value for integer: '%s'." % (value,))
-
-
-def coerce_str(value):
-
-    if value is None:
-        raise InvalidValue("String may not be empty.")
-
-    try:
-        return str(value)
-    except (ValueError, TypeError):
-        raise InvalidValue("Invalid value for string: '%s'." % (value,))
-
-
-def coerce_storable(value):
-
-    value = coerce_str(value)
-    if not value in get_storables().keys():
-        raise InvalidValue("Not a known storable: %s.", value)
-
-    return value
-
-
-def coerce_optional(value):
-
-    if not value in (None, ''):
-        raise InvalidValue("%s isn't a certified nothing." % (value,))
-
-    return None
-
 
 
 
@@ -86,19 +40,14 @@ class Shell(object):
     commands = None
 
 
-    def __init__(self):
+    def __init__(self, config):
 
-        self.config = {}
+        self.config = config
+
+        self.storables = {}
+        for child in storage.Storable.children():
+            self.storables[child.__name__.lower()] = child
         
-        if config:
-            for name in dir(config):
-                if name.isupper():
-                    self.config[name] = getattr(config, name)
-
-        for name in dir(defaults):
-            if name.isupper and not self.config.has_key(name):
-                self.config[name] = getattr(defaults, name)
-
         self.db = connect(self.config['DATABASE'])
         storage.proxy.initialize(self.db)
 
@@ -143,20 +92,17 @@ class Shell(object):
         command_name =  unclean_params.pop(0)
 
         if not self.commands.has_key(command_name):
-            stdout.write("No such command.")
+            raise NoSuchCommand(command_name)
 
         else:
-            command = self.commands[command_name]()
+            command = self.commands[command_name](self)
 
-            for param_name, coercions in command.params.iteritems():
+            for param_name, parameter in command.parameters.iteritems():
 
                 if len(unclean_params) > 0:
                     unclean_value = unclean_params.pop(0)
                 else:
-
-                    if  (isinstance(coercions, (tuple, list)) and coerce_optional not in coercions) ^ (coercions is not coerce_optional):
-                            raise MissingParam('No value for %s.' % (param_name,))
-                    unclean_value = None
+                    unclean_value = None # we're dealing with an optional parameter that hasn't been passed
 
                 command.bind_param(param_name, unclean_value)
 
@@ -164,54 +110,120 @@ class Shell(object):
 
 
 
+# Parameter classes below this
+
+class Parameter(object):
+
+    type = None
+    optional = None
+    command = None
+
+    def __init__(self, optional=False):
+
+        self.optional = optional
+
+
+    def bind(self, command):
+        self.command = command
+
+
+    def parse(self, value):
+
+        raise NotImplementedError("Fuck you.")
+
+
+class IntParam(Parameter):
+
+    def parse(self, value):
+
+        if self.optional and value is None:
+            return None
+
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            raise InvalidValue("Invalid value for integer: %s." % (value,))
+
+
+class StringParam(Parameter):
+
+    def parse(self, value):
+
+        if self.optional and value is None:
+            return None
+
+        if value is None:
+            raise InvalidValue("String may not be empty.")
+
+        try:
+            return str(value)
+        except (ValueError, TypeError):
+            raise InvalidValue("Invalid value for string: '%s'." % (value,))
+
+
+class StorableParam(StringParam):
+
+    def parse(self, value):
+
+        if self.optional and value is None:
+            return None
+
+        if not value in self.command.storables.keys():
+            raise InvalidValue("Not a known storable: %s. Take one of these: %s" % (value, ', '.join(self.command.storables.keys())))
+
+        return value
+
+
+
+# Command classes
+
 class Command(helpers.ChildAware):
 
-    params = {'foo': coerce_int, 'bar': (coerce_int, None)} # Override this in subclasses for coercion
+    #params = {'foo': coerce_int, 'bar': (coerce_int, None)} # Override this in subclasses for coercion
+    shell = None
+    storables = None
+    parameters = None
     values = None
 
-    def __init__(self, **params):
-        
-        self.values = {}
+    
+    @classmethod
+    def get_parameters(cls):
 
+        parameters = OrderedDict()
+        for attr_name in dir(cls):
+
+            attr = getattr(cls, attr_name)
+            if isinstance(attr, Parameter):
+                parameters[attr_name] = attr
+
+        return parameters
+
+
+    def __init__(self, shell, **params):
+
+        self.shell = shell
+        self.storables = self.shell.storables
+        self.parameters = self.__class__.get_parameters()
+
+        self.values = {}
         for param_name, value in params.iteritems():
 
             if param_name in self.params.keys():
                 self.bind_param(param_name, value)
 
 
-
     def bind_param(self, param_name, value):
 
-        if param_name in self.params:
+        if not param_name in self.parameters.keys():
 
-            coercions = self.params[param_name]
+            raise NoSuchParameter(param_name)
 
-            if not isinstance(coercions, (tuple, list)):
-                coercions = (coercions,)
+        parameter = self.parameters[param_name]
+        parameter.bind(self)
+        coerced = parameter.parse(value)
+        self.values[param_name] = coerced
 
-            for idx in range(0, len(coercions)):
-
-                coercion = coercions[idx]
-
-                if coercion is None:
-                    coerced = value
-                    break
-
-                else:
-                    try:
-                        coerced = coercion(value)
-                        break
-
-                    except InvalidValue as e:
-                        if idx == len(coercions) - 1:
-                        #    raise InvalidValue("Parameter '%s' needs to conform to %s." % (param_name, "or ".join([str(c.__name__) for c in coercions])))
-                            raise
-
-            self.values[param_name] = coerced
-
-
-
-
+    
     def execute(self):
 
         raise NotImplementedError("'%s' needs to implement its own 'execute' function." % (self.__class__.__name__,))
@@ -219,7 +231,8 @@ class Command(helpers.ChildAware):
 
 class Test(Command):
 
-    params = {'count': (coerce_int, coerce_optional)}
+    #params = {'count': (coerce_int, coerce_optional)}
+    count = IntParam(optional=True)
 
     def execute(self):
 
@@ -229,48 +242,74 @@ class Test(Command):
             stdout.write("%d\n" % (i,))
 
 
-class IsInt(Command):
-
-    params = {'test': coerce_int}
-
-    def execute(self):
-
-        stdout.write(self.values['test'])
-
-
 class Exit(Command):
 
-    params = {}
+    #params = {}
 
     def execute(self):
 
         exit(0)
 
 
-
 class Help(Command):
 
-    params = {}
+    #params = {}
 
     def execute(self):
 
         stdout.write("Commands: \n\n")
         
         for cls in Command.children():
-            stdout.write("%s %s\n" % (cls.__name__.lower(), cls.params))
+            params = cls.get_parameters()
+
+            param_descs = []
+            for name, param in params.iteritems():
+                param_desc = "%s (%s)" % (name, param.__class__.__name__)
+
+                if param.optional:
+                    param_desc = "[%s]" % (param_desc,)
+
+                else:
+                    param_desc = "<%s>" % (param_desc,)
+
+                param_descs.append(param_desc)
+
+            stdout.write("%s %s\n" % (cls.__name__.lower(), ', '.join(param_descs)))
 
         stdout.write("\n")
 
 
 class List(Command):
 
-    params = {'storable': coerce_storable}
+    #params = {'storable': coerce_storable}
+    storable = StorableParam()
 
     def execute(self):
 
-        storables = get_storables()
-
-        storable = storables[self.values['storable']]
+        storable = self.storables[self.values['storable']]
         for instance in storable.select():
             print "[%d][%s] %s" % (instance.id, instance.name, instance.title)
 
+
+class Add(Command):
+
+    #params = {'storable': coerce_storable, 'id_or_name': 'coerce_string'}
+    storable = StorableParam()
+
+    def execute(self):
+        
+        if self.storables.has_key(self.values['storable']):
+
+            cls = self.storables[self.values['storable']]
+            instance = cls()
+
+            stdout.write("Addding %s...\n" % (cls.__name__,))
+            for field in cls._meta.get_fields():
+
+                if not isinstance(field, peewee.PrimaryKeyField):
+                    stdout.write("%s: " % (field.name,))
+                    value = raw_input()
+
+                    setattr(instance, field.name, value) # TODO type enforcement
+
+            instance.save()

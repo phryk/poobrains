@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from peewee import CharField, TextField
 from flask import redirect
 from poobrains import Poobrain, Storable, Menu, Renderable

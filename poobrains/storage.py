@@ -8,10 +8,10 @@ import peewee
 from rendering import Renderable, Menu
 from helpers import CustomOrderedDict, ChildAware
 
-import logging
-logger = logging.getLogger('peewee')
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+#import logging
+#logger = logging.getLogger('peewee')
+#logger.setLevel(logging.DEBUG)
+#logger.addHandler(logging.StreamHandler())
 
 proxy = peewee.Proxy()
 
