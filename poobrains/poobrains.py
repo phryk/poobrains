@@ -11,9 +11,9 @@ import peewee
 
 from collections import OrderedDict
 
-import db
-from .rendering import Renderable, RenderString, Menu, render 
-from .helpers import TrueDict 
+import storage
+from rendering import Renderable, RenderString, Menu, render 
+from helpers import TrueDict 
 import defaults
 
 try:
@@ -30,7 +30,7 @@ def admin_menu():
     menu = Menu('main')
     menu.title = 'Administration'
 
-    for storable in db.Storable.children():
+    for storable in storage.Storable.children():
         try:
             menu.append(storable.url('teaser-edit'), storable.__name__)
         except Exception as e:
@@ -89,7 +89,7 @@ class Poobrain(Flask):
                 self.config[name] = getattr(defaults, name)
 
         self.db = connect(self.config['DATABASE'])
-        db.proxy.initialize(self.db)
+        storage.proxy.initialize(self.db)
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
 
@@ -130,7 +130,7 @@ class Poobrain(Flask):
     
     def install(self):
 
-        self.db.create_tables(db.Model.children())
+        self.db.create_tables(storage.Model.children())
         return "Installation procedure complete."
 
 
@@ -363,7 +363,7 @@ class Pooprint(Blueprint):
                 else:
                     actions = None
 
-                return db.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
+                return storage.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
 
             endpoint = self.next_endpoint(cls, mode, 'listing')
 
@@ -387,7 +387,7 @@ class Pooprint(Blueprint):
             @render('full')
             def real(offset=0):
 
-                instance = db.Listing(cls, title=title, offset=offset, mode=mode)
+                instance = storage.Listing(cls, title=title, offset=offset, mode=mode)
                 return f(instance)
 
             self.add_listing(cls, rule, view_func=real, **options)

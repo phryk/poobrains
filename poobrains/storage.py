@@ -5,8 +5,8 @@ from collections import OrderedDict
 from flask import abort, render_template, url_for, current_app, request
 import werkzeug.routing
 import peewee
-from .rendering import ChildAware, Renderable, Menu
-from .helpers import CustomOrderedDict
+from rendering import Renderable, Menu
+from helpers import CustomOrderedDict, ChildAware
 
 import logging
 logger = logging.getLogger('peewee')

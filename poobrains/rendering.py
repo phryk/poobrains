@@ -4,6 +4,7 @@ from flask import abort, render_template, g
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException
 
+import helpers
 
 def render(mode='full'):
 
@@ -46,49 +47,7 @@ def render(mode='full'):
     return decorator
 
 
-
-class ChildAware(object):
-
-    @classmethod
-    def children(cls):
-
-        children = cls.__subclasses__()
-
-        for child in children:
-            children += child.children()
-
-        return children
-
-
-    @classmethod
-    def ancestors(cls, top=None):
-
-        """
-        params:
-            * top: class, when this class is reached, the iteration is stopped
-        """
-
-        if top is None:
-            top = ChildAware
-
-        whitelist = [top] + top.children()
-        ancestors = []
-
-        for base in cls.__bases__:
-
-            if base in whitelist:
-                ancestors.append(base)
-
-                if base is top:
-                    break
-
-                ancestors += base.ancestors(top)
-
-        return ancestors
-
-
-
-class Renderable(ChildAware):
+class Renderable(helpers.ChildAware):
 
     name = None
     title = None
