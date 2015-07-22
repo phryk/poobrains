@@ -74,6 +74,20 @@ class Shell(object):
                     if self.config['DEBUG']:
                         raise
 
+            except NoSuchCommand as e:
+
+                stdout.write("No such command: %s\n\n" % (e,))
+
+            except NoSuchParameter as e:
+
+                stdout.write("Missing parameter: %s\n" % (e,))
+                try:
+                    comand_help = Help(command=command.__class__.__name__.lower())
+                except Exception:
+                    pass
+                else:
+                    stdout.write("%s\n" % (command_help.execute(),))
+
             except ShellException as e:
 
                 stdout.write("An error occured: %s\n\n" % (e,))
@@ -253,30 +267,58 @@ class Exit(Command):
 
 class Help(Command):
 
-    #params = {}
+    commands = None
+    command = StringParam(optional=True)
+
+    def __init__(self, shell, **params):
+
+        super(Help, self).__init__(shell, **params)
+
+        self.commands = OrderedDict()
+        classes = Command.children()
+
+        for cls in classes:
+            self.commands[cls.__name__.lower()] = cls
+
 
     def execute(self):
 
+        if self.values['command']:
+
+            if not self.commands.has_key(self.values['command']):
+                raise NoSuchCommand(self.values['command'])
+
+            stdout.write("%s\n" % (self.command_help(self.values['command']),))
+            return
+
         stdout.write("Commands: \n\n")
-        
-        for cls in Command.children():
-            params = cls.get_parameters()
 
-            param_descs = []
-            for name, param in params.iteritems():
-                param_desc = "%s (%s)" % (name, param.__class__.__name__)
-
-                if param.optional:
-                    param_desc = "[%s]" % (param_desc,)
-
-                else:
-                    param_desc = "<%s>" % (param_desc,)
-
-                param_descs.append(param_desc)
-
-            stdout.write("%s %s\n" % (cls.__name__.lower(), ', '.join(param_descs)))
+        for command_name in self.commands.keys():
+            stdout.write("%s\n" % (self.command_help(command_name),))
 
         stdout.write("\n")
+
+
+    def command_help(self, command_name):
+
+        cls = self.commands[command_name]
+        params = cls.get_parameters()
+
+        param_descs = []
+        for name, param in params.iteritems():
+
+            param_desc = "%s (%s)" % (name, param.__class__.__name__)
+
+            if param.optional:
+                param_desc = "[%s]" % (param_desc,)
+
+            else:
+                param_desc = "<%s>" % (param_desc,)
+
+            param_descs.append(param_desc)
+
+        return "%s %s" % (command_name, ', '.join(param_descs))
+
 
 
 class List(Command):
