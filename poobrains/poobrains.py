@@ -1,10 +1,12 @@
 # -*-  coding: utf-8 -*-
 
+import os
 import sys
-from os import path
+import logging
+from logging.handlers import WatchedFileHandler
 from functools import wraps
 from flask import Flask, Blueprint, current_app, request, g, abort, flash, redirect, url_for, send_from_directory
-from flask.signals import appcontext_pushed
+#from flask.signals import appcontext_pushed # TODO: needed?
 from flask.helpers import locked_cached_property
 from jinja2 import FileSystemLoader, DictLoader
 from playhouse.db_url import connect
@@ -13,13 +15,14 @@ import peewee
 from collections import OrderedDict
 
 import storage
+import auth
 import cli
 from rendering import Renderable, RenderString, Menu, render 
 from helpers import TrueDict 
 import defaults
 
 try:
-    import config
+    import config # imports config relative to main project
 
 except ImportError as e:
 
@@ -36,7 +39,8 @@ def admin_menu():
         try:
             menu.append(storable.url('teaser-edit'), storable.__name__)
         except Exception as e:
-            pass
+            flash("Can't create administration link for %s." % (storable.__name__,))
+            #pass
 
     return menu
 
@@ -49,11 +53,11 @@ class ErrorPage(Renderable):
 
     error = None
 
-    def __init__(self, error, status_code):
+    def __init__(self, message, status_code):
 
         super(ErrorPage, self).__init__()
         self.title = "Ermahgerd, %d!" % (status_code,)
-        self.error = error
+        self.message = message
 
 
 
@@ -73,14 +77,6 @@ class Poobrain(Flask):
 
         super(Poobrain, self).__init__(*args, **kwargs)
 
-        self.site = Pooprint('site', 'site')
-        self.admin = Pooprint('admin', 'admin')
-
-        self.admin.box('menu_main')(admin_menu)
-
-        self.poobrain_path = path.dirname(__file__)
-        self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
-
         if config:
             for name in dir(config):
                 if name.isupper():
@@ -90,11 +86,43 @@ class Poobrain(Flask):
             if name.isupper and not self.config.has_key(name):
                 self.config[name] = getattr(defaults, name)
 
+        try:
+            log_handler = WatchedFileHandler(self.config['LOGFILE'])
+            #log_handler = FileHandler(self.config['LOGFILE'])
+            #log_handler = NullHandler()
+            if self.debug:
+                log_handler.setLevel(logging.DEBUG)
+            else:
+                log_handler.setLevel(logging.WARNING)
+
+            self.logger.addHandler(log_handler)
+
+        except IOError as e:
+            import grp
+
+            user = os.getlogin()
+            group = grp.getgrgid(os.getgid()).gr_name
+            sys.exit("Somethings' fucky with the log file: %s. Current user/group is %s/%s." % (e,user,group))
+
+        self.logger.error('ZOMGAFTERLOG')
+
+
+
+        self.site = Pooprint('site', 'site')
+        self.admin = Pooprint('admin', 'admin')
+
+        self.admin.box('menu_main')(admin_menu)
+
+        self.poobrain_path = os.path.dirname(__file__)
+        self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
+
+
         self.db = connect(self.config['DATABASE'])
         storage.proxy.initialize(self.db)
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
 
+        # TODO: Move installation procedure to cli
         if self.config['MAY_INSTALL']:
             self.add_url_rule('/install', 'Poobrain.install', self.install)
 
@@ -142,6 +170,8 @@ class Poobrain(Flask):
 
     def serve_theme_resources(self, filename):
 
+        self.logger.debug("I'm serving theme resource %s!" %(filename,))
+
         paths = []
 
         extension = filename.split('.')
@@ -155,25 +185,25 @@ class Poobrain(Flask):
             abort(404) # extension not allowed
 
         if self.config['THEME'] != 'default':
-            paths.append(path.join(
+            paths.append(os.path.join(
                 self.root_path, 'themes', self.config['THEME'],
                 filename))
 
-            paths.append(path.join(
+            paths.append(os.path.join(
                 self.poobrain_path, 'themes', self.config['THEME'],
                 filename))
 
-        paths.append(path.join(
+        paths.append(os.path.join(
             self.root_path, 'themes', 'default',
             filename))
 
-        paths.append(path.join(
+        paths.append(os.path.join(
             self.poobrain_path, 'themes', 'default',
             filename))
 
         for current_path in paths:
-            if path.exists(current_path):
-                return send_from_directory(path.dirname(current_path), path.basename(current_path))
+            if os.path.exists(current_path):
+                return send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
 
         abort(404)
 
@@ -255,7 +285,7 @@ class Pooprint(Blueprint):
         self.views = {}
         self.listings = {}
         self.boxes = {}
-        self.poobrain_path = path.dirname(__file__)
+        self.poobrain_path = os.path.dirname(__file__)
         
         self.before_request(self.box_setup)
 
@@ -277,13 +307,13 @@ class Pooprint(Blueprint):
             self.views[cls][mode] = TrueDict()
 
         if mode != 'add':
-            rule = path.join(rule, '<id_or_name>')
+            rule = os.path.join(rule, '<id_or_name>')
 
         # Why the fuck does HTML not support DELETE!?
         if mode in ('add', 'edit', 'delete'): 
             options['methods'] = ['GET', 'POST']
             if mode == 'delete':
-                rule = path.join(rule, 'delete')
+                rule = os.path.join(rule, 'delete')
                 options['methods'].append('DELETE')
 
         if not view_func:
@@ -305,7 +335,7 @@ class Pooprint(Blueprint):
                             try:
                                 setattr(instance, field_name, request.form[field_name])
                             except Exception as e:
-                                current_app.logger.error("Possible bug. default view_func catchall.")
+                                current_app.logger.error("Possible bug in default view_func catchall.")
                                 current_app.logger.error('%s.%s' % (cls.__name__, field_name))
 
                     try:
@@ -360,7 +390,7 @@ class Pooprint(Blueprint):
         if not mode:
             mode = 'teaser'
 
-        rule = path.join(rule, '') # make sure rule has trailing slash
+        rule = os.path.join(rule, '') # make sure rule has trailing slash
 
         if not self.listings.has_key(cls):
             self.listings[cls] = {}
@@ -512,11 +542,11 @@ class Pooprint(Blueprint):
         paths = []
 
         if self.app.config['THEME'] != 'default':
-            paths.append(path.join(self.root_path, 'themes', self.app.config['THEME']))
-            paths.append(path.join(self.poobrain_path, 'themes', self.app.config['THEME']))
+            paths.append(os.path.join(self.root_path, 'themes', self.app.config['THEME']))
+            paths.append(os.path.join(self.poobrain_path, 'themes', self.app.config['THEME']))
 
-        paths.append(path.join(self.root_path, 'themes', 'default'))
-        paths.append(path.join(self.poobrain_path, 'themes', 'default'))
+        paths.append(os.path.join(self.root_path, 'themes', 'default'))
+        paths.append(os.path.join(self.poobrain_path, 'themes', 'default'))
 
         return FileSystemLoader(paths)
 

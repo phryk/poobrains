@@ -256,9 +256,18 @@ class Test(Command):
             stdout.write("%d\n" % (i,))
 
 
-class Exit(Command):
+class Install(Command):
 
-    #params = {}
+    def execute(self):
+        stdout.write("Really execute installation procedure? (y/N)")
+        value = raw_input().lower()
+        if value == 'y':
+            stdout.write("Installing now...\n")
+            self.shell.db.create_tables(storage.Model.children())
+            stdout.write("Done!\n")
+
+
+class Exit(Command):
 
     def execute(self):
 
