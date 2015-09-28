@@ -87,15 +87,14 @@ class Poobrain(Flask):
                 self.config[name] = getattr(defaults, name)
 
         try:
-            log_handler = WatchedFileHandler(self.config['LOGFILE'])
-            #log_handler = FileHandler(self.config['LOGFILE'])
-            #log_handler = NullHandler()
-            if self.debug:
-                log_handler.setLevel(logging.DEBUG)
-            else:
-                log_handler.setLevel(logging.WARNING)
+            if self.config['LOGFILE']: # log to file, if configured
+                log_handler = WatchedFileHandler(self.config['LOGFILE'])
+                if self.debug:
+                    log_handler.setLevel(logging.DEBUG)
+                else:
+                    log_handler.setLevel(logging.WARNING)
 
-            self.logger.addHandler(log_handler)
+                self.logger.addHandler(log_handler)
 
         except IOError as e:
             import grp
@@ -121,10 +120,6 @@ class Poobrain(Flask):
         storage.proxy.initialize(self.db)
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
-
-        # TODO: Move installation procedure to cli
-        if self.config['MAY_INSTALL']:
-            self.add_url_rule('/install', 'Poobrain.install', self.install)
 
         self.register_error_handler(404, self.errorpage)
         self.register_error_handler(peewee.OperationalError, self.errorpage)
@@ -162,12 +157,6 @@ class Poobrain(Flask):
         return ErrorPage(error, status_code), status_code
     
     
-    def install(self):
-
-        self.db.create_tables(storage.Model.children())
-        return "Installation procedure complete."
-
-
     def serve_theme_resources(self, filename):
 
         self.logger.debug("I'm serving theme resource %s!" %(filename,))
