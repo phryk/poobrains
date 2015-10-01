@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-from peewee import CharField, TextField
 from flask import redirect
 from poobrains import Poobrain, Storable, Menu, Renderable
+#from peewee import CharField, TextField
+from poobrains.storage.fields import CharField, TextField
 
 app = Poobrain('Poobrains Example')
 

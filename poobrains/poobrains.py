@@ -432,7 +432,7 @@ class Pooprint(Blueprint):
 
 
     def view(self, cls, rule, mode='full', primary=False, **options):
-
+        # TODO: Why am I not using this in here? Change it - if that makes any sense.
         def decorator(f):
 
             @wraps(f)
@@ -538,5 +538,3 @@ class Pooprint(Blueprint):
         paths.append(os.path.join(self.poobrain_path, 'themes', 'default'))
 
         return FileSystemLoader(paths)
-
-

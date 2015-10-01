@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 
+# external imports
 import math
-from collections import OrderedDict
-from flask import abort, render_template, url_for, current_app, request
+import flask
 import werkzeug.routing
 import peewee
-from rendering import Renderable, Menu
-from helpers import CustomOrderedDict, ChildAware
 
-#import logging
-#logger = logging.getLogger('peewee')
-#logger.setLevel(logging.DEBUG)
-#logger.addHandler(logging.StreamHandler())
+# parent imports
+from poobrains import helpers
+from poobrains import rendering
+from poobrains import form
+
+# internal imports
+import fields
+
 
 proxy = peewee.Proxy()
 
@@ -37,18 +39,18 @@ class QuotedSQL(peewee.Entity):
 
 
 
-class Model(peewee.Model, ChildAware):
+class Model(peewee.Model, helpers.ChildAware):
     
     class Meta:
         database = proxy
 
 
 
-class Storable(Model, Renderable):
+class Storable(Model, rendering.Renderable):
 
     field_blacklist = ['id']
-    name = peewee.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]*$')])
-    title = peewee.CharField()
+    name = fields.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]*$')])
+    title = fields.CharField()
     actions = None
 
 
@@ -74,26 +76,26 @@ class Storable(Model, Renderable):
         else:
             instance = cls.get(cls.name == id_or_name)
 
-        instance.actions = Menu('%s-%d.actions' % (instance.__class__.__name__, instance.id))
+        instance.actions = rendering.Menu('%s-%d.actions' % (instance.__class__.__name__, instance.id))
         try:
             instance.actions.append(instance.url('full'), 'View')
             instance.actions.append(instance.url('edit'), 'Edit')
             instance.actions.append(instance.url('delete'), 'Delete')
 
         except Exception as e:
-            current_app.logger.error('Action menu generation failure.')
-            current_app.logger.error(e)
+            flask.current_app.logger.error('Action menu generation failure.')
+            flask.current_app.logger.error(e)
 
         return instance
 
 
     @classmethod
     def url(cls, mode=None):
-        return current_app.get_url(cls, mode=mode)
+        return flask.current_app.get_url(cls, mode=mode)
 
 
     def instance_url(self, mode=None):
-        return current_app.get_url(self.__class__, id_or_name=self.name, mode=mode)
+        return flask.current_app.get_url(self.__class__, id_or_name=self.name, mode=mode)
 
 
     @classmethod
@@ -109,30 +111,31 @@ class Storable(Model, Renderable):
         else:
             title = self.title
 
-        form = Form(
+        f = form.Form(
             '%s-%s' % (self.__class__.__name__.lower(), mode),
             title=title,
             action=self.url(mode),
             tpls=self.form_template_candidates()
         )
 
-        form.actions = self.actions
+        f.actions = self.actions
 
         if mode == 'delete':
 
-            form.add_field('warning', 'message', value='Deletion is not revocable. Proceed?')
-            form.add_button('submit', name='submit', value='delete', label='KILL')
+            f.add_field('warning', 'message', value='Deletion is not revocable. Proceed?')
+            f.add_button('submit', name='submit', value='delete', label='KILL')
 
         else:
             fields = self.__class__._meta.get_fields()
 
             for field in fields:
-                form.add_field(field.name, field.__class__.__name__.lower(), getattr(self, field.name))
+                flask.current_app.logger.debug(field)
+                f.add_field(field.name, field.__class__.__name__.lower(), getattr(self, field.name))
 
-            form.add_button('reset', name='reset', label='Reset')
-            form.add_button('submit', name='submit', value='save', label='Save')
+            f.add_button('reset', name='reset', label='Reset')
+            f.add_button('submit', name='submit', value='save', label='Save')
 
-        return form
+        return f
         
     
     def form_template_candidates(self):
@@ -164,7 +167,7 @@ class Storable(Model, Renderable):
 
 
 
-class Listing(Renderable):
+class Listing(rendering.Renderable):
 
     cls = None
     mode = None
@@ -192,7 +195,7 @@ class Listing(Renderable):
             self.title = cls.__name__
 
         if limit is None:
-            self.limit = current_app.config['PAGINATION_COUNT']
+            self.limit = flask.current_app.config['PAGINATION_COUNT']
         else:
             self.limit = limit
 
@@ -216,20 +219,20 @@ class Listing(Renderable):
                 iteration_done = True
 
         # Build pagination if matching endpoint and enough rows exist
-        endpoint = request.endpoint
+        endpoint = flask.request.endpoint
         if not endpoint.endswith('_offset'):
             endpoint = '%s_offset' % (endpoint,)
 
         try:
 
-            self.pagination = Menu('pagination')
+            self.pagination = rendering.Menu('pagination')
             for i in range(0, self.pagecount):
 
                 page_num = i+1
                 active = self.current_page == page_num
 
                 self.pagination.append(
-                    url_for(endpoint, offset=i*self.limit),
+                    flask.url_for(endpoint, offset=i*self.limit),
                     page_num,
                     active
                 )
@@ -238,93 +241,5 @@ class Listing(Renderable):
                 self.pagination = False
 
         except werkzeug.routing.BuildError as e:
-            current_app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
+            flask.current_app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
-
-
-
-class Form(Renderable):
-
-    name = None
-    title = None
-    method = None
-    fields = None
-    controls = None
-    rendered = None
-    field_associations = None
-
-    def __init__(self, name, title='', method='POST', action=None, tpls=None):
-       
-        self.name = name
-        self.title = title
-        self.method = method
-        self.action = action
-        self.fields = OrderedDict()
-        self.controls = CustomOrderedDict()
-
-        self.tpls = []
-        if tpls:
-            self.tpls += tpls
-        
-        self.tpls.append('form.jinja')
-
-        self.render_reset()
-
-
-    def template_candidates(self, mode):
-        return self.tpls
-
-
-    def add_field(self, name, field_type, value=None):
-        self.fields[name] = (field_type, value)
-
-
-    def add_button(self, type, name=None, value=None, label=None):
-
-        self.controls[name] = Button(type, name=name, value=value, label=label)
-
-
-    def render_reset(self):
-        self.rendered = []
-
-
-    def render_field(self, name):
-        
-        field_type, value = self.fields[name]
-
-        tpls = ["fields/%s.jinja" % (field_type,)]
-        tpls.append("fields/field.jinja")
-
-        self.rendered.append(name)
-        return render_template(tpls, field_type=field_type, name=name, value=value)
-
-
-    def render_fields(self):
-        
-        rendered_fields = u''
-
-        for name in self.fields.keys():
-
-            if name not in self.rendered:
-                rendered_fields += self.render_field(name)
-
-        return rendered_fields
-
-
-
-class Button(Renderable):
-
-    name = None
-    type = None
-    value = None
-    label = None
-
-    
-    def __init__(self, type, name=None, value=None, label=None):
-
-        super(Button, self).__init__()
-
-        self.name = name
-        self.type = type
-        self.value = value
-        self.label = label
