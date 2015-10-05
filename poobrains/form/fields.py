@@ -2,7 +2,6 @@
 
 # parent imports
 from poobrains import rendering
-from poobrains import storage
 
 # internal imports
 import validators
@@ -17,12 +16,15 @@ class Field(rendering.Renderable):
     readonly = None
     validators = None
 
+
     def __init__(self, name, value=None, label=None, readonly=False, validators=[]):
 
         self.name = name
         self.value = value
+        self.label = label if label else name
         self.readonly = readonly
         self.validators = validators
+
 
     def validate(self, value):
 
@@ -31,6 +33,22 @@ class Field(rendering.Renderable):
                 return False
 
         return True
+
+
+    def template_candidates(self, mode):
+
+        field_type = self.__class__.__name__.lower()
+
+        tpls = []
+        tpls.append("fields/%s-%s.jinja" % (self.name, field_type))
+        tpls.append("fields/%s.jinja" % field_type)
+        tpls.append("fields/field.jinja")
+
+        return tpls
+
+
+class Warning(Field):
+    pass
 
 
 class Text(Field):

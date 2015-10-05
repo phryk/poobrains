@@ -1,6 +1,8 @@
 <form name="{{ content.name }}" method="{{ content.method }}" {% if content.action %}action="{{ content.action }}"{% endif %}>
 
-{{ content.render_fields() }}
+{% for field in content %}
+    {{ field.render() }}
+{% endfor %}
 
 {% if content.controls %}
     <ul class="controls">

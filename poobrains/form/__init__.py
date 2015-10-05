@@ -8,16 +8,18 @@ import collections
 from poobrains import rendering
 from poobrains import helpers
 
+# internal imports
+import fields
 
 class Form(rendering.Renderable):
+    
+    _fields = None
+    _rendered = None
 
     name = None
     title = None
     method = None
-    fields = None
     controls = None
-    rendered = None
-    field_associations = None
 
     def __init__(self, name, title='', method='POST', action=None, tpls=None):
        
@@ -25,13 +27,14 @@ class Form(rendering.Renderable):
         self.title = title
         self.method = method
         self.action = action
-        self.fields = collections.OrderedDict()
+        self._fields = collections.OrderedDict()
         self.controls = helpers.CustomOrderedDict()
 
         self.tpls = []
         if tpls:
             self.tpls += tpls
         
+        self.tpls.append('form-%s.jinja' % self.name)
         self.tpls.append('form.jinja')
 
         self.render_reset()
@@ -41,8 +44,8 @@ class Form(rendering.Renderable):
         return self.tpls
 
 
-    def add_field(self, name, field_type, value=None):
-        self.fields[name] = (field_type, value)
+    #def add_field(self, name, field_type, value=None):
+    #    self.fields[name] = (field_type, value)
 
 
     def add_button(self, type, name=None, value=None, label=None):
@@ -51,7 +54,7 @@ class Form(rendering.Renderable):
 
 
     def render_reset(self):
-        self.rendered = []
+        self._rendered = []
 
 
     def render_field(self, name):
@@ -61,7 +64,7 @@ class Form(rendering.Renderable):
         tpls = ["fields/%s.jinja" % (field_type,)]
         tpls.append("fields/field.jinja")
 
-        self.rendered.append(name)
+        self._rendered.append(name)
         return flask.render_template(tpls, field_type=field_type, name=name, value=value)
 
 
@@ -71,11 +74,31 @@ class Form(rendering.Renderable):
 
         for name in self.fields.keys():
 
-            if name not in self.rendered:
+            if name not in self._rendered:
                 rendered_fields += self.render_field(name)
 
         return rendered_fields
 
+
+    def __getattr__(self, name):
+
+        if self._fields.has_key(name):
+            return self._fields[name]
+
+        raise AttributeError("Attribute not found: %s" % name)
+
+    def __setattr__(self, name, value):
+
+        if isinstance(value, fields.Field):
+            self._fields[name] = value
+
+        else:
+            super(Form, self).__setattr__(name, value)
+
+
+    def __iter__(self):
+        #return self._fields.__iter__()
+        return self._fields.itervalues()
 
 
 class Button(rendering.Renderable):

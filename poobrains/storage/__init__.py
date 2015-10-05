@@ -122,15 +122,20 @@ class Storable(Model, rendering.Renderable):
 
         if mode == 'delete':
 
-            f.add_field('warning', 'message', value='Deletion is not revocable. Proceed?')
+            #f.add_field('warning', 'message', value='Deletion is not revocable. Proceed?')
+            f.warning = form.fields.Warning('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
             f.add_button('submit', name='submit', value='delete', label='KILL')
 
         else:
-            fields = self.__class__._meta.get_fields()
+            own_fields = self.__class__._meta.get_fields()
 
-            for field in fields:
-                flask.current_app.logger.debug(field)
-                f.add_field(field.name, field.__class__.__name__.lower(), getattr(self, field.name))
+            for field in own_fields:
+                
+                if isinstance(field, fields.Field):
+                    flask.current_app.logger.debug(field)
+                    form_field = field.form_class(field.name, value=getattr(self, field.name), validators=field.form_extra_validators)
+                    setattr(f, field.name, form_field) 
+                    #f.add_field(field.name, field.__class__.__name__.lower(), getattr(self, field.name))
 
             f.add_button('reset', name='reset', label='Reset')
             f.add_button('submit', name='submit', value='save', label='Save')

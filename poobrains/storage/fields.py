@@ -9,7 +9,12 @@ from poobrains import form
 
 
 class Field(helpers.ChildAware):
-    pass # Just a shell class to enable geting all poobrains.storage fields as Field.children()
+
+    form_class = form.fields.Text
+    form_extra_validators = []
+
+    def form(self, value):
+        return form_class(self.name, label=self.name, value=value)
 
 
 class CharField(peewee.CharField, Field):
