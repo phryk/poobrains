@@ -14,70 +14,61 @@ import fields
 class Form(rendering.Renderable):
     
     _fields = None
-    _rendered = None
+    _controls = None
 
     name = None
     title = None
     method = None
-    controls = None
 
-    def __init__(self, name, title='', method='POST', action=None, tpls=None):
+    def __init__(self, name, title='', method='POST', action=None):
        
+        self._fields = collections.OrderedDict()
+        self._controls = helpers.CustomOrderedDict()
+
         self.name = name
         self.title = title
         self.method = method
         self.action = action
-        self._fields = collections.OrderedDict()
-        self.controls = helpers.CustomOrderedDict()
-
-        self.tpls = []
-        if tpls:
-            self.tpls += tpls
-        
-        self.tpls.append('form-%s.jinja' % self.name)
-        self.tpls.append('form.jinja')
-
-        self.render_reset()
 
 
     def template_candidates(self, mode):
-        return self.tpls
-
-
-    #def add_field(self, name, field_type, value=None):
-    #    self.fields[name] = (field_type, value)
-
-
-    def add_button(self, type, name=None, value=None, label=None):
-
-        self.controls[name] = Button(type, name=name, value=value, label=label)
-
-
-    def render_reset(self):
-        self._rendered = []
-
-
-    def render_field(self, name):
         
-        field_type, value = self.fields[name]
+        tpls = []
+        
+        tpls.append('form-%s.jinja' % self.name)
+        tpls.append('form.jinja')
 
-        tpls = ["fields/%s.jinja" % (field_type,)]
-        tpls.append("fields/field.jinja")
-
-        self._rendered.append(name)
-        return flask.render_template(tpls, field_type=field_type, name=name, value=value)
+        return tpls
 
 
     def render_fields(self):
-        
+
+        """
+        Render fields of this form which have not yet been rendered.
+        """
+
         rendered_fields = u''
 
-        for name in self.fields.keys():
-
-            if name not in self._rendered:
-                rendered_fields += self.render_field(name)
+        for field in self._fields.itervalues():
+            if not field.rendered:
+                rendered_fields += field.render()
 
         return rendered_fields
+
+
+    def render_controls(self):
+
+        """
+        Render controls for this form.
+        TODO: Do we *want* to filter out already rendered controls, like we do with fields?
+        """
+
+        rendered_controls = u''
+
+        for control in self._controls.itervalues():
+            rendered_controls += control.render()
+
+        return rendered_controls
 
 
     def __getattr__(self, name):
@@ -85,19 +76,30 @@ class Form(rendering.Renderable):
         if self._fields.has_key(name):
             return self._fields[name]
 
+        elif self._controls.has_key(name):
+            return self._controls[name]
+
         raise AttributeError("Attribute not found: %s" % name)
+
 
     def __setattr__(self, name, value):
 
         if isinstance(value, fields.Field):
             self._fields[name] = value
 
+        elif isinstance(value, Button):
+            self._controls[name] = value
+
         else:
             super(Form, self).__setattr__(name, value)
 
 
     def __iter__(self):
-        #return self._fields.__iter__()
+
+        """
+        Iterate over this forms fields. Yes, this comment is incredibly helpful.
+        """
+
         return self._fields.itervalues()
 
 

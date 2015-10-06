@@ -15,6 +15,7 @@ class Field(rendering.Renderable):
     placeholder = None
     readonly = None
     validators = None
+    rendered = None
 
 
     def __init__(self, name, value=None, label=None, readonly=False, validators=[]):
@@ -24,6 +25,7 @@ class Field(rendering.Renderable):
         self.label = label if label else name
         self.readonly = readonly
         self.validators = validators
+        self.rendered = False
 
 
     def validate(self, value):
@@ -45,6 +47,12 @@ class Field(rendering.Renderable):
         tpls.append("fields/field.jinja")
 
         return tpls
+
+
+    def render(self, mode='full'):
+
+        self.rendered = True
+        return super(Field, self).render(mode)
 
 
 class Warning(Field):

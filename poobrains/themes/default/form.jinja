@@ -4,12 +4,6 @@
     {{ field.render() }}
 {% endfor %}
 
-{% if content.controls %}
-    <ul class="controls">
-        {% for control in content.controls %}
-            <li>{{ control.render() }}</li>
-        {% endfor %}
-    </ul>
-{% endif %}
+{{ content.render_controls() }}
 
 </form>
