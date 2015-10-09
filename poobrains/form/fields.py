@@ -18,14 +18,27 @@ class Field(rendering.Renderable):
     rendered = None
 
 
-    def __init__(self, name=None, value=None, label=None, readonly=False, validators=[]):
+    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, validators=[]):
 
         self.name = name
         self.value = value
         self.label = label if label else name
+        self.placeholder = placeholder if placeholder else name
         self.readonly = readonly
         self.validators = validators
         self.rendered = False
+
+
+    def __getattr__(self, name):
+
+        if name in ['label', 'placeholder']:
+
+            real_value = super(Field, self).__getattr__(name)
+
+            if not real_value and isinstance(self.name, basestring):
+                return self.name.capitalize()
+
+            return real_value
 
 
     def validate(self, value):

@@ -41,7 +41,9 @@ class User(storage.Storable):
 
 class ClientCertForm(form.Form):
     
-    passphrase = form.fields.ObfuscatedText()
+    #passphrase = form.fields.ObfuscatedText()
+    token = form.fields.ObfuscatedText(label='Token')
+    submit = form.Button('submit', label='Generate Certificate')
 
 
 

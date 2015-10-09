@@ -42,11 +42,19 @@ class Form(rendering.Renderable):
         instance._controls = helpers.CustomOrderedDict()
 
         for attr_name in dir(instance):
+
+            label_default = attr_name.capitalize()
             attr = getattr(instance, attr_name)
+
             if isinstance(attr, fields.Field):
+                label = attr.label if attr.label else label_default
                 field_clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validators=attr.validators)
                 setattr(instance, attr_name, field_clone) # results in __setattr__ being called
 
+            elif isinstance(attr, Button):
+                label = attr.label if attr.label else label_default
+                button_clone = attr.__class__(attr.type, name=attr_name, value=attr.value, label=label)
+                setattr(instance, attr_name, button_clone)
 
         return instance
 
@@ -112,8 +120,6 @@ class Form(rendering.Renderable):
 
 
     def __setattr__(self, name, value):
-
-        print "custom __setattr__"
 
         if isinstance(value, fields.Field):
             self._fields[name] = value
