@@ -2,7 +2,6 @@
 
 # external imports
 import flask
-import collections
 
 # parent imports
 from poobrains import rendering
@@ -11,8 +10,23 @@ from poobrains import helpers
 # internal imports
 import fields
 
+
+#class MetaForm(type):
+#
+#    def __new__(mcs, name, bases, attrs):
+#
+#        for attr_name, attr in attrs.iteritems():
+#
+#            if isinstance(attr, fields.Field) and not attr.name:
+#                attr.name = attr_name
+#
+#        return type.__new__(mcs, name, bases, attrs)
+
+
 class Form(rendering.Renderable):
-    
+
+    #__metaclass__ = MetaForm
+
     _fields = None
     _controls = None
 
@@ -20,12 +34,27 @@ class Form(rendering.Renderable):
     title = None
     method = None
 
-    def __init__(self, name, title='', method='POST', action=None):
-       
-        self._fields = collections.OrderedDict()
-        self._controls = helpers.CustomOrderedDict()
 
-        self.name = name
+    def __new__(cls, *args, **kw):
+
+        instance = super(Form, cls).__new__(cls, *args, **kw)
+        instance._fields = helpers.CustomOrderedDict()
+        instance._controls = helpers.CustomOrderedDict()
+
+        for attr_name in dir(instance):
+            attr = getattr(instance, attr_name)
+            if isinstance(attr, fields.Field):
+                field_clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validators=attr.validators)
+                setattr(instance, attr_name, field_clone) # results in __setattr__ being called
+
+
+        return instance
+
+
+    def __init__(self, name=None, title='', method='POST', action=None):
+       
+
+        self.name = name if name else self.__class__.__name__.lower()
         self.title = title
         self.method = method
         self.action = action
@@ -83,6 +112,8 @@ class Form(rendering.Renderable):
 
 
     def __setattr__(self, name, value):
+
+        print "custom __setattr__"
 
         if isinstance(value, fields.Field):
             self._fields[name] = value

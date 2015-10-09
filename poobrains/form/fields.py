@@ -18,7 +18,7 @@ class Field(rendering.Renderable):
     rendered = None
 
 
-    def __init__(self, name, value=None, label=None, readonly=False, validators=[]):
+    def __init__(self, name=None, value=None, label=None, readonly=False, validators=[]):
 
         self.name = name
         self.value = value
@@ -60,6 +60,10 @@ class Warning(Field):
 
 
 class Text(Field):
+    pass
+
+
+class ObfuscatedText(Text):
     pass
 
 

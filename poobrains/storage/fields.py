@@ -34,3 +34,7 @@ class FileField(peewee.ForeignKeyField, Field):
         rel_model = File
 
         super(FileField, self).__init__(rel_model, *args, **kwargs)
+
+
+class DateTimeField(peewee.DateTimeField, Field):
+    pass

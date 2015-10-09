@@ -49,6 +49,12 @@ def admin_index():
     return admin_menu()
 
 
+@render()
+def cert_form():
+
+    return auth.ClientCertForm()
+
+
 class ErrorPage(Renderable):
 
     error = None
@@ -103,23 +109,15 @@ class Poobrain(Flask):
             group = grp.getgrgid(os.getgid()).gr_name
             sys.exit("Somethings' fucky with the log file: %s. Current user/group is %s/%s." % (e,user,group))
 
-        self.logger.error('ZOMGAFTERLOG')
-
-
-
-        self.site = Pooprint('site', 'site')
-        self.admin = Pooprint('admin', 'admin')
-
-        self.admin.box('menu_main')(admin_menu)
 
         self.poobrain_path = os.path.dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
-
 
         self.db = connect(self.config['DATABASE'])
         storage.proxy.initialize(self.db)
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
+        self.add_url_rule('/cert/', 'cert_form', cert_form)
 
         self.register_error_handler(404, self.errorpage)
         self.register_error_handler(peewee.OperationalError, self.errorpage)
@@ -129,6 +127,14 @@ class Poobrain(Flask):
         # Make sure that each request has a proper database connection
         self.before_request(self.request_setup)
         self.teardown_request(self.request_teardown)
+
+
+        # set up site and admin blueprints
+        self.site = Pooprint('site', 'site')
+
+        self.admin = Pooprint('admin', 'admin')
+        self.admin.box('menu_main')(admin_menu)
+
 
 
     def try_trigger_before_first_request_functions(self):

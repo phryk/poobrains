@@ -1,9 +1,15 @@
-from peewee import CharField
+# external imports
+import datetime
+import flask
+
+# local imports
+import form
 import storage
+
 
 class User(storage.Storable):
 
-    name = CharField(unique=True)
+    name = storage.fields.CharField(unique=True)
     groups = None
     permissions = None
 
@@ -31,3 +37,22 @@ class User(storage.Storable):
             return '<Poobrains User %d: %s>' % (self.id, self.name)
 
         return '<Poobrains User, unsaved>'
+
+
+class ClientCertForm(form.Form):
+    
+    passphrase = form.fields.ObfuscatedText()
+
+
+
+class ClientCertToken(storage.Storable):
+
+    validity = None
+    created = storage.fields.DateTimeField(default=datetime.datetime.now)
+    token = storage.fields.CharField(unique=True)
+
+
+    def __init__(self, *args, **kw):
+
+        self.validity = flask.current_app.config['TOKEN_VALIDITY']
+        super(ClientCertToken, self).__init__(*args, **kw)
