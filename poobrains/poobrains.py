@@ -3,22 +3,22 @@
 import os
 import sys
 import logging
-from logging.handlers import WatchedFileHandler
-from functools import wraps
-from flask import Flask, Blueprint, current_app, request, g, abort, flash, redirect, url_for, send_from_directory
+import flask
+import collections
+import functools
+
 #from flask.signals import appcontext_pushed # TODO: needed?
-from flask.helpers import locked_cached_property
-from jinja2 import FileSystemLoader, DictLoader
-from playhouse.db_url import connect
+import jinja2
+from playhouse import db_url
 import peewee
 
-from collections import OrderedDict
 
+# internal imports
 import storage
 import auth
 import cli
-from rendering import Renderable, RenderString, Menu, render 
-from helpers import TrueDict 
+import rendering
+import helpers
 import defaults
 
 try:
@@ -32,30 +32,34 @@ except ImportError as e:
 
 def admin_menu():
 
-    menu = Menu('main')
+    menu = rendering.Menu('main')
     menu.title = 'Administration'
 
-    for storable in storage.Storable.children():
-        try:
-            menu.append(storable.url('teaser-edit'), storable.__name__)
-        except Exception as e:
-            flash("Can't create administration link for %s." % (storable.__name__,))
-            #pass
+    for storable, listings in flask.current_app.admin.listings.iteritems():
+        flask.current_app.logger.debug('Listing:')
+        flask.current_app.logger.debug(storable)
+        flask.current_app.logger.debug(listings)
+
+        for mode, endpoints in listings.iteritems():
+
+            for endpoint in endpoints: # iterates through endpoints.keys()
+                menu.append(flask.url_for('admin.%s' % endpoint), storable.__name__)
 
     return menu
 
-@render()
+
+@rendering.render()
 def admin_index():
     return admin_menu()
 
 
-@render()
+@rendering.render()
 def cert_form():
 
     return auth.ClientCertForm()
 
 
-class ErrorPage(Renderable):
+class ErrorPage(rendering.Renderable):
 
     error = None
 
@@ -67,7 +71,7 @@ class ErrorPage(Renderable):
 
 
 
-class Poobrain(Flask):
+class Poobrain(flask.Flask):
 
     site = None
     admin = None
@@ -94,7 +98,7 @@ class Poobrain(Flask):
 
         try:
             if self.config['LOGFILE']: # log to file, if configured
-                log_handler = WatchedFileHandler(self.config['LOGFILE'])
+                log_handler = logging.handlers.WatchedFileHandler(self.config['LOGFILE'])
                 if self.debug:
                     log_handler.setLevel(logging.DEBUG)
                 else:
@@ -113,7 +117,7 @@ class Poobrain(Flask):
         self.poobrain_path = os.path.dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
 
-        self.db = connect(self.config['DATABASE'])
+        self.db = db_url.connect(self.config['DATABASE'])
         storage.proxy.initialize(self.db)
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
@@ -147,7 +151,7 @@ class Poobrain(Flask):
         super(Poobrain, self).try_trigger_before_first_request_functions()
 
 
-    @render('full')
+    @rendering.render('full')
     def errorpage(self, error):
         if hasattr(error, 'code') and isinstance(error.code, int):
             status_code = error.code
@@ -165,8 +169,6 @@ class Poobrain(Flask):
     
     def serve_theme_resources(self, filename):
 
-        self.logger.debug("I'm serving theme resource %s!" %(filename,))
-
         paths = []
 
         extension = filename.split('.')
@@ -174,10 +176,10 @@ class Poobrain(Flask):
             extension = extension[-1]
 
         else:
-            abort(404)
+            flask.abort(404)
 
         if extension not in self.resource_extension_whitelist:
-            abort(404) # extension not allowed
+            flask.abort(404) # extension not allowed
 
         if self.config['THEME'] != 'default':
             paths.append(os.path.join(
@@ -198,14 +200,14 @@ class Poobrain(Flask):
 
         for current_path in paths:
             if os.path.exists(current_path):
-                return send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
+                return flask.send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
 
-        abort(404)
+        flask.abort(404)
 
 
     def request_setup(self):
 
-        g.boxes = {}
+        flask.g.boxes = {}
         self.db.connect()
         connection = self.db.get_conn()
 
@@ -221,7 +223,7 @@ class Poobrain(Flask):
         def decorator(cls):
 
             def admin_listing_actions():
-                m = Menu('admin-listing-actions')
+                m = rendering.Menu('admin-listing-actions')
                 m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
 
                 return m
@@ -263,7 +265,7 @@ class Poobrain(Flask):
             return super(Poobrain, self).run(*args, **kw)
 
 
-class Pooprint(Blueprint):
+class Pooprint(flask.Blueprint):
 
     app = None
     db = None
@@ -278,7 +280,7 @@ class Pooprint(Blueprint):
         super(Pooprint, self).__init__(*args, **kwargs)
 
         self.views = {}
-        self.listings = {}
+        self.listings = {} # TODO: list of dicts? {primary: bool, endpoint: str}
         self.boxes = {}
         self.poobrain_path = os.path.dirname(__file__)
         
@@ -296,10 +298,10 @@ class Pooprint(Blueprint):
     def add_view(self, cls, rule, endpoint=None, view_func=None, mode='full', primary=False, **options):
 
         if not self.views.has_key(cls):
-            self.views[cls] = {}
+            self.views[cls] = collections.OrderedDict()
 
         if not self.views[cls].has_key(mode):
-            self.views[cls][mode] = TrueDict()
+            self.views[cls][mode] = collections.OrderedDict()
 
         if mode != 'add':
             rule = os.path.join(rule, '<id_or_name>')
@@ -312,11 +314,11 @@ class Pooprint(Blueprint):
                 options['methods'].append('DELETE')
 
         if not view_func:
-            @render(mode)
+            @rendering.render(mode)
             def view_func(id_or_name=None):
 
                 # handle POST for add and edit
-                if mode in ('add', 'edit') and request.method == 'POST':
+                if mode in ('add', 'edit') and flask.request.method == 'POST':
 
                     field_names = cls._meta.get_field_names()
 
@@ -328,31 +330,31 @@ class Pooprint(Blueprint):
                     for field_name in field_names:
                         if not field_name in cls.field_blacklist:
                             try:
-                                setattr(instance, field_name, request.form[field_name])
+                                setattr(instance, field_name, flask.request.form[field_name])
                             except Exception as e:
-                                current_app.logger.error("Possible bug in default view_func catchall.")
-                                current_app.logger.error('%s.%s' % (cls.__name__, field_name))
+                                flask.current_app.logger.error("Possible bug in default view_func catchall.")
+                                flask.current_app.logger.error('%s.%s' % (cls.__name__, field_name))
 
                     try:
                         instance.save()
 
                     except peewee.IntegrityError as e:
-                        flash('Integrity error: %s' % e.message, 'error')
+                        flask.flash('Integrity error: %s' % e.message, 'error')
 
                         if mode == 'edit':
-                            return redirect(cls.load(instance.id).url('edit'))
+                            return flask.redirect(cls.load(instance.id).url('edit'))
 
-                        return redirect(self.get_url(cls, mode='teaser-edit'))
+                        return flask.redirect(self.get_url(cls, mode='teaser-edit'))
 
-                    return redirect(self.get_url(cls, id_or_name=instance.name, mode='edit'))
+                    return flask.redirect(self.get_url(cls, id_or_name=instance.name, mode='edit'))
 
                 # Why the fuck does HTML not support DELETE!?
-                elif mode == 'delete' and request.method in ('POST', 'DELETE') and id_or_name:
+                elif mode == 'delete' and flask.request.method in ('POST', 'DELETE') and id_or_name:
                     instance = cls.load(id_or_name)
                     message = "Deleted %s '%s'." % (cls.__name__, instance.name)
                     instance.delete_instance()
-                    flash(message)
-                    return redirect(cls.url('teaser-edit'))#HERE
+                    flask.flash(message)
+                    return flask.redirect(cls.url('teaser-edit'))#HERE
 
                 # handle 
                 elif id_or_name:
@@ -371,13 +373,13 @@ class Pooprint(Blueprint):
             endpoint = view_func.__name__
 
         self.add_url_rule(rule, endpoint, view_func, **options)
-        self.views[cls][mode][endpoint] = primary
+        self.views[cls][mode][endpoint] = {'primary': primary, 'endpoint': endpoint}
 
 
     def box_setup(self):
         
         for name, f in self.boxes.iteritems():
-            g.boxes[name] = f()
+            flask.g.boxes[name] = f()
 
 
     def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, **options):
@@ -391,11 +393,11 @@ class Pooprint(Blueprint):
             self.listings[cls] = {}
 
         if not self.listings[cls].has_key(mode):
-            self.listings[cls][mode] = TrueDict()
+            self.listings[cls][mode] = collections.OrderedDict()
 
         if view_func is None:
 
-            @render('full')
+            @rendering.render('full')
             def view_func(offset=0):
 
                 if action_func:
@@ -416,15 +418,15 @@ class Pooprint(Blueprint):
         self.add_url_rule(rule, endpoint=endpoint, view_func=view_func, **options)
         self.add_url_rule(offset_rule, endpoint=offset_endpoint, view_func=view_func, **options)
 
-        self.listings[cls][mode][endpoint] = primary
+        self.listings[cls][mode][endpoint] = {'primary': primary, 'endpoint': endpoint}
     
 
     def listing(self, cls, rule, mode='teaser', title=None, **options):
 
         def decorator(f):
 
-            @wraps(f)
-            @render('full')
+            @functools.wraps(f)
+            @rendering.render('full')
             def real(offset=0):
 
                 instance = storage.Listing(cls, title=title, offset=offset, mode=mode)
@@ -441,8 +443,8 @@ class Pooprint(Blueprint):
         # TODO: Why am I not using this in here? Change it - if that makes any sense.
         def decorator(f):
 
-            @wraps(f)
-            @render(mode)
+            @functools.wraps(f)
+            @rendering.render(mode)
             def real(id_or_name):
 
                 instance = cls.load(id_or_name)
@@ -485,10 +487,10 @@ class Pooprint(Blueprint):
 
         endpoints = self.views[cls][mode]
        
-        endpoint = endpoints.choose()
+        endpoint = helpers.choose_primary(endpoints)['endpoint']
         endpoint = '%s.%s' % (self.name, endpoint)
 
-        return url_for(endpoint, id_or_name=id_or_name)
+        return flask.url_for(endpoint, id_or_name=id_or_name)
 
 
     def get_listing_url(self, cls, mode=None, offset=0, id_or_name=None):
@@ -508,13 +510,14 @@ class Pooprint(Blueprint):
 
         endpoints = self.listings[cls][mode]
 
-        endpoint = endpoints.choose()
+        #endpoint = endpoints.choose()
+        endpoint = helpers.choose_primary(endpoints)['endpoint']
         endpoint = '%s.%s' % (self.name, endpoint)
 
         if isinstance(offset, int) and offset > 0:
-            return url_for(endpoint+'_offset', offset=offset)
+            return flask.url_for(endpoint+'_offset', offset=offset)
 
-        return url_for(endpoint)
+        return flask.url_for(endpoint)
 
     
     def next_endpoint(self, cls, mode, context):
@@ -531,7 +534,7 @@ class Pooprint(Blueprint):
             return endpoint
 
 
-    @locked_cached_property
+    @flask.helpers.locked_cached_property
     def jinja_loader(self):
 
         paths = []
@@ -543,4 +546,4 @@ class Pooprint(Blueprint):
         paths.append(os.path.join(self.root_path, 'themes', 'default'))
         paths.append(os.path.join(self.poobrain_path, 'themes', 'default'))
 
-        return FileSystemLoader(paths)
+        return jinja2.FileSystemLoader(paths)

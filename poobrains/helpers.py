@@ -1,4 +1,16 @@
+# -*- coding: utf-8 -*-
+
 from collections import OrderedDict
+
+
+def choose_primary(d):
+    
+    for k,v in d.iteritems():
+
+        if v['primary']:
+           return v
+
+    return d.values()[0]
 
 
 class ChildAware(object):
