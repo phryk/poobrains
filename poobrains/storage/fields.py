@@ -38,3 +38,7 @@ class FileField(peewee.ForeignKeyField, Field):
 
 class DateTimeField(peewee.DateTimeField, Field):
     pass
+
+
+class ForeignKeyField(peewee.ForeignKeyField):
+    pass

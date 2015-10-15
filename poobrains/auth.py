@@ -43,8 +43,8 @@ class ClientCertForm(form.Form):
     
     #passphrase = form.fields.ObfuscatedText()
     token = form.fields.ObfuscatedText(label='Token')
+    keygen = form.fields.Keygen()
     submit = form.Button('submit', label='Generate Certificate')
-
 
 
 class ClientCertToken(storage.Storable):
@@ -58,3 +58,11 @@ class ClientCertToken(storage.Storable):
 
         self.validity = flask.current_app.config['TOKEN_VALIDITY']
         super(ClientCertToken, self).__init__(*args, **kw)
+
+
+class ClientCert(storage.Storable):
+
+    user = storage.fields.ForeignKeyField(User)
+    common_name = storage.fields.CharField(unique=True)
+    created = storage.fields.DateTimeField(default=datetime.datetime.now)
+    valid_till = storage.fields.DateTimeField()

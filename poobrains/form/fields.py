@@ -55,9 +55,9 @@ class Field(rendering.Renderable):
         field_type = self.__class__.__name__.lower()
 
         tpls = []
-        tpls.append("fields/%s-%s.jinja" % (self.name, field_type))
-        tpls.append("fields/%s.jinja" % field_type)
-        tpls.append("fields/field.jinja")
+        tpls.append("form/fields/%s-%s.jinja" % (self.name, field_type))
+        tpls.append("form/fields/%s.jinja" % field_type)
+        tpls.append("form/fields/field.jinja")
 
         return tpls
 
@@ -130,6 +130,10 @@ class RangedFloat(Float):
         validators.append(validators.mk_max(self.max))
 
         super(RangedFloat, self).__init__(name, value=value, label=label, validators=validators)
+
+
+class Keygen(Field):
+    pass
 
 
 class File(Field):
