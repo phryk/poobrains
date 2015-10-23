@@ -4,6 +4,9 @@ from flask import abort, render_template, g
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException
 
+import jinja2
+
+# local imports 
 import helpers
 
 def render(mode='full'):
@@ -61,7 +64,7 @@ class Renderable(helpers.ChildAware):
     def render(self, mode='full'): 
 
         tpls = self.template_candidates(mode)
-        return render_template(tpls, content=self, mode=mode)
+        return jinja2.Markup(render_template(tpls, content=self, mode=mode))
 
 
     def template_candidates(self, mode):

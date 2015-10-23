@@ -13,6 +13,7 @@ from poobrains import form
 
 # internal imports
 import fields
+import cli
 
 
 proxy = peewee.Proxy()

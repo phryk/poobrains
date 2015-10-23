@@ -54,10 +54,22 @@ def admin_index():
 
 
 @rendering.render()
+@auth.is_secure
 def cert_form():
 
     return auth.ClientCertForm()
 
+
+@rendering.render()
+@auth.is_secure
+def cert_handle():
+
+    flask.current_app.logger.debug(flask.request.form)
+
+    token = auth.ClientCertToken.get(auth.ClientCertToken.token == flask.request.form['token'])
+    flask.current_app.loger.debug(token)
+
+    return rendering.RenderString("Poof.")
 
 class ErrorPage(rendering.Renderable):
 
@@ -122,7 +134,9 @@ class Poobrain(flask.Flask):
 
         self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
         self.add_url_rule('/cert/', 'cert_form', cert_form)
-
+        
+        self.add_url_rule('/cert/', 'cert_handle', cert_handle, methods=['POST'])
+        
         self.register_error_handler(404, self.errorpage)
         self.register_error_handler(peewee.OperationalError, self.errorpage)
         self.register_error_handler(peewee.IntegrityError, self.errorpage)
@@ -139,6 +153,11 @@ class Poobrain(flask.Flask):
         self.admin = Pooprint('admin', 'admin')
         self.admin.box('menu_main')(admin_menu)
 
+
+    def select_jinja_autoescape(self, filename):
+        if filename is None:
+            return False
+        return not filename.endswith(('.safe')) # Don't even know if I ever want to use .safe files, but hey, it's there.
 
 
     def try_trigger_before_first_request_functions(self):
@@ -354,7 +373,7 @@ class Pooprint(flask.Blueprint):
                     message = "Deleted %s '%s'." % (cls.__name__, instance.name)
                     instance.delete_instance()
                     flask.flash(message)
-                    return flask.redirect(cls.url('teaser-edit'))#HERE
+                    return flask.redirect(cls.url('teaser-edit'))
 
                 # handle 
                 elif id_or_name:

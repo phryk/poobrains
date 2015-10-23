@@ -8,8 +8,7 @@ from poobrains import Poobrain, Storable, Menu, Renderable
 #from peewee import CharField, TextField
 from poobrains.storage.fields import CharField, TextField
 
-app = Poobrain('Poobrains Example')
-
+app = poobrains.app
 
 @app.route('/')
 def front():
@@ -20,13 +19,13 @@ def front():
 @poobrains.rendering.render()
 def form_test():
 
+    form = TestForm()
+
     if flask.request.method == 'POST':
-        flask.current_app.logger.debug(flask.request.method)
-        flask.current_app.logger.debug(flask.request.form.getlist('foo'))
+        form.handle(flask.request.form)
         return poobrains.rendering.RenderString("ZOMGPOST")
 
-    return TestForm()
-
+    return form 
 
 class TestSubForm(poobrains.form.Fieldset):
 

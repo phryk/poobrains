@@ -150,8 +150,6 @@ class Form(BaseForm):
         return tpls
 
 
-
-
 class Fieldset(BaseForm):
 
     rendered = None
@@ -174,7 +172,6 @@ class Fieldset(BaseForm):
 
     def render(self, mode='full'):
 
-        flask.current_app.logger.debug(self.template_candidates(mode))
         self.rendered = True
         return super(Fieldset, self).render(mode)
 

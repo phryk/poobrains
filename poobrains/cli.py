@@ -3,7 +3,6 @@ from playhouse.db_url import connect
 from collections import OrderedDict
 import peewee
 import helpers
-import storage
 
 
 
@@ -44,11 +43,11 @@ class Shell(object):
 
         self.config = config
 
-        self.storables = {}
-        for child in storage.Storable.children():
-            self.storables[child.__name__.lower()] = child
+        #for child in storage.Storable.children():
+        #    self.storables[child.__name__.lower()] = child
         
         self.db = connect(self.config['DATABASE'])
+        from poobrains import storage
         storage.proxy.initialize(self.db)
 
         self.commands = {}
@@ -175,27 +174,12 @@ class StringParam(Parameter):
             raise InvalidValue("Invalid value for string: '%s'." % (value,))
 
 
-class StorableParam(StringParam):
-
-    def parse(self, value):
-
-        if self.optional and value is None:
-            return None
-
-        if not value in self.command.storables.keys():
-            raise InvalidValue("Not a known storable: %s. Take one of these: %s" % (value, ', '.join(self.command.storables.keys())))
-
-        return value
-
-
-
 # Command classes
 
 class Command(helpers.ChildAware):
 
     #params = {'foo': coerce_int, 'bar': (coerce_int, None)} # Override this in subclasses for coercion
     shell = None
-    storables = None
     parameters = None
     values = None
 
@@ -216,7 +200,6 @@ class Command(helpers.ChildAware):
     def __init__(self, shell, **params):
 
         self.shell = shell
-        self.storables = self.shell.storables
         self.parameters = self.__class__.get_parameters()
 
         self.values = {}
@@ -327,40 +310,3 @@ class Help(Command):
             param_descs.append(param_desc)
 
         return "%s %s" % (command_name, ', '.join(param_descs))
-
-
-
-class List(Command):
-
-    #params = {'storable': coerce_storable}
-    storable = StorableParam()
-
-    def execute(self):
-
-        storable = self.storables[self.values['storable']]
-        for instance in storable.select():
-            print "[%d][%s] %s" % (instance.id, instance.name, instance.title)
-
-
-class Add(Command):
-
-    #params = {'storable': coerce_storable, 'id_or_name': 'coerce_string'}
-    storable = StorableParam()
-
-    def execute(self):
-        
-        if self.storables.has_key(self.values['storable']):
-
-            cls = self.storables[self.values['storable']]
-            instance = cls()
-
-            stdout.write("Addding %s...\n" % (cls.__name__,))
-            for field in cls._meta.get_fields():
-
-                if not isinstance(field, peewee.PrimaryKeyField):
-                    stdout.write("%s: " % (field.name,))
-                    value = raw_input()
-
-                    setattr(instance, field.name, value) # TODO type enforcement
-
-            instance.save()

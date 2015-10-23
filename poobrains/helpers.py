@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 
 from collections import OrderedDict
+import random
+
+
+def random_string(length=42):
+
+    rand = random.SystemRandom()
+    string = u''
+    for i in range(0, length):
+        string += chr(rand.randint(33, 126)) # printable ascii chars are chars 33 - 126
+
+    return string
 
 
 def choose_primary(d):
@@ -24,6 +35,16 @@ class ChildAware(object):
             children += child.children()
 
         return children
+
+    @classmethod
+    def children_keyed(cls):
+
+        children_keyed = OrderedDict()
+
+        for child in cls.children():
+            children_keyed[child.__name__.lower()] = child
+
+        return children_keyed
 
 
     @classmethod

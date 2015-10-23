@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # parent imports
-from poobrains import rendering
+from poobrains import rendering, helpers
 
 # internal imports
 import validators
@@ -133,7 +133,13 @@ class RangedFloat(Float):
 
 
 class Keygen(Field):
-    pass
+    
+    challenge = None
+
+    def __init__(self, *args, **kw):
+
+        self.challenge = helpers.random_string()
+        super(Keygen, self).__init__(*args, **kw)
 
 
 class File(Field):
