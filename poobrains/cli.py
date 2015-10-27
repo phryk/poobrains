@@ -5,8 +5,6 @@ import peewee
 import helpers
 
 
-
-
 class ShellException(Exception):
     pass
 
@@ -48,7 +46,7 @@ class Shell(object):
         
         self.db = connect(self.config['DATABASE'])
         from poobrains import storage
-        storage.proxy.initialize(self.db)
+        #storage.proxy.initialize(self.db)
 
         self.commands = {}
         classes = Command.children()
@@ -242,6 +240,7 @@ class Test(Command):
 class Install(Command):
 
     def execute(self):
+        from poobrains import storage
         stdout.write("Really execute installation procedure? (y/N)")
         value = raw_input().lower()
         if value == 'y':

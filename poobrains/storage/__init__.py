@@ -7,6 +7,7 @@ import werkzeug.routing
 import peewee
 
 # parent imports
+from poobrains import app
 from poobrains import helpers
 from poobrains import rendering
 from poobrains import form
@@ -16,7 +17,29 @@ import fields
 import cli
 
 
-proxy = peewee.Proxy()
+@app.admin.box('menu_main')
+def admin_menu():
+
+    menu = rendering.Menu('main')
+    menu.title = 'Administration'
+
+    for storable, listings in flask.current_app.admin.listings.iteritems():
+        flask.current_app.logger.debug('Listing:')
+        flask.current_app.logger.debug(storable)
+        flask.current_app.logger.debug(listings)
+
+        for mode, endpoints in listings.iteritems():
+
+            for endpoint in endpoints: # iterates through endpoints.keys()
+                menu.append(flask.url_for('admin.%s' % endpoint), storable.__name__)
+
+    return menu
+
+
+@app.admin.route('/')
+@rendering.render()
+def admin_index():
+    return admin_menu()
 
 def RegexpConstraint(field_name, regexp):
     return peewee.Clause(
@@ -43,14 +66,14 @@ class QuotedSQL(peewee.Entity):
 class Model(peewee.Model, helpers.ChildAware):
     
     class Meta:
-        database = proxy
+        database = app.db
 
 
 
 class Storable(Model, rendering.Renderable):
 
     field_blacklist = ['id']
-    name = fields.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]*$')])
+    name = fields.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]+$')])
     title = fields.CharField()
     actions = None
 
@@ -65,27 +88,33 @@ class Storable(Model, rendering.Renderable):
         self.url = self.instance_url # make .url callable for class and instances
         self.form = self.instance_form # make .form callable for class and instance
 
+    @property
+    def actions(self):
 
+        if not self.id:
+            return None
+
+        actions = rendering.Menu('%s-%d.actions' % (self.__class__.__name__, self.id))
+        try:
+            actions.append(self.url('full'), 'View')
+            actions.append(self.url('edit'), 'Edit')
+            actions.append(self.url('delete'), 'Delete')
+
+        except Exception as e:
+            flask.current_app.logger.error('Action menu generation failure.')
+            flask.current_app.logger.error(self)
+
+        return actions
 
     @classmethod
     def load(cls, id_or_name):
 
-#        try:
         if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
             instance = cls.get(cls.id == id_or_name)
 
         else:
             instance = cls.get(cls.name == id_or_name)
 
-        instance.actions = rendering.Menu('%s-%d.actions' % (instance.__class__.__name__, instance.id))
-        try:
-            instance.actions.append(instance.url('full'), 'View')
-            instance.actions.append(instance.url('edit'), 'Edit')
-            instance.actions.append(instance.url('delete'), 'Delete')
-
-        except Exception as e:
-            flask.current_app.logger.error('Action menu generation failure.')
-            flask.current_app.logger.error(e)
 
         return instance
 
@@ -155,6 +184,11 @@ class Storable(Model, rendering.Renderable):
             return form.render()
 
         return super(Storable, self).render(mode=mode)
+
+
+    def __repr__(self):
+
+        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
 

@@ -3,6 +3,7 @@
 import peewee
 import poobrains
 
+print "WTFBRAINS:", poobrains, dir(poobrains)
 
 class StorableParam(poobrains.cli.StringParam):
 

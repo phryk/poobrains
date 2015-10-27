@@ -2,6 +2,8 @@
 import datetime
 import flask
 
+from functools import wraps
+
 # local imports
 import poobrains
 
@@ -12,6 +14,7 @@ def is_secure(f):
     decorator. Denies access if an url is accessed without TLS.
     """
 
+    @wraps(f)
     def substitute():
 
         if flask.request.is_secure:
@@ -82,3 +85,31 @@ class ClientCert(poobrains.storage.Storable):
     common_name = poobrains.storage.fields.CharField(unique=True)
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now)
     valid_till = poobrains.storage.fields.DateTimeField()
+
+
+
+@poobrains.app.route('/cert/')
+@poobrains.rendering.render()
+@is_secure
+def cert_form():
+
+    return ClientCertForm()
+
+
+@poobrains.app.route('/cert/', methods=['POST'])
+@poobrains.rendering.render()
+@is_secure
+def cert_handle():
+
+    flask.current_app.logger.debug(flask.request.form)
+
+    token = ClientCertToken.get(ClientCertToken.token == flask.request.form['token'])
+    flask.current_app.loger.debug(token)
+
+    return poobrains.rendering.RenderString("Poof.")
+
+
+#self.add_url_rule('/cert/', 'cert_form', cert_form)
+#self.add_url_rule('/cert/', 'cert_handle', cert_handle, methods=['POST'])
+
+

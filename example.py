@@ -4,9 +4,9 @@ import flask
 import poobrains
 
 from flask import redirect
-from poobrains import Poobrain, Storable, Menu, Renderable
-#from peewee import CharField, TextField
-from poobrains.storage.fields import CharField, TextField
+#from poobrains import Poobrain, poobrains.storage.Storable, poobrains.rendering.Menu, Renderable
+#from peewee import poobrains.storage.fields.CharField, poobrains.storage.fields.TextField
+#from poobrains.storage.fields import poobrains.storage.fields.CharField, poobrains.storage.fields.TextField
 
 app = poobrains.app
 
@@ -42,31 +42,31 @@ class TestForm(poobrains.form.Form):
 
 
 @app.expose('/news')
-class News(Storable):
+class News(poobrains.storage.Storable):
 
-    text = TextField()
+    text = poobrains.storage.fields.TextField()
 
 
 @app.expose('/paste', title='Copypasta')
-class Paste(Storable):
+class Paste(poobrains.storage.Storable):
 
-    type = CharField()
-    text = TextField()
+    type = poobrains.storage.fields.CharField()
+    text = poobrains.storage.fields.TextField()
 
 
 @app.site.box('menu_main')
 def menu_main():
 
-    menu = Menu('main')
+    menu = poobrains.rendering.Menu('main')
     menu.append(News.url(), 'News')
     menu.append(Paste.url(), 'Pastes')
 
     return menu
 
 
-class NonExposed(Storable):
+class NonExposed(poobrains.storage.Storable):
 
-    text = TextField()
+    text = poobrains.storage.fields.TextField()
 
 
 class NonExposedB(NonExposed):
