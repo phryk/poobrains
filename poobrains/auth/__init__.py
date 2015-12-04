@@ -75,7 +75,7 @@ class ClientCertToken(poobrains.storage.Storable):
 
     def __init__(self, *args, **kw):
 
-        self.validity = flask.current_app.config['TOKEN_VALIDITY']
+        self.validity = poobrains.app.config['TOKEN_VALIDITY']
         super(ClientCertToken, self).__init__(*args, **kw)
 
 
@@ -101,10 +101,10 @@ def cert_form():
 @is_secure
 def cert_handle():
 
-    flask.current_app.logger.debug(flask.request.form)
+    poobrains.app.logger.debug(flask.request.form)
 
     token = ClientCertToken.get(ClientCertToken.token == flask.request.form['token'])
-    flask.current_app.loger.debug(token)
+    poobrains.app.loger.debug(token)
 
     return poobrains.rendering.RenderString("Poof.")
 

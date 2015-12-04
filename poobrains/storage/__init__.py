@@ -14,7 +14,6 @@ from poobrains import form
 
 # internal imports
 import fields
-import cli
 
 
 @app.admin.box('menu_main')
@@ -23,10 +22,10 @@ def admin_menu():
     menu = rendering.Menu('main')
     menu.title = 'Administration'
 
-    for storable, listings in flask.current_app.admin.listings.iteritems():
-        flask.current_app.logger.debug('Listing:')
-        flask.current_app.logger.debug(storable)
-        flask.current_app.logger.debug(listings)
+    for storable, listings in app.admin.listings.iteritems():
+        app.logger.debug('Listing:')
+        app.logger.debug(storable)
+        app.logger.debug(listings)
 
         for mode, endpoints in listings.iteritems():
 
@@ -101,8 +100,8 @@ class Storable(Model, rendering.Renderable):
             actions.append(self.url('delete'), 'Delete')
 
         except Exception as e:
-            flask.current_app.logger.error('Action menu generation failure.')
-            flask.current_app.logger.error(self)
+            app.logger.error('Action menu generation failure.')
+            app.logger.error(self)
 
         return actions
 
@@ -121,11 +120,11 @@ class Storable(Model, rendering.Renderable):
 
     @classmethod
     def url(cls, mode=None):
-        return flask.current_app.get_url(cls, mode=mode)
+        return app.get_url(cls, mode=mode)
 
 
     def instance_url(self, mode=None):
-        return flask.current_app.get_url(self.__class__, id_or_name=self.name, mode=mode)
+        return app.get_url(self.__class__, id_or_name=self.name, mode=mode)
 
 
     @classmethod
@@ -160,7 +159,7 @@ class Storable(Model, rendering.Renderable):
             for field in own_fields:
                 
                 if isinstance(field, fields.Field):
-                    flask.current_app.logger.debug(field)
+                    app.logger.debug(field)
                     form_field = field.form_class(field.name, value=getattr(self, field.name), validators=field.form_extra_validators)
                     setattr(f, field.name, form_field) 
 
@@ -220,7 +219,7 @@ class Listing(rendering.Renderable):
             self.title = cls.__name__
 
         if limit is None:
-            self.limit = flask.current_app.config['PAGINATION_COUNT']
+            self.limit = app.config['PAGINATION_COUNT']
         else:
             self.limit = limit
 
@@ -266,5 +265,10 @@ class Listing(rendering.Renderable):
                 self.pagination = False
 
         except werkzeug.routing.BuildError as e:
-            flask.current_app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
+            app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
+
+
+
+# delayed imports because i suck at modelling shit with less dependencies
+# import cli

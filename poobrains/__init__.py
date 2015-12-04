@@ -161,7 +161,7 @@ class Poobrain(flask.Flask):
         def decorator(cls):
 
             def admin_listing_actions():
-                m = rendering.Menu('admin-listing-actions')
+                m = poobrains.rendering.Menu('admin-listing-actions')
                 m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
 
                 return m
@@ -195,7 +195,7 @@ class Poobrain(flask.Flask):
     def run(self, *args, **kw):
 
         if len(sys.argv) > 1 and sys.argv[1] == 'shell':
-            shell = cli.Shell(config=self.config)
+            shell = poobrains.cli.Shell(config=self.config)
             shell.start()
 
         else:
@@ -251,7 +251,7 @@ class Pooprint(flask.Blueprint):
                 options['methods'].append('DELETE')
 
         if not view_func:
-            @rendering.render(mode)
+            @poobrains.rendering.render(mode)
             def view_func(id_or_name=None):
 
                 # handle POST for add and edit
@@ -269,8 +269,8 @@ class Pooprint(flask.Blueprint):
                             try:
                                 setattr(instance, field_name, flask.request.form[field_name])
                             except Exception as e:
-                                flask.current_app.logger.error("Possible bug in default view_func catchall.")
-                                flask.current_app.logger.error('%s.%s' % (cls.__name__, field_name))
+                                self.app.logger.error("Possible bug in default view_func catchall.")
+                                self.app.logger.error('%s.%s' % (cls.__name__, field_name))
 
                     try:
                         instance.save()
@@ -334,7 +334,7 @@ class Pooprint(flask.Blueprint):
 
         if view_func is None:
 
-            @rendering.render('full')
+            @poobrains.rendering.render('full')
             def view_func(offset=0):
 
                 if action_func:
@@ -342,7 +342,7 @@ class Pooprint(flask.Blueprint):
                 else:
                     actions = None
 
-                return storage.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
+                return poobrains.storage.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
 
             endpoint = self.next_endpoint(cls, mode, 'listing')
 
@@ -363,10 +363,10 @@ class Pooprint(flask.Blueprint):
         def decorator(f):
 
             @functools.wraps(f)
-            @rendering.render('full')
+            @poobrains.rendering.render('full')
             def real(offset=0):
 
-                instance = storage.Listing(cls, title=title, offset=offset, mode=mode)
+                instance = poobrains.storage.Listing(cls, title=title, offset=offset, mode=mode)
                 return f(instance)
 
             self.add_listing(cls, rule, view_func=real, **options)
@@ -381,7 +381,7 @@ class Pooprint(flask.Blueprint):
         def decorator(f):
 
             @functools.wraps(f)
-            @rendering.render(mode)
+            @poobrains.rendering.render(mode)
             def real(id_or_name):
 
                 instance = cls.load(id_or_name)
@@ -404,7 +404,7 @@ class Pooprint(flask.Blueprint):
 
     def get_url(self, cls, id_or_name=None, mode=None):
 
-        flask.current_app.logger.debug('get_url mode: %s' % mode)
+        self.app.logger.debug('get_url mode: %s' % mode)
 
         if mode == 'add' or (id_or_name and (mode is None or not mode.startswith('teaser'))):
             return self.get_view_url(cls, id_or_name, mode=mode)
@@ -491,13 +491,13 @@ class Pooprint(flask.Blueprint):
 app = Poobrain(__name__)
 
 # delayed internal imports which may depend on app
-import cli
-import storage
-import auth
-import rendering
+import poobrains.rendering
+import poobrains.storage
+import poobrains.auth
+import poobrains.cli
 
 
-class ErrorPage(rendering.Renderable):
+class ErrorPage(poobrains.rendering.Renderable):
 
     error = None
 
@@ -508,7 +508,7 @@ class ErrorPage(rendering.Renderable):
         self.message = message
 
 
-@rendering.render('full')
+@poobrains.rendering.render('full')
 def errorpage(error):
 
     if hasattr(error, 'code') and isinstance(error.code, int):
@@ -524,6 +524,7 @@ def errorpage(error):
 
     return ErrorPage(error, status_code), status_code
 
+app.register_error_handler(403, errorpage)
 app.register_error_handler(404, errorpage)
 app.register_error_handler(peewee.OperationalError, errorpage)
 app.register_error_handler(peewee.IntegrityError, errorpage)

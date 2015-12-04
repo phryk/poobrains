@@ -4,6 +4,8 @@ from collections import OrderedDict
 import peewee
 import helpers
 
+# local imports
+import storage
 
 class ShellException(Exception):
     pass
@@ -45,7 +47,7 @@ class Shell(object):
         #    self.storables[child.__name__.lower()] = child
         
         self.db = connect(self.config['DATABASE'])
-        from poobrains import storage
+        import storage
         #storage.proxy.initialize(self.db)
 
         self.commands = {}
@@ -240,7 +242,7 @@ class Test(Command):
 class Install(Command):
 
     def execute(self):
-        from poobrains import storage
+        import storage
         stdout.write("Really execute installation procedure? (y/N)")
         value = raw_input().lower()
         if value == 'y':
@@ -309,3 +311,67 @@ class Help(Command):
             param_descs.append(param_desc)
 
         return "%s %s" % (command_name, ', '.join(param_descs))
+
+
+
+class StorableParam(StringParam):
+
+    """
+    String parameter which only validates successfully if the value is the name of a storable class.
+    'cls' param to constructor limits valid values to children of that class.
+    """
+
+    cls = None
+
+    def __init__(self, *args, **kw):
+
+        if kw.has_key('cls'):
+            self.cls = cls
+        else:
+            import storage
+            self.cls = storage.Storable
+
+    def parse(self, value):
+
+        storables = self.cls.children_keyed()
+
+        if self.optional and value is None:
+            return None
+
+        if not value in storables.keys():
+            raise InvalidValue("Not a known storable: %s. Take one of these: %s" % (value, ', '.join(storables.keys())))
+
+        return storables[value]
+
+
+class List(Command):
+
+    storable = StorableParam()
+
+    def execute(self):
+
+        storable = self.values['storable']
+        for instance in storable.select():
+            print "[%d][%s] %s" % (instance.id, instance.name, instance.title)
+
+
+class Add(Command):
+
+    #params = {'storable': coerce_storable, 'id_or_name': 'coerce_string'}
+    storable = StorableParam()
+
+    def execute(self):
+        
+        cls = self.values['storable']
+        instance = cls()
+
+        stdout.write("Addding %s...\n" % (cls.__name__,))
+        for field in cls._meta.get_fields():
+
+            if not isinstance(field, peewee.PrimaryKeyField):
+                stdout.write("%s: " % (field.name,))
+                value = raw_input()
+
+                setattr(instance, field.name, value) # TODO type enforcement
+
+        instance.save()
