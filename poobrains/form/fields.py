@@ -132,6 +132,20 @@ class RangedFloat(Float):
         super(RangedFloat, self).__init__(name, value=value, label=label, validators=validators)
 
 
+class IntegerChoice(Integer):
+
+    choices = None
+
+    def __init__(self, name=None, choices=None, value=None, label=None, placeholder=None, readonly=False, validators=[]):
+
+        self.choices = choices if choices else {}
+        super(IntegerChoice, self).__init__(name, value=value, label=label, placeholder=placeholder, readonly=readonly, validators=validators)
+
+    def validate(self, value):
+
+        return super(IntegerChoice, self).validate(value) and value in self.choices.keys()
+
+
 class Keygen(Field):
     
     challenge = None

@@ -4,6 +4,7 @@
 import flask
 
 # parent imports
+import poobrains
 from poobrains import rendering
 from poobrains import helpers
 
@@ -95,24 +96,27 @@ class BaseForm(rendering.Renderable):
         return rendered_controls
 
 
-    def __getattr__(self, name):
+    def __getattribute__(self, name):
 
-        if self._fields.has_key(name):
-            return self._fields[name]
+        fields = super(BaseForm, self).__getattribute__('_fields')
+        controls = super(BaseForm, self).__getattribute__('_controls')
 
-        elif self._controls.has_key(name):
-            return self._controls[name]
+        if fields.has_key(name):
+            return fields[name]
 
-        raise AttributeError("Attribute not found: %s" % name)
+        elif controls.has_key(name):
+            return controls[name]
+
+        return super(BaseForm, self).__getattribute__(name)
 
 
     def __setattr__(self, name, value):
 
         if isinstance(value, fields.Field) or isinstance(value, Fieldset):
-            self._fields[name] = value
+            self._fields[name] = value # what does this exactly do? call __gietattribute__('_fields') and then modify it?
 
         elif isinstance(value, Button):
-            self._controls[name] = value
+            self._controls[name] = value # same question as above, just with '_controls'
 
         else:
             super(BaseForm, self).__setattr__(name, value)
@@ -123,7 +127,6 @@ class BaseForm(rendering.Renderable):
         """
         Iterate over this forms fields. Yes, this comment is incredibly helpful.
         """
-
         return self._fields.itervalues()
 
 

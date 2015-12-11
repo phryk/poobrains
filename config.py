@@ -6,3 +6,6 @@ MAY_INSTALL = True
 SECRET_KEY = 'Fnord'
 THEME = 'default'
 PAGINATION_COUNT = 2
+TOKEN_VALIDITY=60
+CA_KEY = '/var/www/poobrains/ssl/websrv.key'
+CA_CERT = '/var/www/poobrains/ssl/webca.crt'

@@ -1,5 +1,9 @@
 # external imports
+import M2Crypto #import X509, EVP
+import pyspkac #import SPKAC
+import time
 import datetime
+import werkzeug
 import flask
 
 from functools import wraps
@@ -62,15 +66,17 @@ class ClientCertForm(poobrains.form.Form):
     
     #passphrase = poobrains.form.fields.ObfuscatedText()
     token = poobrains.form.fields.ObfuscatedText(label='Token')
-    keygen = poobrains.form.fields.Keygen()
+    key = poobrains.form.fields.Keygen()
     submit = poobrains.form.Button('submit', label='Generate Certificate')
 
 
 class ClientCertToken(poobrains.storage.Storable):
 
     validity = None
+    user = poobrains.storage.fields.ForeignKeyField(User)
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now)
     token = poobrains.storage.fields.CharField(unique=True)
+    passphrase = poobrains.storage.fields.CharField(null=True)
 
 
     def __init__(self, *args, **kw):
@@ -93,7 +99,11 @@ class ClientCert(poobrains.storage.Storable):
 @is_secure
 def cert_form():
 
-    return ClientCertForm()
+    f = ClientCertForm()
+    flask.session['key_challenge'] = f.key.challenge
+    poobrains.app.logger.debug("GET challenge: ")
+    poobrains.app.logger.debug(flask.session['key_challenge'])
+    return f
 
 
 @poobrains.app.route('/cert/', methods=['POST'])
@@ -103,13 +113,42 @@ def cert_handle():
 
     poobrains.app.logger.debug(flask.request.form)
 
-    token = ClientCertToken.get(ClientCertToken.token == flask.request.form['token'])
-    poobrains.app.loger.debug(token)
+    try:
+        token = ClientCertToken.get(ClientCertToken.token == flask.request.form['token'])
+        poobrains.app.logger.debug(token)
 
-    return poobrains.rendering.RenderString("Poof.")
+    except Exception as e:
+        poobrains.app.logger.debug("Token load exception:")
+        poobrains.app.logger.debug(e)
+        return poobrains.rendering.RenderString("No such token.")
 
 
-#self.add_url_rule('/cert/', 'cert_form', cert_form)
-#self.add_url_rule('/cert/', 'cert_handle', cert_handle, methods=['POST'])
+    try:
+
+        ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
+        ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
+
+    except Exception as e:
+
+        poobrains.app.logger.debug("key/cert load exception:")
+        poobrains.app.logger.debug(e)
+        return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
 
 
+    spkac = pyspkac.SPKAC(flask.request.form['key'], flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
+    spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
+    spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
+
+    spkac.subject.C = ca_cert.get_subject().C
+
+    not_before = int(time.time())
+    not_after = not_before + poobrains.app.config['CERT_LIFETIME']
+
+    client_cert = spkac.gen_crt(ca_key, ca_cert, 44, not_before, not_after, hash_algo='sha512')
+
+    poobrains.app.logger.debug("finished cert")
+    poobrains.app.logger.debug(client_cert)
+
+    r = werkzeug.wrappers.Response(client_cert.as_pem())
+    r.mimetype = 'application/x-x509-user-cert'
+    return r
