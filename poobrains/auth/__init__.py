@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # external imports
 import M2Crypto #import X509, EVP
 import pyspkac #import SPKAC
@@ -65,6 +67,7 @@ class User(poobrains.storage.Storable):
 class ClientCertForm(poobrains.form.Form):
     
     #passphrase = poobrains.form.fields.ObfuscatedText()
+    title = "Be safe, certificatisize yourself!"
     token = poobrains.form.fields.ObfuscatedText(label='Token')
     key = poobrains.form.fields.Keygen()
     submit = poobrains.form.Button('submit', label='Generate Certificate')
@@ -76,7 +79,8 @@ class ClientCertToken(poobrains.storage.Storable):
     user = poobrains.storage.fields.ForeignKeyField(User)
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now)
     token = poobrains.storage.fields.CharField(unique=True)
-    passphrase = poobrains.storage.fields.CharField(null=True)
+    # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
+    redeemed = poobrains.storage.fields.BooleanField()
 
 
     def __init__(self, *args, **kw):
@@ -88,10 +92,7 @@ class ClientCertToken(poobrains.storage.Storable):
 class ClientCert(poobrains.storage.Storable):
 
     user = poobrains.storage.fields.ForeignKeyField(User)
-    common_name = poobrains.storage.fields.CharField(unique=True)
-    created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now)
-    valid_till = poobrains.storage.fields.DateTimeField()
-
+    subject_name = poobrains.storage.fields.CharField()
 
 
 @poobrains.app.route('/cert/')
@@ -100,9 +101,7 @@ class ClientCert(poobrains.storage.Storable):
 def cert_form():
 
     f = ClientCertForm()
-    flask.session['key_challenge'] = f.key.challenge
-    poobrains.app.logger.debug("GET challenge: ")
-    poobrains.app.logger.debug(flask.session['key_challenge'])
+    flask.session['key_challenge'] = f.fields['key'].challenge
     return f
 
 
@@ -111,15 +110,10 @@ def cert_form():
 @is_secure
 def cert_handle():
 
-    poobrains.app.logger.debug(flask.request.form)
-
     try:
         token = ClientCertToken.get(ClientCertToken.token == flask.request.form['token'])
-        poobrains.app.logger.debug(token)
 
     except Exception as e:
-        poobrains.app.logger.debug("Token load exception:")
-        poobrains.app.logger.debug(e)
         return poobrains.rendering.RenderString("No such token.")
 
 
@@ -130,8 +124,6 @@ def cert_handle():
 
     except Exception as e:
 
-        poobrains.app.logger.debug("key/cert load exception:")
-        poobrains.app.logger.debug(e)
         return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
 
 
@@ -145,9 +137,15 @@ def cert_handle():
     not_after = not_before + poobrains.app.config['CERT_LIFETIME']
 
     client_cert = spkac.gen_crt(ca_key, ca_cert, 44, not_before, not_after, hash_algo='sha512')
-
-    poobrains.app.logger.debug("finished cert")
-    poobrains.app.logger.debug(client_cert)
+    cert_info = ClientCert()
+    cert_info.name = token.name
+    cert_info.user = token.user
+    #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
+    cert_info.subject_name = unicode(client_cert.get_subject())
+    poobrains.app.logger.debug('client cert subject:')
+    poobrains.app.logger.debug(type(client_cert.get_subject()))
+    poobrains.app.logger.debug(client_cert.get_subject())
+    cert_info.save()
 
     r = werkzeug.wrappers.Response(client_cert.as_pem())
     r.mimetype = 'application/x-x509-user-cert'

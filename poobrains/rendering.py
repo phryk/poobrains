@@ -7,6 +7,7 @@ from werkzeug.exceptions import HTTPException
 import jinja2
 
 # local imports 
+import poobrains
 import helpers
 
 def render(mode='full'):
@@ -40,7 +41,10 @@ def render(mode='full'):
                     content = content.form(mode=mode)
 
 
-            g.title = content.title
+            if hasattr(content, 'title') and content.title:
+                g.title = content.title
+            else:
+                g.title = 'Title missing' # TODO: There were some alternative title sources, I think (in @expose?)
             g.content = content
 
             return render_template('main.jinja', content=content, mode=mode), status_code
@@ -53,12 +57,10 @@ def render(mode='full'):
 class Renderable(helpers.ChildAware):
 
     name = None
-    title = None
 
     def __init__(self):
 
         self.name = self.__class__.__name__.lower()
-        self.title = self.__class__.__name__
 
     
     def render(self, mode='full'): 
@@ -117,13 +119,15 @@ class MenuItem(object):
 class Menu(Renderable):
 
     name = None
+    title = None
     items = None
 
-    def __init__(self, name):
+    def __init__(self, name, title=None):
 
         super(Menu, self).__init__()
 
         self.name = name
+        self.title = title if title else name.capitalize()
         self.items = []
 
 

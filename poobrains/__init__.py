@@ -68,6 +68,11 @@ class Poobrain(flask.Flask):
             group = grp.getgrgid(os.getgid()).gr_name
             sys.exit("Somethings' fucky with the log file: %s. Current user/group is %s/%s." % (e,user,group))
 
+        if self.debug:
+            # show SQL queries
+            peeweelog = logging.getLogger('peewee')
+            peeweelog.setLevel(logging.DEBUG)
+
 
         self.poobrain_path = os.path.dirname(__file__)
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
@@ -148,6 +153,20 @@ class Poobrain(flask.Flask):
         flask.g.boxes = {}
         self.db.connect()
         connection = self.db.get_conn()
+
+        #self.logger.debug("flask request env keys:")
+        #self.logger.debug(flask.request.environ.keys())
+        #self.logger.debug(flask.request.environ['SSL_CLIENT_S_DN'])
+        
+        if flask.request.environ['SSL_CLIENT_VERIFY'] == 'SUCCESS':
+            self.logger.debug('Successful client auth.')
+            try:
+                cert_info = auth.ClientCert.get(auth.ClientCert.subject_name == flask.request.environ['SSL_CLIENT_S_DN'])
+                self.logger.debug('Client certificate is known:')
+                self.logger.debug(cert_info)
+                self.logger.debug(cert_info.user)
+            except auth.ClientCert.DoesNotExist:
+                self.logger.error("httpd verified client certificate successfully, but it's not known at this site. certificate subject distinguished name is: %s" % flask.request.environ['SSL_CLIENT_S_DN'])
 
 
     def request_teardown(self, exception):
@@ -404,8 +423,6 @@ class Pooprint(flask.Blueprint):
 
     def get_url(self, cls, id_or_name=None, mode=None):
 
-        self.app.logger.debug('get_url mode: %s' % mode)
-
         if mode == 'add' or (id_or_name and (mode is None or not mode.startswith('teaser'))):
             return self.get_view_url(cls, id_or_name, mode=mode)
 
@@ -488,7 +505,7 @@ class Pooprint(flask.Blueprint):
         return jinja2.FileSystemLoader(paths)
 
 
-app = Poobrain(__name__)
+app = Poobrain(__name__) # TODO: Make app class configurable.
 
 # delayed internal imports which may depend on app
 import poobrains.rendering

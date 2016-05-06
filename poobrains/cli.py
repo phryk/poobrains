@@ -142,7 +142,7 @@ class Parameter(object):
 
     def parse(self, value):
 
-        raise NotImplementedError("Fuck you.")
+        raise NotImplementedError("Parameter class %s does not implement parse." % self.__class__.__name__)
 
 
 class IntParam(Parameter):
@@ -352,7 +352,7 @@ class List(Command):
 
         storable = self.values['storable']
         for instance in storable.select():
-            print "[%d][%s] %s" % (instance.id, instance.name, instance.title)
+            print "[%d][%s] %s" % (instance.id, instance.name, instance.__repr__())
 
 
 class Add(Command):
@@ -372,6 +372,7 @@ class Add(Command):
                 stdout.write("%s: " % (field.name,))
                 value = raw_input()
 
-                setattr(instance, field.name, value) # TODO type enforcement
+                if value != '': # Makes models fall back to defaults for this field
+                    setattr(instance, field.name, value) # TODO type enforcement
 
         instance.save()

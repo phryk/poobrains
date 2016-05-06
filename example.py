@@ -9,7 +9,7 @@ from flask import redirect
 #from poobrains.storage.fields import poobrains.storage.fields.CharField, poobrains.storage.fields.TextField
 
 app = poobrains.app
-print "app: ", app
+
 @app.route('/')
 def front():
     return redirect(News.url())

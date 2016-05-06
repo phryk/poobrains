@@ -25,6 +25,18 @@ class TextField(peewee.TextField, Field):
     pass
 
 
+class DateTimeField(peewee.DateTimeField, Field):
+    pass
+
+
+class ForeignKeyField(peewee.ForeignKeyField):
+    pass
+
+
+class BooleanField(peewee.BooleanField, Field):
+    pass
+
+
 class FileField(peewee.ForeignKeyField, Field):
     
     def __init__(self, *args, **kwargs):
@@ -36,9 +48,3 @@ class FileField(peewee.ForeignKeyField, Field):
         super(FileField, self).__init__(rel_model, *args, **kwargs)
 
 
-class DateTimeField(peewee.DateTimeField, Field):
-    pass
-
-
-class ForeignKeyField(peewee.ForeignKeyField):
-    pass

@@ -23,9 +23,6 @@ def admin_menu():
     menu.title = 'Administration'
 
     for storable, listings in app.admin.listings.iteritems():
-        app.logger.debug('Listing:')
-        app.logger.debug(storable)
-        app.logger.debug(listings)
 
         for mode, endpoints in listings.iteritems():
 
@@ -73,7 +70,6 @@ class Storable(Model, rendering.Renderable):
 
     field_blacklist = ['id']
     name = fields.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]+$')])
-    title = fields.CharField()
     actions = None
 
 
@@ -159,12 +155,11 @@ class Storable(Model, rendering.Renderable):
             for field in own_fields:
                 
                 if isinstance(field, fields.Field):
-                    app.logger.debug(field)
                     form_field = field.form_class(field.name, value=getattr(self, field.name), validators=field.form_extra_validators)
-                    setattr(f, field.name, form_field) 
+                    f.fields[field.name] = form_field
 
-            f.reset = form.Button('reset', label='Reset')
-            f.submit = form.Button('submit', name='submit', value='save', label='Save')
+            f.controls['reset'] = form.Button('reset', label='Reset')
+            f.controls['submit'] = form.Button('submit', name='submit', value='save', label='Save')
 
         return f
         

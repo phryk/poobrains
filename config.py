@@ -7,5 +7,5 @@ SECRET_KEY = 'Fnord'
 THEME = 'default'
 PAGINATION_COUNT = 2
 TOKEN_VALIDITY=60
-CA_KEY = '/var/www/poobrains/ssl/websrv.key'
-CA_CERT = '/var/www/poobrains/ssl/webca.crt'
+CA_KEY = 'ssl/webca.key'
+CA_CERT = 'ssl/webca.crt'

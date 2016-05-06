@@ -25,8 +25,8 @@ import fields
 
 class BaseForm(rendering.Renderable):
 
-    _fields = None
-    _controls = None
+    fields = None
+    controls = None
     
     name = None
     title = None
@@ -34,8 +34,8 @@ class BaseForm(rendering.Renderable):
     def __new__(cls, *args, **kw):
 
         instance = super(BaseForm, cls).__new__(cls, *args, **kw)
-        instance._fields = helpers.CustomOrderedDict()
-        instance._controls = helpers.CustomOrderedDict()
+        instance.fields = helpers.CustomOrderedDict()
+        instance.controls = helpers.CustomOrderedDict()
 
         for attr_name in dir(instance):
 
@@ -45,17 +45,17 @@ class BaseForm(rendering.Renderable):
             if isinstance(attr, fields.Field):
                 label = attr.label if attr.label else label_default
                 field_clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validators=attr.validators)
-                setattr(instance, attr_name, field_clone) # results in __setattr__ being called
+                instance.fields[attr_name] = field_clone
 
             elif isinstance(attr, Fieldset):
                 name = attr.name if attr.name else attr_name
                 clone = attr.__class__(name=name, title=attr.title)
-                setattr(instance, attr_name, clone)
+                instance.fields[attr_name] = clone
 
             elif isinstance(attr, Button):
                 label = attr.label if attr.label else label_default
                 button_clone = attr.__class__(attr.type, name=attr_name, value=attr.value, label=label)
-                setattr(instance, attr_name, button_clone)
+                instance.controls[attr_name] = button_clone
 
         return instance
     
@@ -63,7 +63,11 @@ class BaseForm(rendering.Renderable):
     def __init__(self, name=None, title=None):
 
         self.name = name if name else self.__class__.__name__.lower()
-        self.title = title
+
+        if title:
+            self.title = title
+        elif not self.title: # Only use the fallback if title has been supplied neither to __init__ nor in class definition
+            self.title = self.__class__.__name__
 
 
     def render_fields(self):
@@ -74,7 +78,7 @@ class BaseForm(rendering.Renderable):
 
         rendered_fields = u''
 
-        for field in self._fields.itervalues():
+        for field in self.fields.itervalues():
             if not field.rendered:
                 rendered_fields += field.render()
 
@@ -90,36 +94,36 @@ class BaseForm(rendering.Renderable):
 
         rendered_controls = u''
 
-        for control in self._controls.itervalues():
+        for control in self.controls.itervalues():
             rendered_controls += control.render()
 
         return rendered_controls
 
 
-    def __getattribute__(self, name):
-
-        fields = super(BaseForm, self).__getattribute__('_fields')
-        controls = super(BaseForm, self).__getattribute__('_controls')
-
-        if fields.has_key(name):
-            return fields[name]
-
-        elif controls.has_key(name):
-            return controls[name]
-
-        return super(BaseForm, self).__getattribute__(name)
-
-
-    def __setattr__(self, name, value):
-
-        if isinstance(value, fields.Field) or isinstance(value, Fieldset):
-            self._fields[name] = value # what does this exactly do? call __gietattribute__('_fields') and then modify it?
-
-        elif isinstance(value, Button):
-            self._controls[name] = value # same question as above, just with '_controls'
-
-        else:
-            super(BaseForm, self).__setattr__(name, value)
+#    def __getattribute__(self, name):
+#
+#        fields = super(BaseForm, self).__getattribute__('_fields')
+#        controls = super(BaseForm, self).__getattribute__('_controls')
+#
+#        if fields.has_key(name):
+#            return fields[name]
+#
+#        elif controls.has_key(name):
+#            return controls[name]
+#
+#        return super(BaseForm, self).__getattribute__(name)
+#
+#
+#    def __setattr__(self, name, value):
+#
+#        if isinstance(value, fields.Field) or isinstance(value, Fieldset):
+#            self._fields[name] = value # what does this exactly do? call __gietattribute__('_fields') and then modify it?
+#
+#        elif isinstance(value, Button):
+#            self._controls[name] = value # same question as above, just with '_controls'
+#
+#        else:
+#            super(BaseForm, self).__setattr__(name, value)
 
 
     def __iter__(self):
@@ -127,14 +131,13 @@ class BaseForm(rendering.Renderable):
         """
         Iterate over this forms fields. Yes, this comment is incredibly helpful.
         """
-        return self._fields.itervalues()
+        return self.fields.itervalues()
 
 
 class Form(BaseForm):
 
-    name = None
-    title = None
     method = None
+    action = None
 
     def __init__(self, name=None, title=None, method=None, action=None):
 
@@ -175,7 +178,7 @@ class Fieldset(BaseForm):
 
     def render(self, mode='full'):
 
-        self.rendered = True
+        self.rrendered = True
         return super(Fieldset, self).render(mode)
 
 
