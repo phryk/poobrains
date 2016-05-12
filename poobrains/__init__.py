@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import werkzeug
 import flask
 import collections
 import functools
@@ -154,19 +155,24 @@ class Poobrain(flask.Flask):
         self.db.connect()
         connection = self.db.get_conn()
 
-        #self.logger.debug("flask request env keys:")
-        #self.logger.debug(flask.request.environ.keys())
-        #self.logger.debug(flask.request.environ['SSL_CLIENT_S_DN'])
-        
+        flask.g.user = None
         if flask.request.environ['SSL_CLIENT_VERIFY'] == 'SUCCESS':
-            self.logger.debug('Successful client auth.')
+
             try:
                 cert_info = auth.ClientCert.get(auth.ClientCert.subject_name == flask.request.environ['SSL_CLIENT_S_DN'])
-                self.logger.debug('Client certificate is known:')
-                self.logger.debug(cert_info)
-                self.logger.debug(cert_info.user)
+                flask.g.user = cert_info.user
+
             except auth.ClientCert.DoesNotExist:
                 self.logger.error("httpd verified client certificate successfully, but it's not known at this site. certificate subject distinguished name is: %s" % flask.request.environ['SSL_CLIENT_S_DN'])
+
+        if flask.g.user == None:
+            try:
+                flask.g.user = auth.User.load(1)
+            except:
+                pass
+
+        self.logger.debug(dir(flask.g.user))
+        self.logger.debug(flask.g.user)
 
 
     def request_teardown(self, exception):
@@ -175,22 +181,30 @@ class Poobrain(flask.Flask):
             self.db.close()
 
 
-    def expose(self, rule, title=None):
+    def expose(self, rule, title=None, force_secure=False):
 
         def decorator(cls):
 
-            def admin_listing_actions():
-                m = poobrains.rendering.Menu('admin-listing-actions')
-                m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
+            if issubclass(cls, storage.Storable):
 
-                return m
+                def admin_listing_actions():
 
-            self.site.add_listing(cls, rule, title=title)
-            self.site.add_view(cls, rule)
-            self.admin.add_listing(cls, rule, title=title, mode='teaser-edit', action_func=admin_listing_actions)
-            self.admin.add_view(cls, rule, mode='edit')
-            self.admin.add_view(cls, rule, mode='delete')
-            self.admin.add_view(cls, rule+'/add', mode='add')
+                    m = poobrains.rendering.Menu('admin-listing-actions')
+                    m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
+
+                    return m
+
+                self.site.add_listing(cls, rule, title=title, force_secure=force_secure)
+                self.site.add_view(cls, rule, force_secure=force_secure)
+                self.admin.add_listing(cls, rule, title=title, mode='teaser-edit', action_func=admin_listing_actions, force_secure=force_secure)
+                self.admin.add_view(cls, rule, mode='edit', force_secure=force_secure)
+                self.admin.add_view(cls, rule, mode='delete', force_secure=force_secure)
+                self.admin.add_view(cls, rule+'/add', mode='add', force_secure=force_secure)
+
+            elif issubclass(cls, form.Form):
+
+                self.logger.debug("Decorating Form")
+                self.site.add_view(cls, rule, force_secure=force_secure)
 
             return cls
 
@@ -251,7 +265,7 @@ class Pooprint(flask.Blueprint):
         self.db = app.db
 
 
-    def add_view(self, cls, rule, endpoint=None, view_func=None, mode='full', primary=False, **options):
+    def add_view(self, cls, rule, endpoint=None, view_func=None, mode='full', primary=False, force_secure=False, **options):
 
         if not self.views.has_key(cls):
             self.views[cls] = collections.OrderedDict()
@@ -259,11 +273,11 @@ class Pooprint(flask.Blueprint):
         if not self.views[cls].has_key(mode):
             self.views[cls][mode] = collections.OrderedDict()
 
-        if mode != 'add':
+        if mode != 'add' and issubclass(cls, poobrains.storage.Storable): # excludes adding and non-Storable Renderables like Forms
             rule = os.path.join(rule, '<id_or_name>')
 
         # Why the fuck does HTML not support DELETE!?
-        if mode in ('add', 'edit', 'delete'): 
+        if mode in ('add', 'edit', 'delete') or issubclass(cls, form.Form): 
             options['methods'] = ['GET', 'POST']
             if mode == 'delete':
                 rule = os.path.join(rule, 'delete')
@@ -273,56 +287,26 @@ class Pooprint(flask.Blueprint):
             @poobrains.rendering.render(mode)
             def view_func(id_or_name=None):
 
-                # handle POST for add and edit
-                if mode in ('add', 'edit') and flask.request.method == 'POST':
-
-                    field_names = cls._meta.get_field_names()
-
-                    if id_or_name:
-                        instance = cls.load(id_or_name)
-                    else:
-                        instance = cls()
-
-                    for field_name in field_names:
-                        if not field_name in cls.field_blacklist:
-                            try:
-                                setattr(instance, field_name, flask.request.form[field_name])
-                            except Exception as e:
-                                self.app.logger.error("Possible bug in default view_func catchall.")
-                                self.app.logger.error('%s.%s' % (cls.__name__, field_name))
-
-                    try:
-                        instance.save()
-
-                    except peewee.IntegrityError as e:
-                        flask.flash('Integrity error: %s' % e.message, 'error')
-
-                        if mode == 'edit':
-                            return flask.redirect(cls.load(instance.id).url('edit'))
-
-                        return flask.redirect(self.get_url(cls, mode='teaser-edit'))
-
-                    return flask.redirect(self.get_url(cls, id_or_name=instance.name, mode='edit'))
-
-                # Why the fuck does HTML not support DELETE!?
-                elif mode == 'delete' and flask.request.method in ('POST', 'DELETE') and id_or_name:
-                    instance = cls.load(id_or_name)
-                    message = "Deleted %s '%s'." % (cls.__name__, instance.name)
-                    instance.delete_instance()
-                    flask.flash(message)
-                    return flask.redirect(cls.url('teaser-edit'))
-
-                # handle 
-                elif id_or_name:
+                if id_or_name:
                     instance = cls.load(id_or_name)
 
-                else: # should only happen for 'add' mode
+                else: # should only happen for 'add' mode for storables, or any for forms
                     instance = cls()
+
+                if flask.request.method in ('POST', 'DELETE'):
+                    if mode in ('add', 'edit', 'delete'):
+                        return instance.form(mode=mode).handle(flask.request.form)
+
+                    elif isinstance(instance, form.Form):
+                        return instance.handle(flask.request.form)
 
                 return instance
 
+        if force_secure:
+            view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
 
-            endpoint = self.next_endpoint(cls, mode, 'view')
+
+        endpoint = self.next_endpoint(cls, mode, 'view')
 
 
         if endpoint is None:
@@ -338,7 +322,7 @@ class Pooprint(flask.Blueprint):
             flask.g.boxes[name] = f()
 
 
-    def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, **options):
+    def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, force_secure=False, **options):
 
         if not mode:
             mode = 'teaser'
@@ -364,6 +348,9 @@ class Pooprint(flask.Blueprint):
                 return poobrains.storage.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
 
             endpoint = self.next_endpoint(cls, mode, 'listing')
+
+        if force_secure:
+            view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
 
         if endpoint is None:
             endpoint = view_func.__name__
@@ -517,32 +504,40 @@ import poobrains.cli
 class ErrorPage(poobrains.rendering.Renderable):
 
     error = None
+    code = None
+    message = None
 
-    def __init__(self, message, status_code):
+    def __init__(self, error):
 
         super(ErrorPage, self).__init__()
-        self.title = "Ermahgerd, %d!" % (status_code,)
-        self.message = message
+
+        self.error = error
+        if hasattr(error, 'code'):
+            self.code = error.code
+        
+        else:
+            self.code = 'WTFBBQ'
+            for cls, code in app.error_codes.iteritems():
+                if isinstance(error, cls):
+                    self.code = code
+                    break
+
+        self.title = "Ermahgerd, %d!" % self.code
+
+        if isinstance(self.error, werkzeug.exceptions.HTTPException):
+            self.message = error.description
+        else:
+            self.message = error.message
 
 
 @poobrains.rendering.render('full')
 def errorpage(error):
-
-    if hasattr(error, 'code') and isinstance(error.code, int):
-        status_code = error.code
-    
-    else:
-        status_code = 500
-        for cls, code in app.error_codes.iteritems():
-            if isinstance(error, cls):
-                status_code = code
-                break
-
-
-    return ErrorPage(error, status_code), status_code
+    return ErrorPage(error)
 
 app.register_error_handler(403, errorpage)
 app.register_error_handler(404, errorpage)
 app.register_error_handler(peewee.OperationalError, errorpage)
 app.register_error_handler(peewee.IntegrityError, errorpage)
 app.register_error_handler(peewee.DoesNotExist, errorpage)
+
+#import routes

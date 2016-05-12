@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -+-
 
 # external imports
+import functools
 import flask
 
 # parent imports
 import poobrains
-from poobrains import rendering
-from poobrains import helpers
 
 # internal imports
 import fields
@@ -23,20 +22,21 @@ import fields
 #
 #        return type.__new__(mcs, name, bases, attrs)
 
-class BaseForm(rendering.Renderable):
+
+class BaseForm(poobrains.rendering.Renderable):
 
     fields = None
     controls = None
     
-    name = None
+    name = 'None'
     title = None
 
     def __new__(cls, *args, **kw):
 
         instance = super(BaseForm, cls).__new__(cls, *args, **kw)
-        instance.fields = helpers.CustomOrderedDict()
-        instance.controls = helpers.CustomOrderedDict()
-
+        instance.fields = poobrains.helpers.CustomOrderedDict()
+        instance.controls = poobrains.helpers.CustomOrderedDict()
+        instance.name = "yoink"
         for attr_name in dir(instance):
 
             label_default = attr_name.capitalize()
@@ -44,18 +44,20 @@ class BaseForm(rendering.Renderable):
 
             if isinstance(attr, fields.Field):
                 label = attr.label if attr.label else label_default
-                field_clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validators=attr.validators)
-                instance.fields[attr_name] = field_clone
+                clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validators=attr.validators)
+                #instance.fields[attr_name] = clone
+                setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Fieldset):
                 name = attr.name if attr.name else attr_name
                 clone = attr.__class__(name=name, title=attr.title)
-                instance.fields[attr_name] = clone
+                #instance.fields[attr_name] = clone
+                setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Button):
                 label = attr.label if attr.label else label_default
-                button_clone = attr.__class__(attr.type, name=attr_name, value=attr.value, label=label)
-                instance.controls[attr_name] = button_clone
+                clone = attr.__class__(attr.type, name=attr_name, value=attr.value, label=label)
+                instance.controls[attr_name] = clone
 
         return instance
     
@@ -126,6 +128,18 @@ class BaseForm(rendering.Renderable):
 #            super(BaseForm, self).__setattr__(name, value)
 
 
+    def __setattr__(self, name, value):
+
+        if isinstance(value, fields.Field):
+            self.fields[name] = value
+
+        elif isinstance(value, Button):
+            self.controls[name] = value
+
+        else:
+            super(BaseForm, self).__setattr__(name, value)
+
+
     def __iter__(self):
 
         """
@@ -156,6 +170,93 @@ class Form(BaseForm):
         return tpls
 
 
+    def handle(self, values):
+
+        raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
+
+
+class AutoForm(Form):
+
+    model = None
+    instance = None
+
+    def __init__(self, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
+    
+        self.mode = mode
+
+        if isinstance(model_or_instance, type(poobrains.storage.Model)):
+            self.model = model_or_instance
+            self.instance = self.model()
+
+        else:
+            self.instance = model_or_instance
+            self.model = self.instance.__class__
+            self.actions = self.instance.actions
+
+        # TODO: Build fields
+
+        if mode == 'delete':
+
+            self.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
+            self.submit = Button('submit', name='submit', value='delete', label='KILL')
+
+        else:
+
+            #poobrains.app.logger.debug('Iterating model fields.')
+            for field in self.model._meta.get_fields():
+
+                #poobrains.app.logger.debug(field)
+                if isinstance(field, poobrains.storage.fields.Field):
+                    form_field = field.form_class(field.name, value=getattr(self.instance, field.name), validators=field.form_extra_validators)
+                    #self.fields[field.name] = form_field
+                    setattr(self, field.name, form_field)
+
+            self.controls['reset'] = Button('reset', label='Reset')
+            self.controls['submit'] = Button('submit', name='submit', value='save', label='Save')
+
+
+        name = name if name else '%s-%s' % (self.model.__name__.lower(), mode)
+        super(AutoForm, self).__init__(name=name, title=title, method=method, action=action)
+
+
+    def handle(self, values):
+
+        poobrains.app.logger.debug("Form handle mode: %s." % self.mode)
+
+        # handle POST for add and edit
+        if self.mode in ('add', 'edit'):
+
+
+            for field_name in self.model._meta.get_field_names():
+                if not field_name in self.model.field_blacklist:
+                    try:
+                        setattr(self.instance, field_name, flask.request.form[field_name])
+                    except Exception as e:
+                        poobrains.app.logger.error("Possible bug in %s.handle." % self.__class__.__name__)
+                        poobrains.app.logger.error("Affected field: %s.%s" % (self.model.__name__, field_name))
+
+            try:
+                self.instance.save()
+
+            except peewee.IntegrityError as e:
+                flask.flash('Integrity error: %s' % e.message, 'error')
+
+                if mode == 'edit':
+                    return flask.redirect(self.model.load(self.instance.id).url('edit'))
+
+                return flask.redirect(self.model.url(mode='teaser-edit'))
+
+            return flask.redirect(self.instance.url(mode='edit'))
+
+        # Why the fuck does HTML not support DELETE!?
+        elif self.mode == 'delete' and flask.request.method in ('POST', 'DELETE') and self.instance.id:
+            message = "Deleted %s '%s'." % (self.model.__name__, self.instance.name)
+            self.instance.delete_instance()
+            flask.flash(message)
+
+        return flask.redirect(self.model.url('teaser-edit'))
+
+
 class Fieldset(BaseForm):
 
     rendered = None
@@ -182,7 +283,7 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
-class Button(rendering.Renderable):
+class Button(poobrains.rendering.Renderable):
 
     name = None
     type = None

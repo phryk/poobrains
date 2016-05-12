@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
 import random
+import functools
+import flask
+
+from collections import OrderedDict
 
 
 def random_string(length=42):
@@ -22,6 +25,24 @@ def choose_primary(d):
            return v
 
     return d.values()[0]
+
+
+def is_secure(f):
+
+    """
+    decorator. Denies access if an url is accessed without TLS.
+    """
+
+    @functools.wraps(f)
+    def substitute(*args, **kwargs):
+
+        if flask.request.is_secure:
+            return f(*args, **kwargs)
+
+        else:
+            flask.abort(403, "You are trying to do naughty things without protection.")
+
+    return substitute
 
 
 class ChildAware(object):

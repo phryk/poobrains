@@ -6,6 +6,7 @@ import helpers
 
 # local imports
 import storage
+import auth
 
 class ShellException(Exception):
     pass
@@ -243,12 +244,21 @@ class Install(Command):
 
     def execute(self):
         import storage
+        import auth
         stdout.write("Really execute installation procedure? (y/N)")
         value = raw_input().lower()
         if value == 'y':
             stdout.write("Installing now...\n")
             self.shell.db.create_tables(storage.Model.children())
-            stdout.write("Done!\n")
+            stdout.write("Database tables created!\n")
+            anon = auth.User()
+            anon.name = 'Anonymous'
+            anon.id = 1 # Should theoretically always happen, but let's make sure anyways
+            anon.save(force_insert=True)
+            stdout.write("Anonymous user created.\n")
+            stdout.write(str(anon))
+            stdout.write("Installation complete!")
+
 
 
 class Exit(Command):

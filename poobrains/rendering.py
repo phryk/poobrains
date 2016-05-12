@@ -47,7 +47,11 @@ def render(mode='full'):
                 g.title = 'Title missing' # TODO: There were some alternative title sources, I think (in @expose?)
             g.content = content
 
-            return render_template('main.jinja', content=content, mode=mode), status_code
+            if hasattr(g, 'user'):
+                user = g.user
+            else:
+                user = None
+            return render_template('main.jinja', content=content, mode=mode, user=user), status_code
 
         return real
 

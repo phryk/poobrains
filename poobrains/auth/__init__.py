@@ -14,22 +14,65 @@ from functools import wraps
 import poobrains
 
 
-def is_secure(f):
+def access(*args, **kwargs):
 
     """
-    decorator. Denies access if an url is accessed without TLS.
+    Decorator; Sets the permission needed to access this page.
+
+    Alternatively, a custom access callback returning True or False might be
+    passed.
+
+
+    Example, using a permission name to determine access rights::
+
+        @app.route('/foo')
+        @access('access_foo')
+        @view
+        def page_foo():
+            return value('Here be page content.')
+
+
+    Example, using a custom access callback to determine access rights::
+
+        def access_anon(user):
+            if(user.id == 0):
+                return True
+            return False
+
+        @app.route('/only/for/anon')
+        @access(callback=access_anon)
+        @view
+        def page_anon():
+            return (value('Only anon visitors get access to this.')
+      
+
+    ..  warning::
+        
+        This decorator has to be the below the app.route decorator for the page callback.
+
+
+    ..  todo::
+        
+        Check if the custom callback example actually works
     """
 
-    @wraps(f)
-    def substitute():
+    def decorator(func):
 
-        if flask.request.is_secure:
-            return f()
+        @wraps(func)
+        def c(*a, **kw):
 
-        else:
-            flask.abort(403, "You are trying to do naughty things without protection.")
+            params = {'args': a, 'kwargs': kw}
 
-    return substitute
+            kwargs['params'] = params
+
+
+            if g.user.access(*args, **kwargs):
+                return func(*a, **kw)
+            else:
+                abort(401, "Not authorized for access.")        
+        return c
+
+    return decorator
 
 
 class User(poobrains.storage.Storable):
@@ -64,6 +107,14 @@ class User(poobrains.storage.Storable):
         return '<Poobrains User, unsaved>'
 
 
+class UserPermission(poobrains.storage.Storable):
+
+    user = poobrains.storage.fields.ForeignKeyField(User, related_name='explicit_permissions')
+    permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
+    access = poobrains.storage.fields.BooleanField()
+
+
+@poobrains.app.expose('/demcert/', force_secure=True)
 class ClientCertForm(poobrains.form.Form):
     
     #passphrase = poobrains.form.fields.ObfuscatedText()
@@ -72,6 +123,70 @@ class ClientCertForm(poobrains.form.Form):
     key = poobrains.form.fields.Keygen()
     submit = poobrains.form.Button('submit', label='Generate Certificate')
 
+    def __init__(self, *args, **kwargs):
+
+        super(ClientCertForm, self).__init__(*args, **kwargs)
+        flask.session['key_challenge'] = self.key.challenge
+
+
+    def handle(self, values):
+
+        try:
+            token = ClientCertToken.get(ClientCertToken.token == values['token'])
+
+        except Exception as e:
+            return poobrains.rendering.RenderString("No such token.")
+
+
+        try:
+
+            ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
+            ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
+
+        except Exception as e:
+
+            poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
+            poobrains.app.logger.debug(e)
+            return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
+
+
+        try:
+            spkac = pyspkac.SPKAC(values['key'], flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
+            spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
+            spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
+
+            spkac.subject.C = ca_cert.get_subject().C
+
+            not_before = int(time.time())
+            not_after = not_before + poobrains.app.config['CERT_LIFETIME']
+
+            client_cert = spkac.gen_crt(ca_key, ca_cert, 44, not_before, not_after, hash_algo='sha512')
+
+        except Exception as e:
+
+            if poobrains.app.debug:
+                raise
+
+            return poobrains.rendering.RenderString("Client certificate creation failed.")
+
+        try:
+            cert_info = ClientCert()
+            cert_info.name = token.name
+            cert_info.user = token.user
+            #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
+            cert_info.subject_name = unicode(client_cert.get_subject())
+            cert_info.save()
+
+        except Exception as e:
+
+            if poobrains.app.debug:
+                raise
+
+            return poobrains.rendering.RenderString("Failed to write info into database. Disregard this certificate.")
+
+        r = werkzeug.wrappers.Response(client_cert.as_pem())
+        r.mimetype = 'application/x-x509-user-cert'
+        return r
 
 class ClientCertToken(poobrains.storage.Storable):
 
@@ -93,60 +208,3 @@ class ClientCert(poobrains.storage.Storable):
 
     user = poobrains.storage.fields.ForeignKeyField(User)
     subject_name = poobrains.storage.fields.CharField()
-
-
-@poobrains.app.route('/cert/')
-@poobrains.rendering.render()
-@is_secure
-def cert_form():
-
-    f = ClientCertForm()
-    flask.session['key_challenge'] = f.fields['key'].challenge
-    return f
-
-
-@poobrains.app.route('/cert/', methods=['POST'])
-@poobrains.rendering.render()
-@is_secure
-def cert_handle():
-
-    try:
-        token = ClientCertToken.get(ClientCertToken.token == flask.request.form['token'])
-
-    except Exception as e:
-        return poobrains.rendering.RenderString("No such token.")
-
-
-    try:
-
-        ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
-        ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
-
-    except Exception as e:
-
-        return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
-
-
-    spkac = pyspkac.SPKAC(flask.request.form['key'], flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
-    spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
-    spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
-
-    spkac.subject.C = ca_cert.get_subject().C
-
-    not_before = int(time.time())
-    not_after = not_before + poobrains.app.config['CERT_LIFETIME']
-
-    client_cert = spkac.gen_crt(ca_key, ca_cert, 44, not_before, not_after, hash_algo='sha512')
-    cert_info = ClientCert()
-    cert_info.name = token.name
-    cert_info.user = token.user
-    #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
-    cert_info.subject_name = unicode(client_cert.get_subject())
-    poobrains.app.logger.debug('client cert subject:')
-    poobrains.app.logger.debug(type(client_cert.get_subject()))
-    poobrains.app.logger.debug(client_cert.get_subject())
-    cert_info.save()
-
-    r = werkzeug.wrappers.Response(client_cert.as_pem())
-    r.mimetype = 'application/x-x509-user-cert'
-    return r

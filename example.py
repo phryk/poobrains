@@ -22,7 +22,7 @@ def form_test():
     form = TestForm()
 
     if flask.request.method == 'POST':
-        form.handle(flask.request.form)
+        #form.handle(flask.request.form)
         return poobrains.rendering.RenderString("ZOMGPOST")
 
     return form 

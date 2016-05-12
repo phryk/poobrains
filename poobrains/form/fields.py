@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import flask
+
 # parent imports
+import poobrains
 from poobrains import rendering, helpers
 
 # internal imports
@@ -68,7 +71,7 @@ class Field(rendering.Renderable):
         return super(Field, self).render(mode)
 
 
-class Warning(Field):
+class Message(Field):
     pass
 
 
@@ -152,7 +155,13 @@ class Keygen(Field):
 
     def __init__(self, *args, **kw):
 
-        self.challenge = helpers.random_string()
+        try:
+            if flask.request.method == 'GET':
+                poobrains.app.logger.debug("Keygen new challenge")
+                self.challenge = helpers.random_string()
+        except RuntimeError as e:
+            pass
+
         super(Keygen, self).__init__(*args, **kw)
 
 
