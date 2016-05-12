@@ -539,5 +539,3 @@ app.register_error_handler(404, errorpage)
 app.register_error_handler(peewee.OperationalError, errorpage)
 app.register_error_handler(peewee.IntegrityError, errorpage)
 app.register_error_handler(peewee.DoesNotExist, errorpage)
-
-#import routes

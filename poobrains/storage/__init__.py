@@ -156,31 +156,6 @@ class Storable(Model, rendering.Renderable):
         else:
             title = self.title if hasattr(self, 'title') else self.name
 
-#        f = form.Form(
-#            '%s-%s' % (self.__class__.__name__.lower(), mode),
-#            title=title,
-#            action=self.url(mode)
-#        )
-#
-#        f.actions = self.actions
-#
-#        if mode == 'delete':
-#
-#            f.warning = form.fields.Warning('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
-#            f.submit = form.Button('submit', name='submit', value='delete', label='KILL')
-#
-#        else:
-#            own_fields = self.__class__._meta.get_fields()
-#
-#            for field in own_fields:
-#                
-#                if isinstance(field, fields.Field):
-#                    form_field = field.form_class(field.name, value=getattr(self, field.name), validators=field.form_extra_validators)
-#                    f.fields[field.name] = form_field
-#
-#            f.controls['reset'] = form.Button('reset', label='Reset')
-#            f.controls['submit'] = form.Button('submit', name='submit', value='save', label='Save')
-
         f = form.AutoForm(self, mode=mode, title=title, action=self.url(mode))
 
         return f
@@ -284,8 +259,3 @@ class Listing(rendering.Renderable):
         except werkzeug.routing.BuildError as e:
             app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
-
-
-
-# delayed imports because i suck at modelling shit with less dependencies
-# import cli

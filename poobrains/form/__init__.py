@@ -11,18 +11,6 @@ import poobrains
 import fields
 
 
-#class MetaForm(type):
-#
-#    def __new__(mcs, name, bases, attrs):
-#
-#        for attr_name, attr in attrs.iteritems():
-#
-#            if isinstance(attr, fields.Field) and not attr.name:
-#                attr.name = attr_name
-#
-#        return type.__new__(mcs, name, bases, attrs)
-
-
 class BaseForm(poobrains.rendering.Renderable):
 
     fields = None
@@ -100,32 +88,6 @@ class BaseForm(poobrains.rendering.Renderable):
             rendered_controls += control.render()
 
         return rendered_controls
-
-
-#    def __getattribute__(self, name):
-#
-#        fields = super(BaseForm, self).__getattribute__('_fields')
-#        controls = super(BaseForm, self).__getattribute__('_controls')
-#
-#        if fields.has_key(name):
-#            return fields[name]
-#
-#        elif controls.has_key(name):
-#            return controls[name]
-#
-#        return super(BaseForm, self).__getattribute__(name)
-#
-#
-#    def __setattr__(self, name, value):
-#
-#        if isinstance(value, fields.Field) or isinstance(value, Fieldset):
-#            self._fields[name] = value # what does this exactly do? call __gietattribute__('_fields') and then modify it?
-#
-#        elif isinstance(value, Button):
-#            self._controls[name] = value # same question as above, just with '_controls'
-#
-#        else:
-#            super(BaseForm, self).__setattr__(name, value)
 
 
     def __setattr__(self, name, value):
