@@ -103,8 +103,25 @@ class Poobrain(flask.Flask):
 
         # this function is the latest possible place to call @setupmethod functions
         if not self._got_first_request:
+
+            for (key, cls) in auth.Administerable.children_keyed().iteritems():
+
+                def admin_listing_actions():
+
+                    m = poobrains.rendering.Menu('admin-listing-actions')
+                    m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
+
+                    return m
+
+                rule = '%s/' % key
+
+                self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser-edit', action_func=admin_listing_actions, force_secure=True)
+                self.admin.add_view(cls, rule, mode='edit', force_secure=True)
+                self.admin.add_view(cls, rule, mode='delete', force_secure=True)
+                self.admin.add_view(cls, '%sadd' % rule, mode='add', force_secure=True)
+
             self.register_blueprint(self.site)
-            self.register_blueprint(self.admin, url_prefix='/admin')
+            self.register_blueprint(self.admin, url_prefix='/admin/')
 
         super(Poobrain, self).try_trigger_before_first_request_functions()
 
@@ -167,12 +184,12 @@ class Poobrain(flask.Flask):
 
         if flask.g.user == None:
             try:
-                flask.g.user = auth.User.load(1)
+                flask.g.user = auth.User.load(1) # loads "Anonymous".
             except:
                 pass
 
-        self.logger.debug(dir(flask.g.user))
-        self.logger.debug(flask.g.user)
+#        self.logger.debug(dir(flask.g.user))
+#        self.logger.debug(flask.g.user)
 
 
     def request_teardown(self, exception):
@@ -187,23 +204,11 @@ class Poobrain(flask.Flask):
 
             if issubclass(cls, storage.Storable):
 
-                def admin_listing_actions():
-
-                    m = poobrains.rendering.Menu('admin-listing-actions')
-                    m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
-
-                    return m
-
                 self.site.add_listing(cls, rule, title=title, force_secure=force_secure)
                 self.site.add_view(cls, rule, force_secure=force_secure)
-                self.admin.add_listing(cls, rule, title=title, mode='teaser-edit', action_func=admin_listing_actions, force_secure=force_secure)
-                self.admin.add_view(cls, rule, mode='edit', force_secure=force_secure)
-                self.admin.add_view(cls, rule, mode='delete', force_secure=force_secure)
-                self.admin.add_view(cls, rule+'/add', mode='add', force_secure=force_secure)
 
             elif issubclass(cls, form.Form):
 
-                self.logger.debug("Decorating Form")
                 self.site.add_view(cls, rule, force_secure=force_secure)
 
             return cls
@@ -323,6 +328,10 @@ class Pooprint(flask.Blueprint):
 
 
     def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, force_secure=False, **options):
+
+        print "UWOTM8"
+        print self.name
+        print cls, rule
 
         if not mode:
             mode = 'teaser'

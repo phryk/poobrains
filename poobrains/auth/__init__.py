@@ -7,12 +7,34 @@ import time
 import datetime
 import werkzeug
 import flask
+import peewee
 
 from functools import wraps
 
 # local imports
 import poobrains
 
+
+@poobrains.app.admin.box('menu_main')
+def admin_menu():
+
+    menu = poobrains.rendering.Menu('main')
+    menu.title = 'Administration'
+
+    for administerable, listings in poobrains.app.admin.listings.iteritems():
+
+        for mode, endpoints in listings.iteritems():
+
+            for endpoint in endpoints: # iterates through endpoints.keys()
+                menu.append(flask.url_for('admin.%s' % endpoint), administerable.__name__)
+
+    return menu
+
+
+@poobrains.app.admin.route('/')
+@poobrains.rendering.render()
+def admin_index():
+    return admin_menu()
 
 def access(*args, **kwargs):
 
@@ -75,6 +97,61 @@ def access(*args, **kwargs):
     return decorator
 
 
+class Permission(poobrains.helpers.ChildAware):
+   
+    @classmethod
+    def check(cls, user):
+        return user.access(self)
+
+
+class AdministerableBase(peewee.BaseModel):
+
+    def __new__(cls, *args, **kwargs):
+
+        cls.Create = type('%sCreate' % cls.__name__, (Permission,), {})
+        cls.Read   = type('%sRead' % cls.__name__, (Permission,), {})
+        cls.Update = type('%sUpdate' % cls.__name__, (Permission,), {})
+        cls.Delete = type('%sDelete' % cls.__name__, (Permission,), {})
+
+        return super(AdministerableBase, cls).__new__(cls, *args, **kwargs)
+
+
+class Administerable(poobrains.storage.Storable):
+    
+    __metaclass__ = AdministerableBase
+
+    name = poobrains.storage.fields.CharField(index=True, unique=True, constraints=[poobrains.storage.RegexpConstraint('name', '^[a-zA-Z0-9_\-]+$')])
+    actions = None
+
+    @property
+    def actions(self):
+
+        if not self.id:
+            return None
+
+        actions = poobrains.rendering.Menu('%s-%d.actions' % (self.__class__.__name__, self.id))
+        try:
+            actions.append(self.url('full'), 'View')
+            actions.append(self.url('edit'), 'Edit')
+            actions.append(self.url('delete'), 'Delete')
+
+        except Exception as e:
+            poobrains.app.logger.error('Action menu generation failure.')
+            poobrains.app.logger.error(self)
+
+        return actions
+
+
+    @classmethod
+    def load(cls, id_or_name):
+
+        if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
+            return super(Administerable, cls).load(id_or_name)
+
+        else:
+            return cls.get(cls.name == id_or_name)
+
+
 class User(poobrains.storage.Storable):
 
     name = poobrains.storage.fields.CharField(unique=True)
@@ -114,7 +191,7 @@ class UserPermission(poobrains.storage.Storable):
     access = poobrains.storage.fields.BooleanField()
 
 
-@poobrains.app.expose('/demcert/', force_secure=True)
+@poobrains.app.expose('/cert/', force_secure=True)
 class ClientCertForm(poobrains.form.Form):
     
     #passphrase = poobrains.form.fields.ObfuscatedText()

@@ -2,6 +2,7 @@
 
 # external imports
 import functools
+import peewee
 import flask
 
 # parent imports
@@ -168,7 +169,7 @@ class AutoForm(Form):
             for field in self.model._meta.get_fields():
 
                 #poobrains.app.logger.debug(field)
-                if isinstance(field, poobrains.storage.fields.Field):
+                if isinstance(field, poobrains.storage.fields.Field) and field.name not in self.model.field_blacklist:
                     form_field = field.form_class(field.name, value=getattr(self.instance, field.name), validators=field.form_extra_validators)
                     #self.fields[field.name] = form_field
                     setattr(self, field.name, form_field)

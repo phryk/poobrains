@@ -16,28 +16,8 @@ from poobrains import form
 import fields
 
 
-@app.admin.box('menu_main')
-def admin_menu():
-
-    menu = rendering.Menu('main')
-    menu.title = 'Administration'
-
-    for storable, listings in app.admin.listings.iteritems():
-
-        for mode, endpoints in listings.iteritems():
-
-            for endpoint in endpoints: # iterates through endpoints.keys()
-                menu.append(flask.url_for('admin.%s' % endpoint), storable.__name__)
-
-    return menu
-
-
-@app.admin.route('/')
-@rendering.render()
-def admin_index():
-    return admin_menu()
-
 def RegexpConstraint(field_name, regexp):
+
     return peewee.Clause(
             peewee.SQL('CHECK('),
             peewee.Expression(
@@ -50,13 +30,6 @@ def RegexpConstraint(field_name, regexp):
     )
 
 
-class Permission(helpers.ChildAware):
-   
-    @classmethod
-    def check(cls, user):
-        return user.access(self)
-
-
 class QuotedSQL(peewee.Entity):
 
     def __getattr__(self, attr):
@@ -64,33 +37,15 @@ class QuotedSQL(peewee.Entity):
         return super(peewee.Node, self).__getattr__(attr) # Is this a good idea?
 
 
-
-class BaseModel(peewee.BaseModel):
-
-    def __new__(cls, *args, **kwargs):
-
-        cls.Create = type('%sCreate' % cls.__name__, (Permission,), {})
-        cls.Read   = type('%sRead' % cls.__name__, (Permission,), {})
-        cls.Update = type('%sUpdate' % cls.__name__, (Permission,), {})
-        cls.Delete = type('%sDelete' % cls.__name__, (Permission,), {})
-
-        return super(BaseModel, cls).__new__(cls, *args, **kwargs)
-
-
 class Model(peewee.Model, helpers.ChildAware):
-
-    __metaclass__ = BaseModel
 
     class Meta:
         database = app.db
 
 
-
 class Storable(Model, rendering.Renderable):
 
-    field_blacklist = ['id']
-    name = fields.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[a-zA-Z0-9_\-]+$')])
-    actions = None
+    field_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
 
     class Meta:
@@ -103,35 +58,10 @@ class Storable(Model, rendering.Renderable):
         self.url = self.instance_url # make .url callable for class and instances
         self.form = self.instance_form # make .form callable for class and instance
 
-    @property
-    def actions(self):
-
-        if not self.id:
-            return None
-
-        actions = rendering.Menu('%s-%d.actions' % (self.__class__.__name__, self.id))
-        try:
-            actions.append(self.url('full'), 'View')
-            actions.append(self.url('edit'), 'Edit')
-            actions.append(self.url('delete'), 'Delete')
-
-        except Exception as e:
-            app.logger.error('Action menu generation failure.')
-            app.logger.error(self)
-
-        return actions
 
     @classmethod
-    def load(cls, id_or_name):
-
-        if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
-            instance = cls.get(cls.id == id_or_name)
-
-        else:
-            instance = cls.get(cls.name == id_or_name)
-
-
-        return instance
+    def load(cls, id):
+        return cls.get(cls.id == id)
 
 
     @classmethod
