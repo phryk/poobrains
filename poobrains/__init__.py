@@ -27,6 +27,25 @@ except ImportError as e:
     config = False
 
 
+def curry(func, *arg, **kwarg):
+
+    def call(*args, **kwargs):
+
+        a = list(arg) #create a local copy rather than keeping a reference
+        kw = dict(kwarg)
+        args = list(args)
+        while len(a):
+            args.insert(0, a.pop())
+
+        for k, v in kw.iteritems():
+            if not kwargs.has_key(k): #only add kwarg if it's not already set, allows for overriding curried kwargs
+                kwargs[k] = v
+
+        return func(*args, **kwargs)
+
+    return call
+
+
 class Poobrain(flask.Flask):
 
     site = None
@@ -106,16 +125,10 @@ class Poobrain(flask.Flask):
 
             for (key, cls) in auth.Administerable.children_keyed().iteritems():
 
-                def admin_listing_actions():
-
-                    m = poobrains.rendering.Menu('admin-listing-actions')
-                    m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
-
-                    return m
-
                 rule = '%s/' % key
+                actions = curry(auth.admin_listing_actions, cls)
 
-                self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser-edit', action_func=admin_listing_actions, force_secure=True)
+                self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser-edit', action_func=actions, force_secure=True)
                 self.admin.add_view(cls, rule, mode='edit', force_secure=True)
                 self.admin.add_view(cls, rule, mode='delete', force_secure=True)
                 self.admin.add_view(cls, '%sadd' % rule, mode='add', force_secure=True)

@@ -15,6 +15,14 @@ from functools import wraps
 import poobrains
 
 
+def admin_listing_actions(cls):
+
+    m = poobrains.rendering.Menu('admin-listing-actions')
+    m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
+
+    return m
+
+
 @poobrains.app.admin.box('menu_main')
 def admin_menu():
 
