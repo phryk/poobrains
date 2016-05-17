@@ -43,8 +43,12 @@ def render(mode='full'):
 
             if hasattr(content, 'title') and content.title:
                 g.title = content.title
+
+            elif hasattr(content, 'name') and content.name:
+                g.title = content.name.capitalize()
+
             else:
-                g.title = 'Title missing' # TODO: There were some alternative title sources, I think (in @expose?)
+                g.title = content.__class__.__name__
             g.content = content
 
             if hasattr(g, 'user'):

@@ -96,7 +96,7 @@ def access(*args, **kwargs):
             kwargs['params'] = params
 
 
-            if g.user.access(*args, **kwargs):
+            if flask.g.user.access(*args, **kwargs):
                 return func(*a, **kw)
             else:
                 abort(401, "Not authorized for access.")        
@@ -107,9 +107,17 @@ def access(*args, **kwargs):
 
 class Permission(poobrains.helpers.ChildAware):
    
+    instance = None
+
+    def __init__(self, instance):
+        self.instance = instance
+        self.check = self.instance_check
+
     @classmethod
     def check(cls, user):
-        return user.access(self)
+        return user.access(cls)
+
+#    def instance_check(self):
 
 
 class AdministerableBase(peewee.BaseModel):
@@ -158,6 +166,10 @@ class Administerable(poobrains.storage.Storable):
 
         else:
             return cls.get(cls.name == id_or_name)
+    
+    
+    def __repr__(self):
+        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
 class User(poobrains.storage.Storable):
@@ -167,34 +179,9 @@ class User(poobrains.storage.Storable):
     permissions = None
 
 
-    def __init__(self, *args, **kwargs):
+class UserPermission(poobrains.storage.Model):
 
-        super(User, self).__init__(*args, **kwargs)
-
-        self.password_modified = False
-        self.groups = {}
-        self.permissions = {}
-
-
-    def __setattr__(self, name, value):
-
-        if name == 'password':
-            self.password_modified = True
-
-        super(User, self).__setattr__(name, value)
-
-
-    def __repr__(self):
-
-        if self.id is not None:
-            return '<Poobrains User %d: %s>' % (self.id, self.name)
-
-        return '<Poobrains User, unsaved>'
-
-
-class UserPermission(poobrains.storage.Storable):
-
-    user = poobrains.storage.fields.ForeignKeyField(User, related_name='explicit_permissions')
+    user = poobrains.storage.fields.ForeignKeyField(User, related_name='permissions')
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
     access = poobrains.storage.fields.BooleanField()
 

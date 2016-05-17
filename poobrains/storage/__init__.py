@@ -41,27 +41,27 @@ class Model(peewee.Model, helpers.ChildAware):
 
     class Meta:
         database = app.db
+        order_by = ['-id']
+
+
+    @classmethod
+    def load(cls, id):
+        return cls.get(cls.id == id)
+
+
+    def __repr__(self):
+        return "<%s[%s]>" % (self.__class__.__name__, self.id) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
 class Storable(Model, rendering.Renderable):
 
     field_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
-
-    class Meta:
-        order_by = ['-id']
-
-
     def __init__(self, *args, **kwargs):
 
         super(Storable, self).__init__(*args, **kwargs)
         self.url = self.instance_url # make .url callable for class and instances
         self.form = self.instance_form # make .form callable for class and instance
-
-
-    @classmethod
-    def load(cls, id):
-        return cls.get(cls.id == id)
 
 
     @classmethod
@@ -89,7 +89,6 @@ class Storable(Model, rendering.Renderable):
         f = form.AutoForm(self, mode=mode, title=title, action=self.url(mode))
 
         return f
-        
    
 
     def render(self, mode='full'):
@@ -105,11 +104,6 @@ class Storable(Model, rendering.Renderable):
             return form.render()
 
         return super(Storable, self).render(mode=mode)
-
-
-    def __repr__(self):
-
-        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
 
