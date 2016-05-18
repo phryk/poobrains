@@ -122,6 +122,9 @@ class Permission(poobrains.helpers.ChildAware):
 
 class AdministerableBase(peewee.BaseModel):
 
+    class Meta:
+        abstract = True
+
     def __new__(cls, *args, **kwargs):
 
         cls.Create = type('%sCreate' % cls.__name__, (Permission,), {})
@@ -177,11 +180,24 @@ class User(poobrains.storage.Storable):
     name = poobrains.storage.fields.CharField(unique=True)
     groups = None
     permissions = None
+    _permissions = None # filled by UserPermission.permission ForeignKeyField
+
+    def prepared(self):
+
+        poobrains.app.logger.debug("User.prepared")
+        poobrains.app.logger.debug(self)
+
+        for name, permission in Permission.children_keyed().iteritems():
+            poobrains.app.logger.debug(name)
+            poobrains.app.logger.debug(permission)
+
+            if permission in self._permissions:
+                poobrains.app.logger.debug("permission in granted perms!")
 
 
 class UserPermission(poobrains.storage.Model):
 
-    user = poobrains.storage.fields.ForeignKeyField(User, related_name='permissions')
+    user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
     access = poobrains.storage.fields.BooleanField()
 

@@ -53,7 +53,10 @@ class ChildAware(object):
         children = cls.__subclasses__()
 
         for child in children:
-            children += child.children()
+
+            # This makes sure you can mark Models as abstract like in Django
+            if not hasattr(child, 'Meta') or not hasattr(child.Meta, 'abstract') or not child.Meta.abstract:
+                children += child.children()
 
         return children
 

@@ -342,10 +342,6 @@ class Pooprint(flask.Blueprint):
 
     def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, force_secure=False, **options):
 
-        print "UWOTM8"
-        print self.name
-        print cls, rule
-
         if not mode:
             mode = 'teaser'
 
