@@ -12,7 +12,7 @@ def random_string(length=42):
     rand = random.SystemRandom()
     string = u''
     for i in range(0, length):
-        string += chr(rand.randint(33, 126)) # printable ascii chars are chars 33 - 126
+        string += chr(rand.randint(33, 126)) # printable ascii chars are chars 33 - 126 #TODO: Should I even bother finding out whether unicode is an option?
 
     return string
 
@@ -48,17 +48,19 @@ def is_secure(f):
 class ChildAware(object):
 
     @classmethod
-    def children(cls):
+    def children(cls, abstract=False):
 
+        reported_children = []
         children = cls.__subclasses__()
 
         for child in children:
 
-            # This makes sure you can mark Models as abstract like in Django
-            if not hasattr(child, 'Meta') or not hasattr(child.Meta, 'abstract') or not child.Meta.abstract:
-                children += child.children()
+            if abstract or not hasattr(child, '_meta') or not hasattr(child._meta, 'abstract') or not child._meta.abstract:
+                reported_children.append(child)
 
-        return children
+            reported_children += child.children()
+
+        return reported_children
 
     @classmethod
     def children_keyed(cls):

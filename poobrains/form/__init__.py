@@ -184,8 +184,6 @@ class AutoForm(Form):
 
     def handle(self, values):
 
-        poobrains.app.logger.debug("Form handle mode: %s." % self.mode)
-
         # handle POST for add and edit
         if self.mode in ('add', 'edit'):
 

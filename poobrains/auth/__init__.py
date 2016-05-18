@@ -120,10 +120,11 @@ class Permission(poobrains.helpers.ChildAware):
 #    def instance_check(self):
 
 
-class AdministerableBase(peewee.BaseModel):
+class BaseAdministerable(poobrains.storage.BaseModel):
 
-    class Meta:
-        abstract = True
+    """
+    Metaclass for `Administerable`s.
+    """
 
     def __new__(cls, *args, **kwargs):
 
@@ -132,13 +133,16 @@ class AdministerableBase(peewee.BaseModel):
         cls.Update = type('%sUpdate' % cls.__name__, (Permission,), {})
         cls.Delete = type('%sDelete' % cls.__name__, (Permission,), {})
 
-        return super(AdministerableBase, cls).__new__(cls, *args, **kwargs)
+        return super(BaseAdministerable, cls).__new__(cls, *args, **kwargs)
 
 
 class Administerable(poobrains.storage.Storable):
     
-    __metaclass__ = AdministerableBase
+    __metaclass__ = BaseAdministerable
 
+    class Meta:
+        abstract = True
+    
     name = poobrains.storage.fields.CharField(index=True, unique=True, constraints=[poobrains.storage.RegexpConstraint('name', '^[a-zA-Z0-9_\-]+$')])
     actions = None
 
@@ -184,12 +188,7 @@ class User(poobrains.storage.Storable):
 
     def prepared(self):
 
-        poobrains.app.logger.debug("User.prepared")
-        poobrains.app.logger.debug(self)
-
         for name, permission in Permission.children_keyed().iteritems():
-            poobrains.app.logger.debug(name)
-            poobrains.app.logger.debug(permission)
 
             if permission in self._permissions:
                 poobrains.app.logger.debug("permission in granted perms!")

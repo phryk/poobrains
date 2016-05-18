@@ -37,7 +37,22 @@ class QuotedSQL(peewee.Entity):
         return super(peewee.Node, self).__getattr__(attr) # Is this a good idea?
 
 
+
+class BaseModel(peewee.BaseModel):
+
+    def __new__(cls, name, bases, attrs):
+
+        cls = super(BaseModel, cls).__new__(cls, name, bases, attrs)
+        if hasattr(cls, '_meta'):
+            cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable.
+            #TODO: Seems hacky as fuck, might be a good idea to ask cleifer whether this is proper.
+
+        return cls
+
+
 class Model(peewee.Model, helpers.ChildAware):
+
+    __metaclass__ = BaseModel
 
     class Meta:
         database = app.db
@@ -56,6 +71,11 @@ class Model(peewee.Model, helpers.ChildAware):
 class Storable(Model, rendering.Renderable):
 
     field_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
+
+
+    class Meta:
+        abstract = True
+
 
     def __init__(self, *args, **kwargs):
 
