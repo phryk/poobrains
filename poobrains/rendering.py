@@ -95,6 +95,9 @@ class Renderable(helpers.ChildAware):
                 '%s.jinja' % (clsname,)
             ]
 
+        poobrains.app.logger.debug("template_candidates")
+        poobrains.app.logger.debug(tpls)
+
         return tpls
 
 

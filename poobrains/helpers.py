@@ -86,7 +86,8 @@ class ChildAware(object):
 
         whitelist = [top] + top.children()
         ancestors = []
-
+        print "ancestors bases for %s" % cls.__name__
+        print cls.__bases__
         for base in cls.__bases__:
 
             if base in whitelist:

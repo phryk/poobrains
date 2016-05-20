@@ -136,7 +136,7 @@ class BaseAdministerable(poobrains.storage.BaseModel):
         return super(BaseAdministerable, cls).__new__(cls, *args, **kwargs)
 
 
-class Administerable(poobrains.storage.Storable):
+class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     
     __metaclass__ = BaseAdministerable
 
