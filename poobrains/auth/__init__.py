@@ -109,6 +109,9 @@ class Permission(poobrains.helpers.ChildAware):
    
     instance = None
 
+    class Meta:
+        abstract = True
+
     def __init__(self, instance):
         self.instance = instance
         self.check = self.instance_check
@@ -118,6 +121,16 @@ class Permission(poobrains.helpers.ChildAware):
         return user.access(cls)
 
 #    def instance_check(self):
+
+class PermissionTest(Permission):
+
+    class Meta:
+        abstract = True
+
+
+class PermissionTestB(PermissionTest):
+
+    pass
 
 
 class BaseAdministerable(poobrains.storage.BaseModel):

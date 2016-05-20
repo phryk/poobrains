@@ -44,11 +44,54 @@ def is_secure(f):
 
     return substitute
 
+class FakeMetaOptions(object):
+
+    abstract = None
+    _additional_keys = None
+
+    def __init__(self):
+
+        self.abstract = False
+        self._additional_keys = set([])
+
+
+class MetaCompatibility(type):
+
+    """
+    Make a non-Model class compatible with peewees 'class Meta' pattern.
+    """
+
+    def __new__(cls, name, bases, attrs):
+
+        cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
+
+        if hasattr(cls, 'Meta'):
+
+            cls._meta = FakeMetaOptions()
+
+            if hasattr(cls.Meta, 'abstract'):
+                cls._meta.abstract = cls.Meta.abstract
+            delattr(cls, 'Meta')
+
+        elif hasattr(cls, '_meta'):
+            if isinstance(cls._meta, FakeMetaOptions):
+                print "Resetting abstract on %s" % name
+                #cls._meta.abstract = False
+                cls._meta = FakeMetaOptions()
+            else:
+                cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable.
+
+        return cls
+
 
 class ChildAware(object):
 
+    __metaclass__ = MetaCompatibility
+
     @classmethod
     def children(cls, abstract=False):
+
+        print "gettng children for: ", cls.__name__, cls
 
         reported_children = []
         children = cls.__subclasses__()
@@ -56,7 +99,12 @@ class ChildAware(object):
         for child in children:
 
             if abstract or not hasattr(child, '_meta') or not hasattr(child._meta, 'abstract') or not child._meta.abstract:
+
                 reported_children.append(child)
+
+            elif child.__name__ == 'News':
+                print "DAT WAT?!"
+                print child._meta.abstract
 
             reported_children += child.children()
 
@@ -81,16 +129,14 @@ class ChildAware(object):
             * top: class, when this class is reached, the iteration is stopped
         """
 
+        ancestors = []
+
         if top is None:
             top = ChildAware
 
-        whitelist = [top] + top.children()
-        ancestors = []
-        print "ancestors bases for %s" % cls.__name__
-        print cls.__bases__
         for base in cls.__bases__:
 
-            if base in whitelist:
+            if issubclass(base, ChildAware):
                 ancestors.append(base)
 
                 if base is top:

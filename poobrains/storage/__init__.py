@@ -38,16 +38,17 @@ class QuotedSQL(peewee.Entity):
 
 
 
-class BaseModel(peewee.BaseModel):
+class BaseModel(helpers.MetaCompatibility, peewee.BaseModel):
 
-    def __new__(cls, name, bases, attrs):
-
-        cls = super(BaseModel, cls).__new__(cls, name, bases, attrs)
-        if hasattr(cls, '_meta'):
-            cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable.
-            #TODO: Seems hacky as fuck, might be a good idea to ask cleifer whether this is proper.
-
-        return cls
+    pass
+#    def __new__(cls, name, bases, attrs):
+#
+#        cls = super(BaseModel, cls).__new__(cls, name, bases, attrs)
+#        if hasattr(cls, '_meta'):
+#            cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable.
+#            #TODO: Seems hacky as fuck, might be a good idea to ask cleifer whether this is proper.
+#
+#        return cls
 
 
 class Model(peewee.Model, helpers.ChildAware):
