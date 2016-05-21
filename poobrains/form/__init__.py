@@ -117,6 +117,15 @@ class BaseForm(poobrains.rendering.Renderable):
         Iterate over this forms fields. Yes, this comment is incredibly helpful.
         """
         return self.fields.itervalues()
+    
+    
+    def template_candidates(self, mode):
+        
+        tpls = super(BaseForm, self).template_candidates(mode)
+
+        tpls = ['form/%s' % x if x.startswith('form') or x.startswith('field') else x for x in tpls] # TODO: this is a hack. do it proper.
+
+        return tpls
 
 
 class Form(BaseForm):
@@ -131,14 +140,6 @@ class Form(BaseForm):
         self.action = action if action else ''
 
 
-    def template_candidates(self, mode):
-        
-        tpls = []
-        
-        tpls.append('form/form-%s.jinja' % self.name)
-        tpls.append('form/form.jinja')
-
-        return tpls
 
 
     def handle(self, values):
@@ -238,14 +239,14 @@ class Fieldset(BaseForm):
         self.rendered = False
     
 
-    def template_candidates(self, mode):
-        
-        tpls = []
-        
-        tpls.append('form/fieldset-%s.jinja' % self.name)
-        tpls.append('form/fieldset.jinja')
+    #def template_candidates(self, mode):
+    #    
+    #    tpls = []
+    #    
+    #    tpls.append('form/fieldset-%s.jinja' % self.name)
+    #    tpls.append('form/fieldset.jinja')
 
-        return tpls
+    #    return tpls
     
 
     def render(self, mode='full'):

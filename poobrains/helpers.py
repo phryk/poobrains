@@ -97,13 +97,8 @@ class ChildAware(object):
             if abstract or not hasattr(child, '_meta') or not hasattr(child._meta, 'abstract') or not child._meta.abstract:
                 reported_children.append(child)
 
-            else:
-                print "foregoing %s" % child.__name__
-
             reported_children += child.children()
 
-        print "reporting for %s" % cls.__name__
-        print reported_children
         return reported_children
 
     @classmethod
@@ -134,6 +129,8 @@ class ChildAware(object):
 
             if issubclass(base, ChildAware):
                 ancestors.append(base)
+
+            else:
 
                 if base is top:
                     break

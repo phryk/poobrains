@@ -133,6 +133,7 @@ class BaseAdministerable(poobrains.storage.BaseModel):
     def __new__(cls, name, bases, attrs):
 
         cls = super(BaseAdministerable, cls).__new__(cls, name, bases, attrs)
+
         cls.Create = type('%sCreate' % name, (Permission,), {})
         cls.Read   = type('%sRead' % name, (Permission,), {})
         cls.Update = type('%sUpdate' % name, (Permission,), {})
@@ -205,10 +206,10 @@ class User(Administerable):
 
         f.permissions = poobrains.form.Fieldset()
 
-        poobrains.app.logger.debug(Permission.children())
+        for name, perm in sorted(Permission.children_keyed().items()):
 
-        for perm in Permission.children():
-            poobrains.app.logger.debug("user form perm------------------------------------")
+            print "form perm: ", perm
+
             try:
                 perm_info = UserPermission.get(UserPermission.user == self and UserPermission.permission == perm.__name__)
             except:
