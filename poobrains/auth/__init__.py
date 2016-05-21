@@ -120,17 +120,8 @@ class Permission(poobrains.helpers.ChildAware):
     def check(cls, user):
         return user.access(cls)
 
-#    def instance_check(self):
-
-class PermissionTest(Permission):
-
-    class Meta:
-        abstract = True
-
-
-class PermissionTestB(PermissionTest):
-
-    pass
+    def instance_check(self, user):
+        pass
 
 
 class BaseAdministerable(poobrains.storage.BaseModel):
@@ -139,14 +130,16 @@ class BaseAdministerable(poobrains.storage.BaseModel):
     Metaclass for `Administerable`s.
     """
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, name, bases, attrs):
 
-        cls.Create = type('%sCreate' % cls.__name__, (Permission,), {})
-        cls.Read   = type('%sRead' % cls.__name__, (Permission,), {})
-        cls.Update = type('%sUpdate' % cls.__name__, (Permission,), {})
-        cls.Delete = type('%sDelete' % cls.__name__, (Permission,), {})
+        cls = super(BaseAdministerable, cls).__new__(cls, name, bases, attrs)
+        cls.Create = type('%sCreate' % name, (Permission,), {})
+        cls.Read   = type('%sRead' % name, (Permission,), {})
+        cls.Update = type('%sUpdate' % name, (Permission,), {})
+        cls.Delete = type('%sDelete' % name, (Permission,), {})
 
-        return super(BaseAdministerable, cls).__new__(cls, *args, **kwargs)
+        return cls
+
 
 
 class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
@@ -173,7 +166,6 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
 
         except Exception as e:
             poobrains.app.logger.error('Action menu generation failure.')
-            poobrains.app.logger.error(self)
 
         return actions
 
@@ -192,7 +184,7 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
         return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
-class User(poobrains.storage.Storable):
+class User(Administerable):
 
     name = poobrains.storage.fields.CharField(unique=True)
     groups = None
@@ -206,6 +198,27 @@ class User(poobrains.storage.Storable):
             if permission in self._permissions:
                 poobrains.app.logger.debug("permission in granted perms!")
 
+
+    def instance_form(self, mode='edit'):
+
+        f = super(User, self).instance_form(mode)
+
+        f.permissions = poobrains.form.Fieldset()
+
+        poobrains.app.logger.debug(Permission.children())
+
+        for perm in Permission.children():
+            poobrains.app.logger.debug("user form perm------------------------------------")
+            try:
+                perm_info = UserPermission.get(UserPermission.user == self and UserPermission.permission == perm.__name__)
+            except:
+                perm_info = UserPermission()
+                perm_info.permission = perm.__name__
+                perm_info.access = 'deny'
+
+            setattr(f.permissions, perm.__name__, poobrains.form.AutoFieldset(perm_info))
+
+        return f
 
 class UserPermission(poobrains.storage.Model):
 

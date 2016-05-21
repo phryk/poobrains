@@ -93,7 +93,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
     def __setattr__(self, name, value):
 
-        if isinstance(value, fields.Field):
+        if isinstance(value, fields.Field) or isinstance(value, Fieldset):
             self.fields[name] = value
 
         elif isinstance(value, Button):
@@ -101,6 +101,14 @@ class BaseForm(poobrains.rendering.Renderable):
 
         else:
             super(BaseForm, self).__setattr__(name, value)
+
+
+    def __getattr__(self, name):
+
+        if self.fields.has_key(name):
+            return self.fields[name]
+
+        return super(BaseForm, self).__getattr__(self, name)
 
 
     def __iter__(self):
@@ -154,7 +162,9 @@ class AutoForm(Form):
         else:
             self.instance = model_or_instance
             self.model = self.instance.__class__
-            self.actions = self.instance.actions
+
+            if hasattr(self.instance, 'actions'):
+                self.actions = self.instance.actions
 
         # TODO: Build fields
 
@@ -240,7 +250,18 @@ class Fieldset(BaseForm):
 
     def render(self, mode='full'):
 
-        self.rrendered = True
+        self.rendered = True
+        return super(Fieldset, self).render(mode)
+
+
+class AutoFieldset(AutoForm, Fieldset):
+
+    rendered = None
+    
+    
+    def render(self, mode='full'):
+
+        self.rendered = True
         return super(Fieldset, self).render(mode)
 
 
