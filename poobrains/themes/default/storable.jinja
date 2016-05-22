@@ -1,5 +1,6 @@
 <div class="{{ content.__class__.__name__.lower() }}">
     This is the base template for Storables. Somebody probably ought to implement a template for {{ content.__class__.__name__ }}.
+    {{ content.template_candidates('edit') }}
     {% if mode == 'teaser-edit' %}
         <a href="{{ content.url('edit') }}">edit</a>
     {% endif %}

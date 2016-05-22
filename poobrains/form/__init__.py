@@ -120,10 +120,29 @@ class BaseForm(poobrains.rendering.Renderable):
     
     
     def template_candidates(self, mode):
-        
-        tpls = super(BaseForm, self).template_candidates(mode)
 
-        tpls = ['form/%s' % x if x.startswith('form') or x.startswith('field') else x for x in tpls] # TODO: this is a hack. do it proper.
+        clsname = self.__class__.__name__.lower()
+
+        tpls = [
+            'form/%s-%s.jinja' % (clsname, mode),
+            'form/%s.jinja' % (clsname,)
+        ]
+
+        for ancestor in self.__class__.ancestors(poobrains.rendering.Renderable):
+
+            clsname = ancestor.__name__.lower()
+
+            if issubclass(ancestor, BaseForm):
+                tpls += [
+                    'form/%s-%s.jinja' % (clsname, mode),
+                    'form/%s.jinja' % (clsname,)
+                ]
+
+            else:
+                tpls += [
+                    '%s-%s.jinja' % (clsname, mode),
+                    '%s.jinja' % (clsname,)
+                ]
 
         return tpls
 
@@ -154,7 +173,9 @@ class AutoForm(Form):
 
     def __init__(self, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
     
+        super(AutoForm, self).__init__(name=name, title=title, method=method, action=action)
         self.mode = mode
+
 
         if isinstance(model_or_instance, type(poobrains.storage.Model)):
             self.model = model_or_instance
@@ -166,13 +187,19 @@ class AutoForm(Form):
 
             if hasattr(self.instance, 'actions'):
                 self.actions = self.instance.actions
+        
+        if not name:
+            if self.instance.id:
+                self.name = "%s-%d-%s" % (self.model.__name__, self.instance.id, mode)
+            else:
+                self.name = "%s-%s" % (self.model.__name__, mode)
 
         # TODO: Build fields
 
         if mode == 'delete':
 
             self.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
-            self.submit = Button('submit', name='submit', value='delete', label='KILL')
+            self.submit = Button('submit', name='submit', value='%s-delete' % self.name, label='KILL')
 
         else:
 
@@ -186,19 +213,16 @@ class AutoForm(Form):
                     setattr(self, field.name, form_field)
 
             self.controls['reset'] = Button('reset', label='Reset')
-            self.controls['submit'] = Button('submit', name='submit', value='save', label='Save')
+            self.controls['submit'] = Button('submit', name='submit', value='%s-save' % self.name, label='Save')
 
 
         name = name if name else '%s-%s' % (self.model.__name__.lower(), mode)
-        super(AutoForm, self).__init__(name=name, title=title, method=method, action=action)
 
 
     def handle(self, values):
 
         # handle POST for add and edit
         if self.mode in ('add', 'edit'):
-
-
             for field_name in self.model._meta.get_field_names():
                 if not field_name in self.model.field_blacklist:
                     try:

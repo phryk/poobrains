@@ -46,7 +46,33 @@ def curry(func, *arg, **kwarg):
     return call
 
 
+class FormDataParser(werkzeug.formparser.FormDataParser):
+    
+    def parse(self, *args, **kwargs):
+
+        poobrains.app.logger.debug('Custom FormDataParser.parse')
+        
+        flat = super(FormDataParser, self).parse(*args, **kwargs)
+        poobrains.app.logger.debug(flat)
+
+        dictcls = flat.__class__
+
+#        for values, key in flat.iteritems():
+#            poobrains.app.logger.debug(key)
+
+
+        return flat
+
+
+class Request(flask.Request):
+
+    form_data_parser_class = FormDataParser
+
+
+
 class Poobrain(flask.Flask):
+
+    request_class = Request
 
     site = None
     admin = None

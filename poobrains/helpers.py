@@ -59,6 +59,7 @@ class MetaCompatibility(type):
 
     """
     Make a non-Model class compatible with peewees 'class Meta' pattern.
+    This is a hack.
     """
 
     def __new__(cls, name, bases, attrs):
@@ -127,14 +128,12 @@ class ChildAware(object):
 
         for base in cls.__bases__:
 
-            if issubclass(base, ChildAware):
-                ancestors.append(base)
+            ancestors.append(base)
 
-            else:
+            if base is top:
+                break
 
-                if base is top:
-                    break
-
+            if hasattr(base, 'ancestors'):
                 ancestors += base.ancestors(top)
 
         return ancestors

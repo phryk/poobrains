@@ -11,7 +11,7 @@ from poobrains import app
 from poobrains import helpers
 from poobrains import rendering
 from poobrains import form
-
+import poobrains
 # internal imports
 import fields
 
@@ -99,14 +99,17 @@ class Storable(Model, rendering.Renderable):
         return cls().form('add')
 
 
-    def instance_form(self, mode='edit'):
+    def instance_form(self, mode='edit', form_class=poobrains.form.AutoForm):
 
         if mode == 'add':
             title = 'Add new %s' % (self.__class__.__name__,)
         else:
             title = self.title if hasattr(self, 'title') else self.name
 
-        f = form.AutoForm(self, mode=mode, title=title, action=self.url(mode))
+        if issubclass(form_class, poobrains.form.Fieldset):
+            f = form_class(self, mode=mode, title=title)
+        else:
+            f = form_class(self, mode=mode, title=title, action=self.url(mode))
 
         return f
    

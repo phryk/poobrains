@@ -134,10 +134,18 @@ class BaseAdministerable(poobrains.storage.BaseModel):
 
         cls = super(BaseAdministerable, cls).__new__(cls, name, bases, attrs)
 
-        cls.Create = type('%sCreate' % name, (Permission,), {})
-        cls.Read   = type('%sRead' % name, (Permission,), {})
-        cls.Update = type('%sUpdate' % name, (Permission,), {})
-        cls.Delete = type('%sDelete' % name, (Permission,), {})
+        perm_attrs = {}
+        if hasattr(cls, '_meta') and hasattr(cls._meta, 'abstract') and cls._meta.abstract:
+
+            class Meta:
+                abstract = True
+
+            perm_attrs['Meta'] = Meta # Makes Permissions for abstract Administerables abstract, too
+
+        cls.Create = type('%sCreate' % name, (Permission,), perm_attrs)
+        cls.Read   = type('%sRead' % name, (Permission,), perm_attrs)
+        cls.Update = type('%sUpdate' % name, (Permission,), perm_attrs)
+        cls.Delete = type('%sDelete' % name, (Permission,), perm_attrs)
 
         return cls
 
@@ -208,24 +216,35 @@ class User(Administerable):
 
         for name, perm in sorted(Permission.children_keyed().items()):
 
-            print "form perm: ", perm
-
             try:
                 perm_info = UserPermission.get(UserPermission.user == self and UserPermission.permission == perm.__name__)
+                perm_mode = 'edit'
             except:
                 perm_info = UserPermission()
                 perm_info.permission = perm.__name__
                 perm_info.access = 'deny'
+                perm_mode = 'add'
 
-            setattr(f.permissions, perm.__name__, poobrains.form.AutoFieldset(perm_info))
+            setattr(f.permissions, perm.__name__, perm_info.form(mode, form_class=poobrains.form.AutoFieldset))
 
         return f
 
-class UserPermission(poobrains.storage.Model):
+class UserPermission(poobrains.storage.Storable):
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
     access = poobrains.storage.fields.BooleanField()
+
+    def instance_form(self, mode='edit', form_class=poobrains.form.AutoForm):
+
+        form = super(UserPermission, self).instance_form(mode, form_class=form_class)
+
+        if self.permission:
+            form.name = "%s-%s-%s" % (self.__class__.__name__, self.permission, mode)
+       
+        form.controls['submit'].value = "%s-save" % form.name
+
+        return form
 
 
 @poobrains.app.expose('/cert/', force_secure=True)
