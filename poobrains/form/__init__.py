@@ -119,30 +119,26 @@ class BaseForm(poobrains.rendering.Renderable):
         return self.fields.itervalues()
     
     
-    def template_candidates(self, mode):
+    @classmethod
+    def templates(cls, mode=None):
 
-        clsname = self.__class__.__name__.lower()
+        tpls = []
 
-        tpls = [
-            'form/%s-%s.jinja' % (clsname, mode),
-            'form/%s.jinja' % (clsname,)
-        ]
+        for x in [cls] + cls.ancestors(poobrains.rendering.Renderable):
 
-        for ancestor in self.__class__.ancestors(poobrains.rendering.Renderable):
+            name = x.__name__.lower()
 
-            clsname = ancestor.__name__.lower()
-
-            if issubclass(ancestor, BaseForm):
-                tpls += [
-                    'form/%s-%s.jinja' % (clsname, mode),
-                    'form/%s.jinja' % (clsname,)
-                ]
+            if issubclass(x, BaseForm):
+                tpls.append('form/%s.jinja' % name)
+                
+                if mode:
+                    tpls.append('form/%s-%s.jinja' % (name, mode))
 
             else:
-                tpls += [
-                    '%s-%s.jinja' % (clsname, mode),
-                    '%s.jinja' % (clsname,)
-                ]
+                tpls.append('%s.jinja' % name)
+
+                if mode:
+                    tpls.append('%s-%s.jinja' % (name, mode))
 
         return tpls
 
@@ -263,17 +259,7 @@ class Fieldset(BaseForm):
         self.rendered = False
     
 
-    #def template_candidates(self, mode):
-    #    
-    #    tpls = []
-    #    
-    #    tpls.append('form/fieldset-%s.jinja' % self.name)
-    #    tpls.append('form/fieldset.jinja')
-
-    #    return tpls
-    
-
-    def render(self, mode='full'):
+    def render(self, mode=None):
 
         self.rendered = True
         return super(Fieldset, self).render(mode)
@@ -282,12 +268,12 @@ class Fieldset(BaseForm):
 class AutoFieldset(AutoForm, Fieldset):
 
     rendered = None
-    
-    
-    def render(self, mode='full'):
+   
+
+    def render(self, mode=None):
 
         self.rendered = True
-        return super(Fieldset, self).render(mode)
+        return super(AutoForm, self).render(mode)
 
 
 class Button(poobrains.rendering.Renderable):

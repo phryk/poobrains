@@ -113,6 +113,14 @@ class Storable(Model, rendering.Renderable):
 
         return f
    
+   
+    @classmethod
+    def templates(cls, mode='add'):
+        super(Storable, cls).templates(mode) 
+    
+    def instance_templates(self, mode='edit'):
+        return self.__class__.templates(mode)
+
 
     def render(self, mode='full'):
 
@@ -126,8 +134,7 @@ class Storable(Model, rendering.Renderable):
 
             return form.render()
 
-        return super(Storable, self).render(mode=mode)
-
+        return super(Storable, self).render(mode)
 
 
 class Listing(rendering.Renderable):

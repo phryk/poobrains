@@ -114,29 +114,43 @@ class ChildAware(object):
 
 
     @classmethod
-    def ancestors(cls, top=None):
+    def ancestors(cls, top=None, _level=0):
 
         """
+        Get the ancestors of this class, ordered by how far up the hierarchy they are.
+
         params:
-            * top: class, when this class is reached, the iteration is stopped
+            * top: class, when this class is reached, the iteration is stopped.
         """
 
-        ancestors = []
+        tiered = OrderedDict()
+        tiered[_level] = []
 
         if top is None:
             top = ChildAware
 
         for base in cls.__bases__:
 
-            ancestors.append(base)
+            tiered[_level].append(base)
 
             if base is top:
                 break
 
             if hasattr(base, 'ancestors'):
-                ancestors += base.ancestors(top)
+                for lvl, ancestors in base.ancestors(top, _level=_level+1).iteritems():
 
-        return ancestors
+                    if not tiered.has_key(lvl):
+                        tiered[lvl] = []
+                    tiered[lvl] += ancestors
+
+        if _level > 0:
+            return tiered
+
+        r = []
+        for ancestors in tiered.itervalues():
+            r += ancestors
+
+        return r
 
 
 class TrueDict(OrderedDict):

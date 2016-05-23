@@ -53,22 +53,36 @@ class Field(rendering.Renderable):
         return True
 
 
-    def template_candidates(self, mode):
-
-        field_type = self.__class__.__name__.lower()
+    @classmethod
+    def templates(cls, mode=None):
 
         tpls = []
-        tpls.append("form/fields/%s-%s.jinja" % (self.name, field_type))
-        tpls.append("form/fields/%s.jinja" % field_type)
-        tpls.append("form/fields/field.jinja")
+
+        for x in [cls] + cls.ancestors(poobrains.rendering.Renderable):
+
+            name = x.__name__.lower()
+
+            if issubclass(x, Field):
+
+                tpls.append('form/fields/%s.jinja' % name)
+                
+                if mode:
+                    tpls.append('form/fields/%s-%s.jinja' % (name, mode))
+
+            else:
+
+                tpls.append('%s.jinja' % name)
+
+                if mode:
+                    tpls.append('%s-%s.jinja' % (name, mode))
 
         return tpls
 
 
-    def render(self, mode='full'):
+    def render(self):
 
         self.rendered = True
-        return super(Field, self).render(mode)
+        return super(Field, self).render()
 
 
 class Message(Field):

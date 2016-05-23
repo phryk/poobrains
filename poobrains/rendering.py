@@ -4,6 +4,8 @@ from flask import abort, render_template, g
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException
 
+import flask
+import werkzeug
 import jinja2
 
 # local imports 
@@ -55,7 +57,7 @@ def render(mode='full'):
                 user = g.user
             else:
                 user = None
-            return render_template('main.jinja', content=content, mode=mode, user=user), status_code
+            return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
 
         return real
 
@@ -69,33 +71,34 @@ class Renderable(helpers.ChildAware):
     def __init__(self):
 
         self.name = self.__class__.__name__.lower()
+        self.templates = self.instance_templates
 
     
-    def render(self, mode='full'): 
+    @classmethod
+    def templates(cls, mode=None):
 
-        tpls = self.template_candidates(mode)
-        return jinja2.Markup(render_template(tpls, content=self, mode=mode))
+        tpls = []
 
+        for x in [cls] + cls.ancestors(poobrains.rendering.Renderable):
 
-    def template_candidates(self, mode):
+            name = x.__name__.lower()
+                
+            if mode:
+                tpls.append('%s-%s.jinja' % (name, mode))
 
-        clsname = self.__class__.__name__.lower()
-
-        tpls = [
-            '%s-%s.jinja' % (clsname, mode),
-            '%s.jinja' % (clsname,)
-        ]
-
-        for ancestor in self.__class__.ancestors(Renderable):
-
-            clsname = ancestor.__name__.lower()
-
-            tpls += [
-                '%s-%s.jinja' % (clsname, mode),
-                '%s.jinja' % (clsname,)
-            ]
+            tpls.append('%s.jinja' % name)
 
         return tpls
+
+
+    def instance_templates(self, mode=None):
+        return self.__class__.templates(mode)
+
+    
+    def render(self, mode=None):
+
+        tpls = self.templates(mode)
+        return jinja2.Markup(flask.render_template(tpls, content=self, mode=mode))
 
 
 class RenderString(Renderable):

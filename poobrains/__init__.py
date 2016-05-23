@@ -56,6 +56,9 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
         poobrains.app.logger.debug(flat)
 
         dictcls = flat.__class__
+        writable_flat = werkzeug.datastructures.MultiDict(flat[1])
+        poobrains.app.logger("flat writable")
+        poobrains.app.logger(writable_flat)
 
 #        for values, key in flat.iteritems():
 #            poobrains.app.logger.debug(key)
