@@ -359,10 +359,11 @@ class Pooprint(flask.Blueprint):
 
                 if flask.request.method in ('POST', 'DELETE'):
                     if mode in ('add', 'edit', 'delete'):
-                        return instance.form(mode=mode).handle(flask.request.form)
+                        f = instance.form(mode=mode)
+                        return f.handle(flask.request.form[f.name])
 
                     elif isinstance(instance, form.Form):
-                        return instance.handle(flask.request.form)
+                        return instance.handle(flask.request.form[instance.name])
 
                 return instance
 

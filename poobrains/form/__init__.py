@@ -175,8 +175,6 @@ class Form(BaseForm):
         self.action = action if action else ''
 
 
-
-
     def handle(self, values):
 
         raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
@@ -246,7 +244,7 @@ class AutoForm(Form):
             for field_name in self.model._meta.get_field_names():
                 if not field_name in self.model.field_blacklist:
                     try:
-                        setattr(self.instance, field_name, flask.request.form[field_name])
+                        setattr(self.instance, field_name, values[field_name])
                     except Exception as e:
                         poobrains.app.logger.error("Possible bug in %s.handle." % self.__class__.__name__)
                         poobrains.app.logger.error("Affected field: %s.%s" % (self.model.__name__, field_name))
@@ -257,7 +255,7 @@ class AutoForm(Form):
             except peewee.IntegrityError as e:
                 flask.flash('Integrity error: %s' % e.message, 'error')
 
-                if mode == 'edit':
+                if self.mode == 'edit':
                     return flask.redirect(self.model.load(self.instance.id).url('edit'))
 
                 return flask.redirect(self.model.url(mode='teaser-edit'))
