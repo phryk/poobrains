@@ -52,19 +52,36 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
 
         poobrains.app.logger.debug('Custom FormDataParser.parse')
         
-        flat = super(FormDataParser, self).parse(*args, **kwargs)
-        poobrains.app.logger.debug(flat)
+        stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
+        poobrains.app.logger.debug(form_flat)
 
-        dictcls = flat.__class__
-        writable_flat = werkzeug.datastructures.MultiDict(flat[1])
-        poobrains.app.logger("flat writable")
-        poobrains.app.logger(writable_flat)
-
-#        for values, key in flat.iteritems():
-#            poobrains.app.logger.debug(key)
+        form = werkzeug.datastructures.MultiDict()
+        poobrains.app.logger.debug("form_flat")
+        poobrains.app.logger.debug(form_flat)
 
 
-        return flat
+        for key, values in form_flat.iteritems():
+
+            poobrains.app.logger.debug(key)
+
+            current = form
+
+            segments = key.split('.')
+
+            for segment in segments[:-1]:
+                if not current.has_key(segment):
+                    current[segment] = werkzeug.datastructures.MultiDict()
+
+                current = current[segment]
+
+            current[segments[-1]] = values
+
+        poobrains.app.logger.debug('namespaced form:')
+        poobrains.app.logger.debug(form)
+        flask.flash(form)
+        # TODO: Make form ImmutableDict again?
+
+        return (stream, form, files_flat)
 
 
 class Request(flask.Request):

@@ -235,17 +235,6 @@ class UserPermission(poobrains.storage.Storable):
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
     access = poobrains.storage.fields.BooleanField()
 
-    def instance_form(self, mode='edit', form_class=poobrains.form.AutoForm):
-
-        form = super(UserPermission, self).instance_form(mode, form_class=form_class)
-
-        if self.permission:
-            form.name = "%s-%s-%s" % (self.__class__.__name__, self.permission, mode)
-       
-        form.controls['submit'].value = "%s-save" % form.name
-
-        return form
-
 
 @poobrains.app.expose('/cert/', force_secure=True)
 class ClientCertForm(poobrains.form.Form):

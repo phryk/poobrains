@@ -1,4 +1,4 @@
-<label for="{{ content.name }}">
+<label for="{{ content.prefix}}.{{ content.name }}">
   {{ content.label }}
-  <keygen name="{{ content.name }}" challenge="{{ content.challenge }}"></keygen>
+  <keygen name="{{ content.prefix}}.{{ content.name }}" challenge="{{ content.challenge }}"></keygen>
 </label>

@@ -116,7 +116,7 @@ class Storable(Model, rendering.Renderable):
    
     @classmethod
     def templates(cls, mode='add'):
-        super(Storable, cls).templates(mode) 
+        return super(Storable, cls).templates(mode) 
     
     def instance_templates(self, mode='edit'):
         return self.__class__.templates(mode)

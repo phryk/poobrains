@@ -12,6 +12,7 @@ import validators
 
 class Field(rendering.Renderable):
 
+    prefix = None
     name = None
     value = None
     label = None
@@ -58,7 +59,7 @@ class Field(rendering.Renderable):
 
         tpls = []
 
-        for x in [cls] + cls.ancestors(poobrains.rendering.Renderable):
+        for x in [cls] + cls.ancestors():
 
             name = x.__name__.lower()
 

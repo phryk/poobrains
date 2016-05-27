@@ -17,6 +17,7 @@ class BaseForm(poobrains.rendering.Renderable):
     fields = None
     controls = None
     
+    prefix = None
     name = 'None'
     title = None
 
@@ -25,7 +26,7 @@ class BaseForm(poobrains.rendering.Renderable):
         instance = super(BaseForm, cls).__new__(cls, *args, **kw)
         instance.fields = poobrains.helpers.CustomOrderedDict()
         instance.controls = poobrains.helpers.CustomOrderedDict()
-        instance.name = "yoink"
+        
         for attr_name in dir(instance):
 
             label_default = attr_name.capitalize()
@@ -38,8 +39,7 @@ class BaseForm(poobrains.rendering.Renderable):
                 setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Fieldset):
-                name = attr.name if attr.name else attr_name
-                clone = attr.__class__(name=name, title=attr.title)
+                clone = attr.__class__(name=attr_name, title=attr.title)
                 #instance.fields[attr_name] = clone
                 setattr(instance, attr_name, clone)
 
@@ -51,7 +51,9 @@ class BaseForm(poobrains.rendering.Renderable):
         return instance
     
     
-    def __init__(self, name=None, title=None):
+    def __init__(self, prefix=None, name=None, title=None):
+
+        super(BaseForm, self).__init__()
 
         self.name = name if name else self.__class__.__name__.lower()
 
@@ -59,6 +61,8 @@ class BaseForm(poobrains.rendering.Renderable):
             self.title = title
         elif not self.title: # Only use the fallback if title has been supplied neither to __init__ nor in class definition
             self.title = self.__class__.__name__
+
+        self.prefix = prefix
 
 
     def render_fields(self):
@@ -94,10 +98,26 @@ class BaseForm(poobrains.rendering.Renderable):
     def __setattr__(self, name, value):
 
         if isinstance(value, fields.Field) or isinstance(value, Fieldset):
+            value.name = name
+            value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
             self.fields[name] = value
 
         elif isinstance(value, Button):
+            value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
             self.controls[name] = value
+
+        elif name == 'prefix':
+            super(BaseForm, self).__setattr__(name, value)
+            if value:
+                child_prefix = "%s.%s" % (value, self.name)
+            else:
+                child_prefix = self.name
+
+            for field in self.fields.itervalues():
+                field.prefix = child_prefix
+
+            for button in self.controls.itervalues():
+                button.prefix = child_prefix
 
         else:
             super(BaseForm, self).__setattr__(name, value)
@@ -108,7 +128,7 @@ class BaseForm(poobrains.rendering.Renderable):
         if self.fields.has_key(name):
             return self.fields[name]
 
-        return super(BaseForm, self).__getattr__(self, name)
+        return super(BaseForm, self).__getattr__(name)
 
 
     def __iter__(self):
@@ -124,7 +144,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
         tpls = []
 
-        for x in [cls] + cls.ancestors(poobrains.rendering.Renderable):
+        for x in [cls] + cls.ancestors():
 
             name = x.__name__.lower()
 
@@ -169,7 +189,6 @@ class AutoForm(Form):
 
     def __init__(self, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
     
-        super(AutoForm, self).__init__(name=name, title=title, method=method, action=action)
         self.mode = mode
 
 
@@ -183,19 +202,23 @@ class AutoForm(Form):
 
             if hasattr(self.instance, 'actions'):
                 self.actions = self.instance.actions
-        
-        if not name:
-            if self.instance.id:
-                self.name = "%s-%d-%s" % (self.model.__name__, self.instance.id, mode)
-            else:
-                self.name = "%s-%s" % (self.model.__name__, mode)
 
-        # TODO: Build fields
+
+        if name:
+
+            self.name = name
+        else:
+
+            if self.instance.id:
+                self.name = "%s-%d-%s" % (self.model.__name__.lower(), self.instance.id, mode)
+            else:
+                self.name = "%s-%s" % (self.model.__name__.lower(), mode)
+
 
         if mode == 'delete':
 
             self.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
-            self.submit = Button('submit', name='submit', value='%s-delete' % self.name, label='KILL')
+            self.submit = Button('submit', name='submit', value='submit', label='KILL')
 
         else:
 
@@ -209,10 +232,11 @@ class AutoForm(Form):
                     setattr(self, field.name, form_field)
 
             self.controls['reset'] = Button('reset', label='Reset')
-            self.controls['submit'] = Button('submit', name='submit', value='%s-save' % self.name, label='Save')
+            self.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
 
 
-        name = name if name else '%s-%s' % (self.model.__name__.lower(), mode)
+        #name = name if name else '%s-%s' % (self.model.__name__.lower(), mode)
+        super(AutoForm, self).__init__(name=self.name, title=title, method=method, action=action)
 
 
     def handle(self, values):
@@ -255,8 +279,8 @@ class Fieldset(BaseForm):
 
     def __init__(self, *args, **kw):
 
-        super(Fieldset, self).__init__(*args, **kw)
         self.rendered = False
+        super(Fieldset, self).__init__(*args, **kw)
     
 
     def render(self, mode=None):

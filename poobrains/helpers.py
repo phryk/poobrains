@@ -114,30 +114,24 @@ class ChildAware(object):
 
 
     @classmethod
-    def ancestors(cls, top=None, _level=0):
+    def ancestors(cls, _level=0):
 
         """
         Get the ancestors of this class, ordered by how far up the hierarchy they are.
 
-        params:
-            * top: class, when this class is reached, the iteration is stopped.
         """
 
         tiered = OrderedDict()
         tiered[_level] = []
 
-        if top is None:
-            top = ChildAware
-
         for base in cls.__bases__:
 
-            tiered[_level].append(base)
-
-            if base is top:
+            if base is ChildAware:
                 break
 
+            tiered[_level].append(base)
             if hasattr(base, 'ancestors'):
-                for lvl, ancestors in base.ancestors(top, _level=_level+1).iteritems():
+                for lvl, ancestors in base.ancestors(_level+1).iteritems():
 
                     if not tiered.has_key(lvl):
                         tiered[lvl] = []

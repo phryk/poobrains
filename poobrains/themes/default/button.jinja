@@ -1,1 +1,1 @@
-<button type={{ content.type }} {% if content.name %} name="{{ content.name }}" {% endif %} {% if content.value %} value="{{ content.value }}" {% endif %} >{{ content.label }}</button>
+<button type={{ content.type }} {% if content.name %} name="{{ content.name }}" {% endif %} {% if content.value %} value="{{ content.prefix }}.{{ content.value }}" {% endif %} >{{ content.label }}</button>

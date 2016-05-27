@@ -79,7 +79,7 @@ class Renderable(helpers.ChildAware):
 
         tpls = []
 
-        for x in [cls] + cls.ancestors(poobrains.rendering.Renderable):
+        for x in [cls] + cls.ancestors():
 
             name = x.__name__.lower()
                 

@@ -1,4 +1,4 @@
-<fieldset name="{{ content.name }}">
+<fieldset name="{{ content.prefix}}.{{ content.name }}">
 
 {% for field in content %}
     {{ field.render() }}
