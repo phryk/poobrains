@@ -7,7 +7,9 @@ import poobrains
 from poobrains import rendering, helpers
 
 # internal imports
+import errors
 import validators
+import coercers
 
 
 class Field(rendering.Renderable):
@@ -18,19 +20,22 @@ class Field(rendering.Renderable):
     label = None
     placeholder = None
     readonly = None
-    validators = None
+    validator = validators.is_str
+    coercer = coercers.coerce_string
     rendered = None
 
 
-    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, validators=[]):
+    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, validator=None):
 
         self.name = name
         self.value = value
         self.label = label if label else name
         self.placeholder = placeholder if placeholder else name
         self.readonly = readonly
-        self.validators = validators
         self.rendered = False
+        
+        if validator:
+            self.validator = validator
 
 
     def __getattr__(self, name):
@@ -43,15 +48,6 @@ class Field(rendering.Renderable):
                 return self.name.capitalize()
 
             return real_value
-
-
-    def validate(self, value):
-
-        for validator in self.validators:
-            if not validator(value):
-                return False
-
-        return True
 
 
     @classmethod
@@ -79,6 +75,16 @@ class Field(rendering.Renderable):
 
         return tpls
 
+    
+    def validate(self, value):
+        self.validator(value)
+
+    
+    def bind(self, value):
+        print "%s.bind" % self.__class__.__name__
+        print self, value
+        self.value = self.coercer(value)
+
 
     def render(self):
 
@@ -103,68 +109,68 @@ class TextArea(Text):
 
 
 class Integer(Field):
+    validator = validators.is_int 
 
-    def __init__(self, name, value=None, label=None, readonly=False, validators=[]):
-
-        super(Integer, self).__init__(name, value=value, label=label, readonly=readonly, validators=validators)
-        self.validators.append(poobrains.form.validators.is_int)
-
-
-class Checkbox(Integer):
-    pass
 
 class RangedInteger(Integer):
 
     min = None
     max = None
 
-    def __init__(self, name, value=None, label=None, min=0, max=100, readonly=False, validators=[]):
 
-        self.min = min
-        self.max = max
+#    def __init__(self, name, value=None, label=None, min=0, max=100, readonly=False, validators=[]):
+#
+#        self.min = min
+#        self.max = max
+#
+#        validators.append(validators.mk_min(self.min))
+#        validators.append(validators.mk_max(self.max))
+#
+#        super(RangedInteger, self).__init__(name, value=value, label=label, readonly=readonly, validators=validators)
 
-        validators.append(validators.mk_min(self.min))
-        validators.append(validators.mk_max(self.max))
+    def validate(self, value):
 
-        super(RangedInteger, self).__init__(name, value=value, label=label, readonly=readonly, validators=validators)
+        validators.is_int(value)
+        x = int(value)
+        if x <self. min or x > self.max:
+            raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, value, self.min, self.max))
+
+
+class Checkbox(RangedInteger):
+
+    min = 0
+    max = 1
+
+    coercer = coercers.coerce_bool
 
 
 class Float(Field):
-
-    def __init__(self, name, value=None, label=None, readonly=False, validators=[]):
-
-        validators.append(validators.is_float)
-        super(Float, self).__init__(name, value=value, label=label, readonly=readonly, validators=validators)
+    validator = validators.is_float
 
 
-class RangedFloat(Float):
-
-    min = None
-    max = None
-
-    def __init__(self, name, value=None, label=None, min=0, max=100, step=0.1, validators=[]):
-
-        self.min = min
-        self.max = max
-
-        validators.append(validators.mk_min(self.min))
-        validators.append(validators.mk_max(self.max))
-
-        super(RangedFloat, self).__init__(name, value=value, label=label, validators=validators)
+class RangedFloat(RangedInteger):
+    validator = validators.is_float
 
 
 class IntegerChoice(Integer):
 
     choices = None
+    validator = validators.is_int
+    coercer = coercers.coerce_int
 
-    def __init__(self, name=None, choices=None, value=None, label=None, placeholder=None, readonly=False, validators=[]):
+
+    def __init__(self, name=None, choices=None, value=None, label=None, placeholder=None, readonly=False, validator=None):
 
         self.choices = choices if choices else {}
-        super(IntegerChoice, self).__init__(name, value=value, label=label, placeholder=placeholder, readonly=readonly, validators=validators)
+        super(IntegerChoice, self).__init__(name, value=value, label=label, placeholder=placeholder, readonly=readonly, validator=validator)
 
     def validate(self, value):
 
-        return super(IntegerChoice, self).validate(value) and value in self.choices.keys()
+        super(IntegerChoice, self).validate(value)
+
+        integer_value = self.coerce(value)
+        if integer_value not in self.choices:
+            raise error.ValidationError("%d is not an approved choice for %s.%s" % (integer_value, self.prefix, self.name))
 
 
 class Keygen(Field):

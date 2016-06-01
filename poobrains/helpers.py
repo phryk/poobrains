@@ -44,6 +44,7 @@ def is_secure(f):
 
     return substitute
 
+
 class ClassOrInstanceBound(type): # probably the worst name I ever picked, but hey it's descriptive! ¯\_(ツ)_/¯
 
     def __get__(self, instance, owner):
@@ -51,6 +52,7 @@ class ClassOrInstanceBound(type): # probably the worst name I ever picked, but h
         if instance:
             return functools.partial(self, instance)
         return functools.partial(self, owner)
+        # TODO: return functools.partial(self, instance or owner)
 
 
 class FakeMetaOptions(object):
@@ -60,6 +62,7 @@ class FakeMetaOptions(object):
 
     def __init__(self):
 
+        super(FakeMetaOptions, self).__init__()
         self.abstract = False
         self._additional_keys = set([])
 
@@ -200,60 +203,9 @@ class CustomOrderedDict(dict):
 
     def __iter__(self):
 
-       return CustomOrderedDictIterator(self, 'values')
-
-
-    def iteritems(self):
-        return CustomOrderedDictIterator(self, 'items')
-
-
-    def iterkeys(self):
-        return CustomOrderedDictIterator(self, 'keys')
+        for key in self.keys():
+            yield self[key]
 
 
     def keys(self):
         return self.order
-
-
-
-class CustomOrderedDictIterator(object):
-
-    obj = None
-    mode = None
-    current_idx = None
-
-
-    def __init__(self, obj, mode):
-
-        """
-        Params:
-            obj: The object to iterate over
-            mode: Iterator mode, one of: 'items', 'keys', 'values'
-        """
-
-        self.obj = obj
-        self.mode = mode
-        self.current_idx = 0
-
-
-    def __iter__(self):
-        return self
-
-
-    def next(self):
-
-        if self.current_idx >= len(self.obj.keys()):
-            raise StopIteration()
-
-        key = self.obj.keys()[self.current_idx]
-        if self.mode == 'keys':
-            rv = key
-
-        elif self.mode == 'values':
-            rv = self.obj[key]
-
-        elif self.mode == 'items':
-            rv = (key, self.obj[key])
-
-        self.current_idx = self.current_idx + 1
-        return rv

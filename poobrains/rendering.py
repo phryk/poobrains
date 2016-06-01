@@ -27,21 +27,10 @@ def render(mode='full'):
 
             else:
                 content = rv
-                status_code = 200
+                status_code = 200 # TODO: Find out if this is too naive
 
             if isinstance(content, Response):
                 return rv # pass Responses (i.e. redirects) upwards
-
-            # This logic is redundant to Storable.render(mode).
-            # It is "needed" in order for title to be set correctly
-            # TODO: Don't Repeat Yourself.
-            if mode in ('add', 'edit', 'delete'):
-                if mode == 'add':
-                    content = content.__class__.form()
-
-                else:
-                    content = content.form(mode=mode)
-
 
             if hasattr(content, 'title') and content.title:
                 g.title = content.title
@@ -121,6 +110,7 @@ class MenuItem(object):
 
     def __init__(self, url, caption, active=False):
 
+        super(MenuItem, self).__init__()
         self.url = url
         self.caption = caption
         self.active = active

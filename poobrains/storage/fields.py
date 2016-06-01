@@ -12,7 +12,6 @@ import poobrains
 class Field(helpers.ChildAware):
 
     form_class = form.fields.Text
-    form_extra_validators = []
 
     def form(self, value):
         return form_class(self.name, label=self.name, value=value)

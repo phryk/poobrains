@@ -10,6 +10,11 @@
             {% if g.boxes.menu_main %}
                 {{ g.boxes.menu_main.render() }}
             {% endif %}
+
+            {% for n in g.forms.keys() %}
+              FORM: {{ n.__class__ }}
+            {% endfor %}
+
         </header>
         <main>
             <header>

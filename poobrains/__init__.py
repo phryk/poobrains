@@ -31,7 +31,6 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
     
     def parse(self, *args, **kwargs):
 
-        
         stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
         form = werkzeug.datastructures.MultiDict()
 
@@ -129,7 +128,7 @@ class Poobrain(flask.Flask):
 
     def select_jinja_autoescape(self, filename):
         if filename is None:
-            return False
+            return super(Poobrain, self).select_jinja_autoescape(filename)
         return not filename.endswith(('.safe')) # Don't even know if I ever want to use .safe files, but hey, it's there.
 
 
@@ -197,6 +196,7 @@ class Poobrain(flask.Flask):
     def request_setup(self):
 
         flask.g.boxes = {}
+        flask.g.forms = {}
         self.db.connect()
         connection = self.db.get_conn()
 
@@ -331,7 +331,7 @@ class Pooprint(flask.Blueprint):
                         f = instance.form(mode=mode)
                         return f.handle(flask.request.form[f.name])
 
-                    elif isinstance(instance, form.Form):
+                    elif isinstance(instance, form.Form): # special case for when a Form class is directly @expose'd
                         return instance.handle(flask.request.form[instance.name])
 
                 return instance

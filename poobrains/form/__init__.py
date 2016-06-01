@@ -2,6 +2,7 @@
 
 # external imports
 import functools
+import collections
 import peewee
 import werkzeug
 import flask
@@ -10,11 +11,13 @@ import flask
 import poobrains
 
 # internal imports
+import errors
 import fields
 
 
 class FormMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
     pass
+
 
 class BaseForm(poobrains.rendering.Renderable):
 
@@ -24,7 +27,7 @@ class BaseForm(poobrains.rendering.Renderable):
     controls = None
     
     prefix = None
-    name = 'None'
+    name = None
     title = None
 
     def __new__(cls, *args, **kw):
@@ -40,13 +43,12 @@ class BaseForm(poobrains.rendering.Renderable):
 
             if isinstance(attr, fields.Field):
                 label = attr.label if attr.label else label_default
-                clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validators=attr.validators)
+                clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validator=attr.validator)
                 #instance.fields[attr_name] = clone
                 setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Fieldset):
                 clone = attr.__class__(name=attr_name, title=attr.title)
-                #instance.fields[attr_name] = clone
                 setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Button):
@@ -59,9 +61,9 @@ class BaseForm(poobrains.rendering.Renderable):
     
     def __init__(self, prefix=None, name=None, title=None):
 
+        self.name = name if name else self.__class__.__name__.lower()
         super(BaseForm, self).__init__()
 
-        self.name = name if name else self.__class__.__name__.lower()
 
         if title:
             self.title = title
@@ -142,7 +144,7 @@ class BaseForm(poobrains.rendering.Renderable):
         """
         Iterate over this forms fields. Yes, this comment is incredibly helpful.
         """
-        return self.fields.itervalues()
+        return self.fields.__iter__()
     
     
     @classmethod
@@ -169,17 +171,54 @@ class BaseForm(poobrains.rendering.Renderable):
         return tpls
 
 
+    def validate_and_bind(self, values):
+
+        validation_messages = collections.OrderedDict()
+        binding_messages = collections.OrderedDict()
+
+        for field in self.fields.itervalues():
+
+            if not values.has_key(field.name):
+                validation_messages[field.name] = "Missing form input: %s.%s" % (field.prefix, field.name)
+                break
+
+            try:
+                field.validate(values[field.name])
+                field.bind(values[field.name])
+            except errors.ValidationError as e:
+                validation_messages[field.name] = e.message
+                field.value = values[field.name]
+            except ValueError: # happens when a coercer (.bind) fails
+                binding_messages[field.name] = "I don't understand %s for %s" % (value, field.name)
+                field.value = values[field.name]
+
+            except:
+                poobrains.app.logger.error("Possible bug in validate_and_bind or validator and coercer of %s not playing nice." % field.__class__)
+                poobrains.app.logger.debug("Affected field: %s %s" % (field.__class__.__name__, field.name))
+                raise
+
+
+        if len(validation_messages):
+            raise errors.ValidationError("Form was not validated. Errors were as follows:\n%s" % '\n'.join(validation_messages))
+
+        if len(binding_messages):
+            raise errors.BindingError("Can't make sense of some of your input.\n%s" % '\n'.join(binding_messages))
+
+
+
     def handle(self, values):
 
-        poobrains.app.logger.error("base handle")
-        for field in self.fields.itervalues():
-            poobrains.app.logger.debug("field: %s" % field.name)
-            if isinstance(field, Fieldset):
-                try:
-                    poobrains.app.logger.error("Calling handle for a Fieldset called %s." % field.name)
-                    field.handle(values[field.name])
-                except Exception as e:
-                    poobrains.app.logger.error("Possible bug in %s.handle." % field.__class__.__name__)
+#        poobrains.app.logger.error("base handle")
+#        for field in self.fields.itervalues():
+#            poobrains.app.logger.debug("field: %s" % field.name)
+#            if isinstance(field, Fieldset):
+#                try:
+#                    poobrains.app.logger.error("Calling handle for a Fieldset called %s." % field.name)
+#                    field.handle(values[field.name])
+#                except Exception as e:
+#                    poobrains.app.logger.error("Possible bug in %s.handle." % field.__class__.__name__)
+
+        raise NotImplementedError("%s.handle not implemented." % self.__class__.name__)
 
 
 class Form(BaseForm):
@@ -192,6 +231,23 @@ class Form(BaseForm):
         super(Form, self).__init__(name=name, title=title)
         self.method = method if method else 'POST'
         self.action = action if action else ''
+
+    def __setattr__(self, name, value):
+
+        if self.name:
+            if name == 'name' and not self.prefix:
+                if flask.g.forms.has_key(self.name):
+                    del(flask.g.forms[self.name])
+                flask.g.forms[value] = self
+
+            if name == 'prefix':
+                if not value:
+                    flask.g.forms[self.name] = self
+
+                elif flask.g.forms.has_key(self.name):
+                    del(flask.g.forms[self.name])
+
+        super(Form, self).__setattr__(name, value)
 
 
 class AutoForm(Form):
@@ -239,7 +295,7 @@ class AutoForm(Form):
 
                 #poobrains.app.logger.debug(field)
                 if isinstance(field, poobrains.storage.fields.Field) and field.name not in self.model.field_blacklist:
-                    form_field = field.form_class(field.name, value=getattr(self.instance, field.name), validators=field.form_extra_validators)
+                    form_field = field.form_class(field.name, value=getattr(self.instance, field.name))
                     #self.fields[field.name] = form_field
                     setattr(self, field.name, form_field)
 
@@ -263,24 +319,20 @@ class AutoForm(Form):
                 else:
                     self.title = "%s #%d" % (self.title, self.instance.id)
 
+
     def handle(self, values):
+
+        try:
+            self.validate_and_bind(values) # takes care of validation and binding form input to fields
+        except Exception as e:
+            print "Unplanned fuckup: ", e, e.message
+            raise
 
         # handle POST for add and edit
         if self.mode in ('add', 'edit'):
             for field_name in self.model._meta.get_field_names():
                 if not field_name in self.model.field_blacklist:
-                    try:
-                        setattr(self.instance, field_name, values[field_name])
-                    except werkzeug.exceptions.BadRequestKeyError:
-                        poobrains.app.logger.error("Key '%s' missing in form data. Associated model is %s" % (field_name, self.model.__name__))
-                        raise
-                    except Exception as e:
-                        poobrains.app.logger.error("Possible bug in %s.handle." % self.__class__.__name__)
-                        poobrains.app.logger.error("Affected field: %s.%s" % (self.model.__name__, field_name))
-                        poobrains.app.logger.debug(type(e))
-                        poobrains.app.logger.debug(e)
-                        poobrains.app.logger.debug(field_name)
-                        poobrains.app.logger.debug(values)
+                    setattr(self.instance, field_name, self.fields[field_name].value)
 
             try:
                 self.instance.save()
@@ -293,7 +345,6 @@ class AutoForm(Form):
 
                 return flask.redirect(self.model.url(mode='teaser-edit'))
             
-            super(AutoForm, self).handle(values) # calls .handle on all Fieldsets
             return flask.redirect(self.instance.url(mode='edit'))
 
         # Why the fuck does HTML not support DELETE!?

@@ -42,6 +42,7 @@ class Shell(object):
 
     def __init__(self, config):
 
+        super(Shell, self).__init__()
         self.config = config
 
         #for child in storage.Storable.children():
@@ -134,6 +135,7 @@ class Parameter(object):
 
     def __init__(self, optional=False):
 
+        super(Parameter, self).__init__()
         self.optional = optional
 
 

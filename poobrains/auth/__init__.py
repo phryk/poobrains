@@ -193,6 +193,44 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
         return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
+class UserForm(poobrains.form.AutoForm):
+    
+    def __new__(cls, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
+
+        f = super(UserForm, cls).__new__(cls, model_or_instance, mode=mode, name=name, title=title, method=method, action=action)
+
+        f.permissions = poobrains.form.Fieldset()
+
+        for name, perm in Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
+
+            try:
+                perm_info = UserPermission.get(UserPermission.user == f.instance and UserPermission.permission == perm.__name__)
+                perm_mode = 'edit'
+            except:
+                perm_info = UserPermission()
+                perm_info.user = f.instance
+                perm_info.permission = perm.__name__
+                perm_info.access = 'deny'
+                perm_mode = 'add'
+
+            setattr(f.permissions, perm.__name__, poobrains.form.AutoFieldset(perm_info, perm_mode))
+
+
+        return f
+
+
+    def handle(self, values):
+
+        response = super(UserForm, self).handle(values)
+        poobrains.app.logger.debug("UserForm.handle")
+        poobrains.app.logger.debug(self.instance)
+        poobrains.app.logger.debug(values.keys())
+
+#        for name, perm in Permission.children_keyed().items()
+        return response
+
+
+
 class User(Administerable):
 
     name = poobrains.storage.fields.CharField(unique=True)
@@ -200,9 +238,8 @@ class User(Administerable):
     permissions = None
     _permissions = None # filled by UserPermission.permission ForeignKeyField
 
-    class form(poobrains.form.AutoForm):
-        pass
 
+    form = UserForm
 
     def prepared(self):
 
@@ -258,8 +295,14 @@ class ClientCertForm(poobrains.form.Form):
 
     def handle(self, values):
 
+        self.validate_and_bind(values)
+        poobrains.app.logger.debug("bound clientcertform token")
+        poobrains.app.logger.debug(values)
+        poobrains.app.logger.debug(self.token)
+        poobrains.app.logger.debug(self.fields['token'].value)
+
         try:
-            token = ClientCertToken.get(ClientCertToken.token == values['token'])
+            token = ClientCertToken.get(ClientCertToken.token == self.fields['token'].value)
 
         except Exception as e:
             return poobrains.rendering.RenderString("No such token.")
@@ -278,7 +321,7 @@ class ClientCertForm(poobrains.form.Form):
 
 
         try:
-            spkac = pyspkac.SPKAC(values['key'], flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
+            spkac = pyspkac.SPKAC(self.fields['key'].value, flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
             spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
             spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
 
