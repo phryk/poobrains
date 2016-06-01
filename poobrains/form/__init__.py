@@ -3,6 +3,7 @@
 # external imports
 import functools
 import peewee
+import werkzeug
 import flask
 
 # parent imports
@@ -12,7 +13,12 @@ import poobrains
 import fields
 
 
+class FormMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
+    pass
+
 class BaseForm(poobrains.rendering.Renderable):
+
+    __metaclass__ = FormMeta
 
     fields = None
     controls = None
@@ -163,6 +169,19 @@ class BaseForm(poobrains.rendering.Renderable):
         return tpls
 
 
+    def handle(self, values):
+
+        poobrains.app.logger.error("base handle")
+        for field in self.fields.itervalues():
+            poobrains.app.logger.debug("field: %s" % field.name)
+            if isinstance(field, Fieldset):
+                try:
+                    poobrains.app.logger.error("Calling handle for a Fieldset called %s." % field.name)
+                    field.handle(values[field.name])
+                except Exception as e:
+                    poobrains.app.logger.error("Possible bug in %s.handle." % field.__class__.__name__)
+
+
 class Form(BaseForm):
 
     method = None
@@ -175,11 +194,6 @@ class Form(BaseForm):
         self.action = action if action else ''
 
 
-    def handle(self, values):
-
-        raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
-
-
 class AutoForm(Form):
 
     model = None
@@ -188,7 +202,6 @@ class AutoForm(Form):
     def __init__(self, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
     
         self.mode = mode
-
 
         if isinstance(model_or_instance, type(poobrains.storage.Model)):
             self.model = model_or_instance
@@ -215,6 +228,7 @@ class AutoForm(Form):
 
         if mode == 'delete':
 
+            self.title = "Delete %s" % self.instance.name
             self.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
             self.submit = Button('submit', name='submit', value='submit', label='KILL')
 
@@ -236,6 +250,18 @@ class AutoForm(Form):
         #name = name if name else '%s-%s' % (self.model.__name__.lower(), mode)
         super(AutoForm, self).__init__(name=self.name, title=title, method=method, action=action)
 
+        # override default title unless title was explicitly passed.
+        if not title:
+
+            self.title = "%s %s" % (self.mode.capitalize(), self.model.__name__)
+
+            if self.instance.id:
+                if hasattr(self.instance, 'title') and self.instance.title:
+                    self.title = "%s '%s'" % (self.title, self.instance.title)
+                elif self.instance.name:
+                    self.title = "%s '%s'" % (self.title, self.instance.name)
+                else:
+                    self.title = "%s #%d" % (self.title, self.instance.id)
 
     def handle(self, values):
 
@@ -245,9 +271,16 @@ class AutoForm(Form):
                 if not field_name in self.model.field_blacklist:
                     try:
                         setattr(self.instance, field_name, values[field_name])
+                    except werkzeug.exceptions.BadRequestKeyError:
+                        poobrains.app.logger.error("Key '%s' missing in form data. Associated model is %s" % (field_name, self.model.__name__))
+                        raise
                     except Exception as e:
                         poobrains.app.logger.error("Possible bug in %s.handle." % self.__class__.__name__)
                         poobrains.app.logger.error("Affected field: %s.%s" % (self.model.__name__, field_name))
+                        poobrains.app.logger.debug(type(e))
+                        poobrains.app.logger.debug(e)
+                        poobrains.app.logger.debug(field_name)
+                        poobrains.app.logger.debug(values)
 
             try:
                 self.instance.save()
@@ -259,7 +292,8 @@ class AutoForm(Form):
                     return flask.redirect(self.model.load(self.instance.id).url('edit'))
 
                 return flask.redirect(self.model.url(mode='teaser-edit'))
-
+            
+            super(AutoForm, self).handle(values) # calls .handle on all Fieldsets
             return flask.redirect(self.instance.url(mode='edit'))
 
         # Why the fuck does HTML not support DELETE!?

@@ -24,6 +24,10 @@ def is_float(value):
         return True
 
 
+def is_bool(value):
+    return value == '1' or value == '0' # TODO: do we need to handle '' as well?
+
+
 # functions to generate validators
 
 

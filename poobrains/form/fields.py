@@ -106,9 +106,12 @@ class Integer(Field):
 
     def __init__(self, name, value=None, label=None, readonly=False, validators=[]):
 
-        validators.append(validators.is_int)
         super(Integer, self).__init__(name, value=value, label=label, readonly=readonly, validators=validators)
+        self.validators.append(poobrains.form.validators.is_int)
 
+
+class Checkbox(Integer):
+    pass
 
 class RangedInteger(Integer):
 

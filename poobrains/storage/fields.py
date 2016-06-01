@@ -6,6 +6,7 @@ import peewee
 # parent imports
 from poobrains import helpers
 from poobrains import form
+import poobrains
 
 
 class Field(helpers.ChildAware):
@@ -22,7 +23,7 @@ class CharField(peewee.CharField, Field):
 
 
 class TextField(peewee.TextField, Field):
-    pass
+    form_class = poobrains.form.fields.TextArea
 
 
 class DateTimeField(peewee.DateTimeField, Field):
@@ -34,7 +35,7 @@ class ForeignKeyField(peewee.ForeignKeyField):
 
 
 class BooleanField(peewee.BooleanField, Field):
-    pass
+    form_class = form.fields.Checkbox
 
 
 class FileField(peewee.ForeignKeyField, Field):

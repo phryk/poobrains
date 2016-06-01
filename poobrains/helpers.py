@@ -44,6 +44,15 @@ def is_secure(f):
 
     return substitute
 
+class ClassOrInstanceBound(type): # probably the worst name I ever picked, but hey it's descriptive! ¯\_(ツ)_/¯
+
+    def __get__(self, instance, owner):
+
+        if instance:
+            return functools.partial(self, instance)
+        return functools.partial(self, owner)
+
+
 class FakeMetaOptions(object):
 
     abstract = None

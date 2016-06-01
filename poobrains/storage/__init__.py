@@ -73,6 +73,8 @@ class Model(peewee.Model, helpers.ChildAware):
 
 class Storable(Model, rendering.Renderable):
 
+    form = poobrains.form.AutoForm
+
     class Meta:
         abstract = True
 
@@ -81,7 +83,7 @@ class Storable(Model, rendering.Renderable):
 
         super(Storable, self).__init__(*args, **kwargs)
         self.url = self.instance_url # make .url callable for class and instances
-        self.form = self.instance_form # make .form callable for class and instance
+        #self.form = self.instance_form # make .form callable for class and instance
 
 
     @classmethod
@@ -93,27 +95,6 @@ class Storable(Model, rendering.Renderable):
         return app.get_url(self.__class__, id_or_name=self.name, mode=mode)
 
 
-    @classmethod
-    def form(cls):
-
-        return cls().form('add')
-
-
-    def instance_form(self, mode='edit', form_class=poobrains.form.AutoForm):
-
-        if mode == 'add':
-            title = 'Add new %s' % (self.__class__.__name__,)
-        else:
-            title = self.title if hasattr(self, 'title') else self.name
-
-        if issubclass(form_class, poobrains.form.Fieldset):
-            f = form_class(self, mode=mode, title=title)
-        else:
-            f = form_class(self, mode=mode, title=title, action=self.url(mode))
-
-        return f
-   
-   
     @classmethod
     def templates(cls, mode='add'):
         return super(Storable, cls).templates(mode) 

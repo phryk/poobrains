@@ -27,45 +27,17 @@ except ImportError as e:
     config = False
 
 
-def curry(func, *arg, **kwarg):
-
-    def call(*args, **kwargs):
-
-        a = list(arg) #create a local copy rather than keeping a reference
-        kw = dict(kwarg)
-        args = list(args)
-        while len(a):
-            args.insert(0, a.pop())
-
-        for k, v in kw.iteritems():
-            if not kwargs.has_key(k): #only add kwarg if it's not already set, allows for overriding curried kwargs
-                kwargs[k] = v
-
-        return func(*args, **kwargs)
-
-    return call
-
-
 class FormDataParser(werkzeug.formparser.FormDataParser):
     
     def parse(self, *args, **kwargs):
 
-        poobrains.app.logger.debug('Custom FormDataParser.parse')
         
         stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
-        poobrains.app.logger.debug(form_flat)
-
         form = werkzeug.datastructures.MultiDict()
-        poobrains.app.logger.debug("form_flat")
-        poobrains.app.logger.debug(form_flat)
-
 
         for key, values in form_flat.iteritems():
 
-            poobrains.app.logger.debug(key)
-
             current = form
-
             segments = key.split('.')
 
             for segment in segments[:-1]:
@@ -76,9 +48,6 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
 
             current[segments[-1]] = values
 
-        poobrains.app.logger.debug('namespaced form:')
-        poobrains.app.logger.debug(form)
-        flask.flash(form)
         # TODO: Make form ImmutableDict again?
 
         return (stream, form, files_flat)
@@ -172,7 +141,7 @@ class Poobrain(flask.Flask):
             for (key, cls) in auth.Administerable.children_keyed().iteritems():
 
                 rule = '%s/' % key
-                actions = curry(auth.admin_listing_actions, cls)
+                actions = functools.partial(auth.admin_listing_actions, cls)
 
                 self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser-edit', action_func=actions, force_secure=True)
                 self.admin.add_view(cls, rule, mode='edit', force_secure=True)
@@ -599,6 +568,7 @@ class ErrorPage(poobrains.rendering.Renderable):
 def errorpage(error):
     return ErrorPage(error)
 
+app.register_error_handler(400, errorpage)
 app.register_error_handler(403, errorpage)
 app.register_error_handler(404, errorpage)
 app.register_error_handler(peewee.OperationalError, errorpage)

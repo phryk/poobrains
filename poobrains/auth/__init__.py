@@ -200,6 +200,10 @@ class User(Administerable):
     permissions = None
     _permissions = None # filled by UserPermission.permission ForeignKeyField
 
+    class form(poobrains.form.AutoForm):
+        pass
+
+
     def prepared(self):
 
         for name, permission in Permission.children_keyed().iteritems():
@@ -208,26 +212,27 @@ class User(Administerable):
                 poobrains.app.logger.debug("permission in granted perms!")
 
 
-    def instance_form(self, mode='edit'):
-
-        f = super(User, self).instance_form(mode)
-
-        f.permissions = poobrains.form.Fieldset()
-
-        for name, perm in sorted(Permission.children_keyed().items()):
-
-            try:
-                perm_info = UserPermission.get(UserPermission.user == self and UserPermission.permission == perm.__name__)
-                perm_mode = 'edit'
-            except:
-                perm_info = UserPermission()
-                perm_info.permission = perm.__name__
-                perm_info.access = 'deny'
-                perm_mode = 'add'
-
-            setattr(f.permissions, perm.__name__, perm_info.form(mode, form_class=poobrains.form.AutoFieldset))
-
-        return f
+#    def instance_form(self, mode='edit'):
+#
+#        f = super(User, self).instance_form(mode)
+#
+#        f.permissions = poobrains.form.Fieldset()
+#
+#        for name, perm in sorted(Permission.children_keyed().items()): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
+#
+#            try:
+#                perm_info = UserPermission.get(UserPermission.user == self and UserPermission.permission == perm.__name__)
+#                perm_mode = 'edit'
+#            except:
+#                perm_info = UserPermission()
+#                perm_info.user = self
+#                perm_info.permission = perm.__name__
+#                perm_info.access = 'deny'
+#                perm_mode = 'add'
+#
+#            setattr(f.permissions, perm.__name__, perm_info.form(mode, form_class=poobrains.form.AutoFieldset))
+#
+#        return f
 
 class UserPermission(poobrains.storage.Storable):
 

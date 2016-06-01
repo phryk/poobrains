@@ -1,0 +1,16 @@
+<input
+    type="checkbox"
+    name="{{content.prefix}}.{{ content.name }}"
+
+    {% if content.placeholder %}
+        placeholder="{{ content.placeholder }}"
+    {% endif %}
+
+    {% if content.value %}
+        value="{{ content.value }}"
+    {% endif %}
+
+    {% if content.checked %}
+        checked="{{ content.checked }}"
+    {% endif %}
+>

@@ -42,6 +42,7 @@ class TestForm(poobrains.form.Form):
 @app.expose('/news')
 class News(poobrains.auth.Administerable):
 
+    title = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()
 
 
