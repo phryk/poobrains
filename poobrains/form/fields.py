@@ -81,8 +81,8 @@ class Field(rendering.Renderable):
 
     
     def bind(self, value):
-        print "%s.bind" % self.__class__.__name__
-        print self, value
+        #print "%s.bind" % self.__class__.__name__
+        #print self, value
         self.value = self.coercer(value)
 
 
@@ -93,8 +93,7 @@ class Field(rendering.Renderable):
 
 
 class Message(Field):
-    pass
-
+    coercer = None # Makes this field be ignored when checking for missing form data
 
 class Text(Field):
     pass
@@ -130,7 +129,7 @@ class RangedInteger(Integer):
 
     def validate(self, value):
 
-        validators.is_int(value)
+        self.validator(value)
         x = int(value)
         if x <self. min or x > self.max:
             raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, value, self.min, self.max))

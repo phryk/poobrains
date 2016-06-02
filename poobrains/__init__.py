@@ -31,6 +31,7 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
     
     def parse(self, *args, **kwargs):
 
+        print "######PARSE"
         stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
         form = werkzeug.datastructures.MultiDict()
 
@@ -46,6 +47,18 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
                 current = current[segment]
 
             current[segments[-1]] = values
+
+        if form_flat.has_key('submit'):
+            current = form
+            segments = form_flat['submit'].split('.')
+
+            for segment in segments[:-1]:
+                if not current.has_key(segment):
+                    current[segment] = werkzeug.datastructures.MultiDict()
+
+                current = current[segment]
+
+            current[segments[-1]] = True
 
         # TODO: Make form ImmutableDict again?
 
@@ -319,20 +332,51 @@ class Pooprint(flask.Blueprint):
         if not view_func:
             @poobrains.rendering.render(mode)
             def view_func(id_or_name=None):
-
                 if id_or_name:
                     instance = cls.load(id_or_name)
 
                 else: # should only happen for 'add' mode for storables, or any for forms
                     instance = cls()
-
+                    
                 if flask.request.method in ('POST', 'DELETE'):
-                    if mode in ('add', 'edit', 'delete'):
+                    print "VIEW FUNC FORM HANDLE"
+                    if (mode in ('add', 'edit') and flask.request.method == 'POST') or mode == 'delete':
                         f = instance.form(mode=mode)
-                        return f.handle(flask.request.form[f.name])
+
+                        try:
+                            f.validate_and_bind(flask.request.form[f.name])
+
+                        except form.errors.ValidationError as e:
+                            flask.flash("Failed validating form. TODO: Proper error flash.")
+                            flask.flash(e.message)
+                            return f
+
+                        except form.errors.BindingError:
+                            flask.flash("Binding error")
+                            return f
+
+                        print "YUP DA HANDLE###################"
+                        return f.handle()
 
                     elif isinstance(instance, form.Form): # special case for when a Form class is directly @expose'd
-                        return instance.handle(flask.request.form[instance.name])
+                        
+                        try:
+                            instance.validate_and_bind(flask.request.form[instance.name])
+
+                        except form.errors.ValidationError as e:
+                            flask.flash("Failed validating form. TODO: Proper error flash.")
+                            flask.flash(e.message)
+                            return instance
+
+                        except form.errors.BindingError:
+                            flask.flash("Binding error")
+                            return instance
+
+                        print "#############"
+                        print "instance is form"
+                        print "#############"
+
+                        return instance.handle()
 
                 return instance
 

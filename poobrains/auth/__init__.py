@@ -194,12 +194,14 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
 
 
 class UserForm(poobrains.form.AutoForm):
-    
+
+    permissions = None
+
     def __new__(cls, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
 
         f = super(UserForm, cls).__new__(cls, model_or_instance, mode=mode, name=name, title=title, method=method, action=action)
-
         f.permissions = poobrains.form.Fieldset()
+
 
         for name, perm in Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
 
@@ -210,21 +212,21 @@ class UserForm(poobrains.form.AutoForm):
                 perm_info = UserPermission()
                 perm_info.user = f.instance
                 perm_info.permission = perm.__name__
-                perm_info.access = 'deny'
+                perm_info.access = False
                 perm_mode = 'add'
 
-            setattr(f.permissions, perm.__name__, poobrains.form.AutoFieldset(perm_info, perm_mode))
+            f.fields['permissions'].fields[perm.__name__] = poobrains.form.AutoFieldset(perm_info, perm_mode, name=perm.__name__)
+            print "####WAT", perm.__name__, "/", f.fields['permissions'].fields[perm.__name__].name, "/"
 
 
         return f
 
 
-    def handle(self, values):
+    def handle(self):
 
-        response = super(UserForm, self).handle(values)
+        response = super(UserForm, self).handle()
         poobrains.app.logger.debug("UserForm.handle")
         poobrains.app.logger.debug(self.instance)
-        poobrains.app.logger.debug(values.keys())
 
 #        for name, perm in Permission.children_keyed().items()
         return response
@@ -289,15 +291,15 @@ class ClientCertForm(poobrains.form.Form):
 
     def __init__(self, *args, **kwargs):
 
+        poobrains.app.logger.debug("clientcertform init")
         super(ClientCertForm, self).__init__(*args, **kwargs)
         flask.session['key_challenge'] = self.key.challenge
 
 
-    def handle(self, values):
+    def handle(self):
 
-        self.validate_and_bind(values)
+ 
         poobrains.app.logger.debug("bound clientcertform token")
-        poobrains.app.logger.debug(values)
         poobrains.app.logger.debug(self.token)
         poobrains.app.logger.debug(self.fields['token'].value)
 

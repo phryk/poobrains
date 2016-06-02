@@ -131,12 +131,12 @@ class BaseForm(poobrains.rendering.Renderable):
             super(BaseForm, self).__setattr__(name, value)
 
 
-    def __getattr__(self, name):
-
-        if self.fields.has_key(name):
-            return self.fields[name]
-
-        return super(BaseForm, self).__getattr__(name)
+#    def __getattr__(self, name):
+#
+#        if self.fields.has_key(name):
+#            return self.fields[name]
+#
+#        return super(BaseForm, self).__getattr__(name)
 
 
     def __iter__(self):
@@ -173,40 +173,53 @@ class BaseForm(poobrains.rendering.Renderable):
 
     def validate_and_bind(self, values):
 
-        validation_messages = collections.OrderedDict()
-        binding_messages = collections.OrderedDict()
+        print "VALIDATE AND BIND"
+        validation_messages = []
+        binding_messages = []
 
         for field in self.fields.itervalues():
 
             if not values.has_key(field.name):
-                validation_messages[field.name] = "Missing form input: %s.%s" % (field.prefix, field.name)
+                if field.coercer != None:
+                    validation_messages.append("Missing form input: %s.%s" % (field.prefix, field.name))
                 break
 
-            try:
-                field.validate(values[field.name])
-                field.bind(values[field.name])
-            except errors.ValidationError as e:
-                validation_messages[field.name] = e.message
-                field.value = values[field.name]
-            except ValueError: # happens when a coercer (.bind) fails
-                binding_messages[field.name] = "I don't understand %s for %s" % (value, field.name)
-                field.value = values[field.name]
+            if isinstance(field, Fieldset):
+                try:
+                    field.validate_and_bind(values[field.name])
+                except errors.ValidationError as e:
+                    validation_messages.append(e.message)
+                except ValueError: # happens when a coercer (.bind) fails
+                    binding_messages.append("I don't understand %s for %s" % (value, field.name))
 
-            except:
-                poobrains.app.logger.error("Possible bug in validate_and_bind or validator and coercer of %s not playing nice." % field.__class__)
-                poobrains.app.logger.debug("Affected field: %s %s" % (field.__class__.__name__, field.name))
-                raise
+            else:
+
+                try:
+                    field.validate(values[field.name])
+                    field.bind(values[field.name])
+                except errors.ValidationError as e:
+                    validation_messages.append(e.message)
+                    print "######################### DAT E:", e
+                    field.value = values[field.name]
+                except ValueError: # happens when a coercer (.bind) fails
+                    binding_messages.append("I don't understand %s for %s" % (value, field.name))
+                    field.value = values[field.name]
+
+            #except:
+            #    poobrains.app.logger.error("Possible bug in validate_and_bind or validator and coercer of %s not playing nice." % field.__class__)
+            #    poobrains.app.logger.debug("Affected field: %s %s" % (field.__class__.__name__, field.name))
+            #    raise
 
 
         if len(validation_messages):
-            raise errors.ValidationError("Form was not validated. Errors were as follows:\n%s" % '\n'.join(validation_messages))
+            raise errors.ValidationError("Form was not validated. Errors were as follows:\n%s" % '\n\t'.join(validation_messages))
 
         if len(binding_messages):
-            raise errors.BindingError("Can't make sense of some of your input.\n%s" % '\n'.join(binding_messages))
+            raise errors.BindingError("Can't make sense of some of your input.\n%s" % '\n\t'.join(binding_messages))
 
 
 
-    def handle(self, values):
+    def handle(self):
 
 #        poobrains.app.logger.error("base handle")
 #        for field in self.fields.itervalues():
@@ -270,7 +283,6 @@ class AutoForm(Form):
             if hasattr(self.instance, 'actions'):
                 self.actions = self.instance.actions
 
-
         if name:
 
             self.name = name
@@ -280,13 +292,13 @@ class AutoForm(Form):
                 self.name = "%s-%d-%s" % (self.model.__name__.lower(), self.instance.id, mode)
             else:
                 self.name = "%s-%s" % (self.model.__name__.lower(), mode)
-
+        print self.name
 
         if mode == 'delete':
 
             self.title = "Delete %s" % self.instance.name
             self.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
-            self.submit = Button('submit', name='submit', value='submit', label='KILL')
+            self.submit = Button('submit', name='submit', value='delete', label='KILL')
 
         else:
 
@@ -320,14 +332,8 @@ class AutoForm(Form):
                     self.title = "%s #%d" % (self.title, self.instance.id)
 
 
-    def handle(self, values):
-
-        try:
-            self.validate_and_bind(values) # takes care of validation and binding form input to fields
-        except Exception as e:
-            print "Unplanned fuckup: ", e, e.message
-            raise
-
+    def handle(self):
+        print "############ autoform handle"
         # handle POST for add and edit
         if self.mode in ('add', 'edit'):
             for field_name in self.model._meta.get_field_names():
@@ -349,9 +355,12 @@ class AutoForm(Form):
 
         # Why the fuck does HTML not support DELETE!?
         elif self.mode == 'delete' and flask.request.method in ('POST', 'DELETE') and self.instance.id:
+            print "--- We got autoform handle for delete"
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.name)
             self.instance.delete_instance()
             flask.flash(message)
+        else:
+            print "--- unhandled form shit"
 
         return flask.redirect(self.model.url('teaser-edit'))
 
@@ -372,11 +381,24 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
+    def validate(self, values):
+
+        messages = []
+
+        for field in self.fields.itervalues():
+            try:
+                field.validate(values[field.name])
+            except errors.ValidationError as e:
+                messages.append(e.message)
+
+        if len(messages):
+            raise errors.ValidationError("Fieldset %s could not be validated, errors below.\n%s" % (self.name, '\n\t'.join(messages)))
+
+
 class AutoFieldset(AutoForm, Fieldset):
 
     rendered = None
    
-
     def render(self, mode=None):
 
         self.rendered = True
