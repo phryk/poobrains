@@ -216,13 +216,17 @@ class UserForm(poobrains.form.AutoForm):
                 perm_mode = 'add'
 
             f.fields['permissions'].fields[perm.__name__] = poobrains.form.AutoFieldset(perm_info, perm_mode, name=perm.__name__)
-            print "####WAT", perm.__name__, "/", f.fields['permissions'].fields[perm.__name__].name, "/"
 
 
         return f
 
 
     def handle(self):
+
+        self.instance.permissions.clear()
+        for perm_fieldset in self.fields['permissions']:
+            if perm_fieldset.fields['access'].value:
+                self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
 
         response = super(UserForm, self).handle()
         poobrains.app.logger.debug("UserForm.handle")
@@ -243,35 +247,30 @@ class User(Administerable):
 
     form = UserForm
 
+    def __init__(self, *args, **kwargs):
+
+        super(User, self).__init__(*args, **kwargs)
+        self.permissions = {}
+
     def prepared(self):
 
-        for name, permission in Permission.children_keyed().iteritems():
+        for up in self._permissions:
+            self.permissions[up.permission] = up.access
 
-            if permission in self._permissions:
-                poobrains.app.logger.debug("permission in granted perms!")
+    
+    def save(self):
 
+        super(User, self).save()
 
-#    def instance_form(self, mode='edit'):
-#
-#        f = super(User, self).instance_form(mode)
-#
-#        f.permissions = poobrains.form.Fieldset()
-#
-#        for name, perm in sorted(Permission.children_keyed().items()): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
-#
-#            try:
-#                perm_info = UserPermission.get(UserPermission.user == self and UserPermission.permission == perm.__name__)
-#                perm_mode = 'edit'
-#            except:
-#                perm_info = UserPermission()
-#                perm_info.user = self
-#                perm_info.permission = perm.__name__
-#                perm_info.access = 'deny'
-#                perm_mode = 'add'
-#
-#            setattr(f.permissions, perm.__name__, perm_info.form(mode, form_class=poobrains.form.AutoFieldset))
-#
-#        return f
+        UserPermission.delete().where(UserPermission.user == self)
+
+        for perm_name, access in self.permissions.iteritems():
+            up = UserPermission()
+            up.user = self
+            up.permission = perm_name
+            up.access = access
+            up.save()
+
 
 class UserPermission(poobrains.storage.Storable):
 

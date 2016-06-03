@@ -20,18 +20,20 @@ class Field(rendering.Renderable):
     label = None
     placeholder = None
     readonly = None
+    required = None
     validator = validators.is_str
     coercer = coercers.coerce_string
     rendered = None
 
 
-    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, validator=None):
+    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
 
         self.name = name
         self.value = value
         self.label = label if label else name
         self.placeholder = placeholder if placeholder else name
         self.readonly = readonly
+        self.required = required
         self.rendered = False
         
         if validator:
@@ -81,8 +83,6 @@ class Field(rendering.Renderable):
 
     
     def bind(self, value):
-        #print "%s.bind" % self.__class__.__name__
-        #print self, value
         self.value = self.coercer(value)
 
 

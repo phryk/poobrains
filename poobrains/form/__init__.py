@@ -44,12 +44,13 @@ class BaseForm(poobrains.rendering.Renderable):
             if isinstance(attr, fields.Field):
                 label = attr.label if attr.label else label_default
                 clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validator=attr.validator)
-                #instance.fields[attr_name] = clone
-                setattr(instance, attr_name, clone)
+                instance.fields[attr_name] = clone
+                #setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Fieldset):
                 clone = attr.__class__(name=attr_name, title=attr.title)
-                setattr(instance, attr_name, clone)
+                instance.fields[attr_name] = clone
+                #setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Button):
                 label = attr.label if attr.label else label_default
@@ -60,9 +61,9 @@ class BaseForm(poobrains.rendering.Renderable):
     
     
     def __init__(self, prefix=None, name=None, title=None):
-
-        self.name = name if name else self.__class__.__name__.lower()
+        
         super(BaseForm, self).__init__()
+        self.name = name if name else self.__class__.__name__.lower()
 
 
         if title:
@@ -173,14 +174,13 @@ class BaseForm(poobrains.rendering.Renderable):
 
     def validate_and_bind(self, values):
 
-        print "VALIDATE AND BIND"
         validation_messages = []
         binding_messages = []
 
-        for field in self.fields.itervalues():
 
+        for k, field in self.fields.iteritems():
             if not values.has_key(field.name):
-                if field.coercer != None:
+                if field.coercer != None and field.required:
                     validation_messages.append("Missing form input: %s.%s" % (field.prefix, field.name))
                 break
 
@@ -199,7 +199,6 @@ class BaseForm(poobrains.rendering.Renderable):
                     field.bind(values[field.name])
                 except errors.ValidationError as e:
                     validation_messages.append(e.message)
-                    print "######################### DAT E:", e
                     field.value = values[field.name]
                 except ValueError: # happens when a coercer (.bind) fails
                     binding_messages.append("I don't understand %s for %s" % (value, field.name))
@@ -283,17 +282,6 @@ class AutoForm(Form):
             if hasattr(self.instance, 'actions'):
                 self.actions = self.instance.actions
 
-        if name:
-
-            self.name = name
-        else:
-
-            if self.instance.id:
-                self.name = "%s-%d-%s" % (self.model.__name__.lower(), self.instance.id, mode)
-            else:
-                self.name = "%s-%s" % (self.model.__name__.lower(), mode)
-        print self.name
-
         if mode == 'delete':
 
             self.title = "Delete %s" % self.instance.name
@@ -308,14 +296,21 @@ class AutoForm(Form):
                 #poobrains.app.logger.debug(field)
                 if isinstance(field, poobrains.storage.fields.Field) and field.name not in self.model.field_blacklist:
                     form_field = field.form_class(field.name, value=getattr(self.instance, field.name))
-                    #self.fields[field.name] = form_field
-                    setattr(self, field.name, form_field)
+                    self.fields[field.name] = form_field
+                    #setattr(self, field.name, form_field)
 
             self.controls['reset'] = Button('reset', label='Reset')
             self.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
 
+        if name:
+            self.name = name
+        else:
 
-        #name = name if name else '%s-%s' % (self.model.__name__.lower(), mode)
+            if self.instance.id:
+                self.name = "%s-%d-%s" % (self.model.__name__.lower(), self.instance.id, mode)
+            else:
+                self.name = "%s-%s" % (self.model.__name__.lower(), mode)
+
         super(AutoForm, self).__init__(name=self.name, title=title, method=method, action=action)
 
         # override default title unless title was explicitly passed.
@@ -333,7 +328,7 @@ class AutoForm(Form):
 
 
     def handle(self):
-        print "############ autoform handle"
+
         # handle POST for add and edit
         if self.mode in ('add', 'edit'):
             for field_name in self.model._meta.get_field_names():
@@ -355,12 +350,9 @@ class AutoForm(Form):
 
         # Why the fuck does HTML not support DELETE!?
         elif self.mode == 'delete' and flask.request.method in ('POST', 'DELETE') and self.instance.id:
-            print "--- We got autoform handle for delete"
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.name)
             self.instance.delete_instance()
             flask.flash(message)
-        else:
-            print "--- unhandled form shit"
 
         return flask.redirect(self.model.url('teaser-edit'))
 
@@ -398,7 +390,7 @@ class Fieldset(BaseForm):
 class AutoFieldset(AutoForm, Fieldset):
 
     rendered = None
-   
+ 
     def render(self, mode=None):
 
         self.rendered = True
