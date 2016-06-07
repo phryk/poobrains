@@ -31,7 +31,6 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
     
     def parse(self, *args, **kwargs):
 
-        print "######PARSE"
         stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
         form = werkzeug.datastructures.MultiDict()
 
@@ -158,7 +157,44 @@ class Poobrain(flask.Flask):
                 self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser-edit', action_func=actions, force_secure=True)
                 self.admin.add_view(cls, rule, mode='edit', force_secure=True)
                 self.admin.add_view(cls, rule, mode='delete', force_secure=True)
-                self.admin.add_view(cls, '%sadd' % rule, mode='add', force_secure=True)
+                self.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
+
+                for field in cls._meta.reverse_rel.itervalues():
+                    related_model = field.model_class
+
+                    if issubclass(related_model, poobrains.auth.Administerable):
+                        endpoint = "%s_%s" % (cls.__name__, related_model.__name__)
+                        
+                        #def view_func = functools.partial(cls.related_form, related_field=field)
+                        #print "view_func:", view_func
+
+
+                        @poobrains.rendering.render()
+                        def view_func(cls, field, id_or_name=None):
+
+                            related_model = field.model_class
+                            if id_or_name:
+                                instance = cls.load(id_or_name)
+
+                            else: # should only happen for 'add' mode for storables, or any for forms
+                                instance = cls()
+
+                            if hasattr(related_model, 'related_form'):
+                                print "####################### related form model: ", related_model
+                                form_class = related_model.related_form
+                            else:
+                                form_class = functools.partial(poobrains.auth.RelatedForm, related_model)
+
+                            f = form_class(field, instance)
+
+                            if flask.request.method == 'POST':
+                                f.validate_and_bind(flask.request.form[f.name])
+                                return f.handle()
+
+                            return f
+
+
+                        self.admin.add_url_rule("%s<id_or_name>/%s/" % (rule, related_model.__name__.lower()), endpoint, functools.partial(view_func, cls=cls, field=field), methods=['GET', 'POST'])
 
             self.register_blueprint(self.site)
             self.register_blueprint(self.admin, url_prefix='/admin/')
@@ -339,7 +375,6 @@ class Pooprint(flask.Blueprint):
                     instance = cls()
                     
                 if flask.request.method in ('POST', 'DELETE'):
-                    print "VIEW FUNC FORM HANDLE"
                     if (mode in ('add', 'edit') and flask.request.method == 'POST') or mode == 'delete':
                         f = instance.form(mode=mode)
 
@@ -351,11 +386,10 @@ class Pooprint(flask.Blueprint):
                             flask.flash(e.message)
                             return f
 
-                        except form.errors.BindingError:
-                            flask.flash("Binding error")
+                        except form.errors.BindingError as e:
+                            flask.flash("Binding error: %s" % e.message)
                             return f
 
-                        print "YUP DA HANDLE###################"
                         return f.handle()
 
                     elif isinstance(instance, form.Form): # special case for when a Form class is directly @expose'd
@@ -372,12 +406,8 @@ class Pooprint(flask.Blueprint):
                             flask.flash("Binding error")
                             return instance
 
-                        print "#############"
-                        print "instance is form"
-                        print "#############"
-
                         return instance.handle()
-
+                print "######################## view_func", instance.form()
                 return instance
 
         if force_secure:

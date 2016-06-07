@@ -150,15 +150,78 @@ class BaseAdministerable(poobrains.storage.BaseModel):
         return cls
 
 
+class RelatedForm(poobrains.form.Form):
+   
+    instance = None
+    related_model = None
+    related_field = None
+
+    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
+
+        poobrains.app.logger.debug("RelatedForm args:")
+        poobrains.app.logger.debug(cls)
+        poobrains.app.logger.debug(related_model)
+        poobrains.app.logger.debug(related_field)
+        poobrains.app.logger.debug(instance)
+        poobrains.app.logger.debug(name)
+        poobrains.app.logger.debug(title)
+        poobrains.app.logger.debug(method)
+        poobrains.app.logger.debug(action)
+
+        f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
+
+        for related_instance in getattr(instance, related_field.related_name):
+            key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
+            f.fields[key] = poobrains.form.AutoFieldset(related_instance)
+
+            if f.fields[key].fields.has_key(related_field.name):
+                print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>< YARRRRR", related_field.name
+                f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance)
+                #print f.fields[key].fields[related_field.name].rendered
+                #f.fields[key].fields[related_field.name].rendered = True
+            else:
+                poobrains.app.logger.debug("We need that 'if' after all!")
+
+        related_instance = related_model()
+        setattr(related_instance, related_field.name, instance) 
+        key = '%s-add' % related_model.__name__
+
+        f.fields[key] = poobrains.form.AutoFieldset(related_instance)
+            
+        f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
+        f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
+
+        return f
+
+    
+    def __init__(self, related_model, related_field, instance, id_or_name=None, prefix=None, name=None, title=None, method=None, action=None):
+        super(RelatedForm, self).__init__(prefix=None, name=None, title=None, method=None, action=None)
+
+        self.instance = instance
+        self.related_model = related_model
+        self.related_field = related_field
+#        print "RELFOO", self.fields['%s'
+        #super(RelatedForm, self).__init__(related_model, mode=mode, name=None, title=None, method=None, action=None)
+
+
+    def handle(self):
+
+        flask.flash("Dat handle")
+        for field in self.fields.itervalues():
+            if isinstance(field, poobrains.form.AutoFieldset):
+                field.handle()
+                flask.flash("HANDLE")
+        return flask.redirect(flask.request.url)
 
 class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     
     __metaclass__ = BaseAdministerable
+    related_form = RelatedForm
 
     class Meta:
         abstract = True
     
-    name = poobrains.storage.fields.CharField(index=True, unique=True, constraints=[poobrains.storage.RegexpConstraint('name', '^[a-zA-Z0-9_\-]+$')])
+    name = poobrains.storage.fields.CharField(index=True, unique=True, constraints=[poobrains.storage.RegexpConstraint('name', '^[@a-zA-Z0-9_\-]+$')])
     actions = None
 
     @property
@@ -181,7 +244,6 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
 
     @classmethod
     def load(cls, id_or_name):
-
         if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
             return super(Administerable, cls).load(id_or_name)
 
@@ -193,31 +255,28 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
         return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
-class UserForm(poobrains.form.AutoForm):
 
-    permissions = None
 
-    def __new__(cls, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
 
-        f = super(UserForm, cls).__new__(cls, model_or_instance, mode=mode, name=name, title=title, method=method, action=action)
-        f.permissions = poobrains.form.Fieldset()
+class UserPermissionRelatedForm(RelatedForm):
 
+    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
+
+        f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
 
         for name, perm in Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
 
             try:
-                perm_info = UserPermission.get(UserPermission.user == f.instance and UserPermission.permission == perm.__name__)
+                perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == perm.__name__)
                 perm_mode = 'edit'
             except:
                 perm_info = UserPermission()
-                perm_info.user = f.instance
+                perm_info.user = instance
                 perm_info.permission = perm.__name__
                 perm_info.access = False
                 perm_mode = 'add'
 
-            f.fields['permissions'].fields[perm.__name__] = poobrains.form.AutoFieldset(perm_info, perm_mode, name=perm.__name__)
-
-
+            f.fields[perm.__name__] = poobrains.form.AutoFieldset(perm_info, perm_mode, name=perm.__name__)
         return f
 
 
@@ -229,8 +288,6 @@ class UserForm(poobrains.form.AutoForm):
                 self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
 
         response = super(UserForm, self).handle()
-        poobrains.app.logger.debug("UserForm.handle")
-        poobrains.app.logger.debug(self.instance)
 
 #        for name, perm in Permission.children_keyed().items()
         return response
@@ -239,13 +296,13 @@ class UserForm(poobrains.form.AutoForm):
 
 class User(Administerable):
 
-    name = poobrains.storage.fields.CharField(unique=True)
+    #name = poobrains.storage.fields.CharField(unique=True)
     groups = None
     permissions = None
     _permissions = None # filled by UserPermission.permission ForeignKeyField
 
 
-    form = UserForm
+    #form = UserForm
 
     def __init__(self, *args, **kwargs):
 
@@ -258,9 +315,9 @@ class User(Administerable):
             self.permissions[up.permission] = up.access
 
     
-    def save(self):
+    def save(self, *args, **kwargs):
 
-        super(User, self).save()
+        super(User, self).save(*args, **kwargs)
 
         UserPermission.delete().where(UserPermission.user == self)
 
@@ -272,11 +329,14 @@ class User(Administerable):
             up.save()
 
 
-class UserPermission(poobrains.storage.Storable):
+class UserPermission(Administerable):
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
-    access = poobrains.storage.fields.BooleanField()
+    access = poobrains.storage.fields.CharField(max_length=4, choices=[('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
+    access.form_class = poobrains.form.fields.TextChoice
+
+    #related_form = UserPermissionRelatedForm
 
 
 @poobrains.app.expose('/cert/', force_secure=True)
@@ -290,17 +350,11 @@ class ClientCertForm(poobrains.form.Form):
 
     def __init__(self, *args, **kwargs):
 
-        poobrains.app.logger.debug("clientcertform init")
         super(ClientCertForm, self).__init__(*args, **kwargs)
         flask.session['key_challenge'] = self.key.challenge
 
 
     def handle(self):
-
- 
-        poobrains.app.logger.debug("bound clientcertform token")
-        poobrains.app.logger.debug(self.token)
-        poobrains.app.logger.debug(self.fields['token'].value)
 
         try:
             token = ClientCertToken.get(ClientCertToken.token == self.fields['token'].value)
@@ -359,7 +413,7 @@ class ClientCertForm(poobrains.form.Form):
         r.mimetype = 'application/x-x509-user-cert'
         return r
 
-class ClientCertToken(poobrains.storage.Storable):
+class ClientCertToken(Administerable):
 
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User)
@@ -375,7 +429,9 @@ class ClientCertToken(poobrains.storage.Storable):
         super(ClientCertToken, self).__init__(*args, **kw)
 
 
-class ClientCert(poobrains.storage.Storable):
+class ClientCert(Administerable):
+
+    form_blacklist = ['id', 'user', 'subject_name']
 
     user = poobrains.storage.fields.ForeignKeyField(User)
     subject_name = poobrains.storage.fields.CharField()

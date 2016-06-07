@@ -7,7 +7,7 @@ import re
 # internal imports
 import errors 
 
-def is_str(field, value):
+def is_string(field, value):
 
     try:
         value = unicode(value)
@@ -17,7 +17,7 @@ def is_str(field, value):
     return True
 
 
-def is_int(field, value):
+def is_integer(field, value):
 
         try:
             value = int(value) # will throw ValueError if value can't be casted

@@ -36,7 +36,7 @@ def render(mode='full'):
                 g.title = content.title
 
             elif hasattr(content, 'name') and content.name:
-                g.title = content.name.capitalize()
+                g.title = content.name
 
             else:
                 g.title = content.__class__.__name__
@@ -128,7 +128,7 @@ class Menu(Renderable):
         super(Menu, self).__init__()
 
         self.name = name
-        self.title = title if title else name.capitalize()
+        self.title = title if title else name
         self.items = []
 
 

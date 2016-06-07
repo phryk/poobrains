@@ -12,16 +12,21 @@ import validators
 import coercers
 
 
+class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
+    pass
+
+
 class Field(rendering.Renderable):
 
     prefix = None
     name = None
     value = None
+    empty_value = ''
     label = None
     placeholder = None
     readonly = None
     required = None
-    validator = validators.is_str
+    validator = validators.is_string
     coercer = coercers.coerce_string
     rendered = None
 
@@ -95,6 +100,15 @@ class Field(rendering.Renderable):
 class Message(Field):
     coercer = None # Makes this field be ignored when checking for missing form data
 
+class Value(Field):
+
+    def coercers(self, value):
+        return value
+
+    def render(self, mode=None):
+        return ''
+
+
 class Text(Field):
     pass
 
@@ -108,25 +122,14 @@ class TextArea(Text):
 
 
 class Integer(Field):
-    validator = validators.is_int 
+    validator = validators.is_integer 
 
 
 class RangedInteger(Integer):
 
     min = None
     max = None
-
-
-#    def __init__(self, name, value=None, label=None, min=0, max=100, readonly=False, validators=[]):
-#
-#        self.min = min
-#        self.max = max
-#
-#        validators.append(validators.mk_min(self.min))
-#        validators.append(validators.mk_max(self.max))
-#
-#        super(RangedInteger, self).__init__(name, value=value, label=label, readonly=readonly, validators=validators)
-
+    
     def validate(self, value):
 
         self.validator(value)
@@ -135,8 +138,94 @@ class RangedInteger(Integer):
             raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, value, self.min, self.max))
 
 
+class Choice(Field):
+
+    multi = False
+    choices = None
+    
+    def __init__(self, name=None, choices=[],  value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
+
+        super(Choice, self).__init__(name=name, value=value, label=label, placeholder=placeholder, readonly=readonly, required=required, validator=validator)
+        self.choices = choices
+
+
+    def validate(self, value):
+
+        super(Choice, self).validate(value)
+
+        if not self.coercer(value) in dict(self.choices).keys():
+            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>< approved choices:", dict(self.choices).keys()
+            raise errors.ValidationError("%s is not an approved choice for %s.%s" % (value, self.prefix, self.name))
+
+
+class MultiChoice(Choice):
+
+    multi = True
+
+    def validate(self, values):
+        
+        for value in values:
+            super(MultiChoice, self).validate(value)
+
+
+    def bind(self, values):
+        
+        self.value = []
+
+        for value in values:
+            self.value.append(self.coercer(value))
+
+
+class TextChoice(Choice):
+    validator = validators.is_string
+    coercer = coercers.coerce_string
+
+
+class MultiTextChoice(MultiChoice):
+    validator = validators.is_string
+    coercer = coercers.coerce_string
+
+
+class IntegerChoice(Choice):
+    validator = validators.is_integer
+    coercer = coercers.coerce_int
+
+
+class MultiIntegerChoice(MultiChoice):
+    validator = validators.is_integer
+    coercer = coercers.coerce_int
+
+
+class ForeignKeyChoice(Choice):
+
+    """
+    Warning: this field expects to be bound to a ForeignKeyField.
+    """
+
+    __metaclass__ = BoundFieldMeta
+
+    storable = None
+    validator = validators.is_integer
+    coercer = coercers.coerce_storable
+
+    def __new__(cls, model_or_instance, *args, **kwargs):
+
+        instance = super(ForeignKeyChoice, cls).__new__(cls, *args, **kwargs)
+        
+        instance.storable = model_or_instance.rel_model
+        
+        return instance
+
+
+    def __init__(self, fkfield, *args, **kwargs):
+        print "??????????????????????????????????????????? storable choice init", fkfield, args, kwargs
+
+        super(ForeignKeyChoice, self).__init__(*args, **kwargs)
+
+
 class Checkbox(RangedInteger):
 
+    empty_value = False
     min = 0
     max = 1
 
@@ -151,25 +240,6 @@ class RangedFloat(RangedInteger):
     validator = validators.is_float
 
 
-class IntegerChoice(Integer):
-
-    choices = None
-    validator = validators.is_int
-    coercer = coercers.coerce_int
-
-
-    def __init__(self, name=None, choices=None, value=None, label=None, placeholder=None, readonly=False, validator=None):
-
-        self.choices = choices if choices else {}
-        super(IntegerChoice, self).__init__(name, value=value, label=label, placeholder=placeholder, readonly=readonly, validator=validator)
-
-    def validate(self, value):
-
-        super(IntegerChoice, self).validate(value)
-
-        integer_value = self.coerce(value)
-        if integer_value not in self.choices:
-            raise error.ValidationError("%d is not an approved choice for %s.%s" % (integer_value, self.prefix, self.name))
 
 
 class Keygen(Field):

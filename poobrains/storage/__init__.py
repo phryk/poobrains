@@ -55,7 +55,7 @@ class Model(peewee.Model, helpers.ChildAware):
 
     __metaclass__ = BaseModel
     
-    field_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
+    form_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
     class Meta:
         database = app.db

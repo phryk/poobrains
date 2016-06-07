@@ -29,21 +29,19 @@ class DateTimeField(peewee.DateTimeField, Field):
     pass
 
 
-class ForeignKeyField(peewee.ForeignKeyField):
-    pass
+class ForeignKeyField(peewee.ForeignKeyField, Field):
+    form_class = form.fields.ForeignKeyChoice
 
 
 class BooleanField(peewee.BooleanField, Field):
     form_class = form.fields.Checkbox
 
 
-class FileField(peewee.ForeignKeyField, Field):
+class FileField(ForeignKeyField):
     
     def __init__(self, *args, **kwargs):
 
-        from poobrains.storage import File
-
-        rel_model = File
+        rel_model = poobrains.storage.fields.File
 
         super(FileField, self).__init__(rel_model, *args, **kwargs)
 

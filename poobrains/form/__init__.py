@@ -179,12 +179,15 @@ class BaseForm(poobrains.rendering.Renderable):
 
 
         for k, field in self.fields.iteritems():
+
             if not values.has_key(field.name):
+
                 if field.coercer != None and field.required:
                     validation_messages.append("Missing form input: %s.%s" % (field.prefix, field.name))
-                break
+                elif field.readonly or isinstance(field, fields.Checkbox): # or isinstance(field, fields.RadioButton
+                   field.value = field.empty_value 
 
-            if isinstance(field, Fieldset):
+            elif isinstance(field, Fieldset):
                 try:
                     field.validate_and_bind(values[field.name])
                 except errors.ValidationError as e:
@@ -200,9 +203,11 @@ class BaseForm(poobrains.rendering.Renderable):
                 except errors.ValidationError as e:
                     validation_messages.append(e.message)
                     field.value = values[field.name]
-                except ValueError: # happens when a coercer (.bind) fails
-                    binding_messages.append("I don't understand %s for %s" % (value, field.name))
+                except ValueError as e: # happens when a coercer (.bind) fails
+                    binding_messages.append("I don't understand %s for %s" % (values[field.name], field.name))
                     field.value = values[field.name]
+                    print "error: ", e
+                    print "type: ", type(field.value), field.value
 
             #except:
             #    poobrains.app.logger.error("Possible bug in validate_and_bind or validator and coercer of %s not playing nice." % field.__class__)
@@ -230,7 +235,7 @@ class BaseForm(poobrains.rendering.Renderable):
 #                except Exception as e:
 #                    poobrains.app.logger.error("Possible bug in %s.handle." % field.__class__.__name__)
 
-        raise NotImplementedError("%s.handle not implemented." % self.__class__.name__)
+        raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
 
 
 class Form(BaseForm):
@@ -238,9 +243,9 @@ class Form(BaseForm):
     method = None
     action = None
 
-    def __init__(self, name=None, title=None, method=None, action=None):
+    def __init__(self, prefix=None, name=None, title=None, method=None, action=None):
 
-        super(Form, self).__init__(name=name, title=title)
+        super(Form, self).__init__(prefix=prefix, name=name, title=title)
         self.method = method if method else 'POST'
         self.action = action if action else ''
 
@@ -267,40 +272,73 @@ class AutoForm(Form):
     model = None
     instance = None
 
-    def __init__(self, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
+    def __new__(cls, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
     
-        self.mode = mode
+        f = super(AutoForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
 
-        if isinstance(model_or_instance, type(poobrains.storage.Model)):
-            self.model = model_or_instance
-            self.instance = self.model()
+        if isinstance(model_or_instance, type(poobrains.storage.Model)): # hacky
+            f.model = model_or_instance
+            f.instance = f.model()
 
         else:
-            self.instance = model_or_instance
-            self.model = self.instance.__class__
+            f.instance = model_or_instance
+            f.model = f.instance.__class__
 
-            if hasattr(self.instance, 'actions'):
-                self.actions = self.instance.actions
+            if hasattr(f.instance, 'actions'):
+                f.actions = f.instance.actions
 
         if mode == 'delete':
 
-            self.title = "Delete %s" % self.instance.name
-            self.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
-            self.submit = Button('submit', name='submit', value='delete', label='KILL')
+            f.title = "Delete %s" % f.instance.name
+            f.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
+            f.submit = Button('submit', name='submit', value='delete', label='KILL')
 
         else:
 
-            #poobrains.app.logger.debug('Iterating model fields.')
-            for field in self.model._meta.get_fields():
+            for field in f.model._meta.get_fields():
 
-                #poobrains.app.logger.debug(field)
-                if isinstance(field, poobrains.storage.fields.Field) and field.name not in self.model.field_blacklist:
-                    form_field = field.form_class(field.name, value=getattr(self.instance, field.name))
-                    self.fields[field.name] = form_field
-                    #setattr(self, field.name, form_field)
+                if field.name not in f.model.form_blacklist:
 
-            self.controls['reset'] = Button('reset', label='Reset')
-            self.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
+                    if isinstance(field, poobrains.storage.fields.ForeignKeyField):
+                        #TODO: is this the place to do permission checking for the field?
+
+                        choices = []
+                        for choice in field.rel_model.select():
+                            if hasattr(choice, 'name') and choice.name:
+                                choice_name = choice.name
+                            else:
+                                choice_name = "%s #%d" % (choice.__class__.__name__, choice.id)
+                            choices.append((choice.id, choice_name))
+
+                        value = None
+                        try:
+                            value = getattr(f.instance, field.name).id
+                        except field.rel_model.DoesNotExist as e:
+                            pass
+                        print "DAS INSTANCE: ", f.instance
+                        form_field = field.form_class(field.name, choices=choices, value=value)
+                        #form_field = poobrains.rendering.RenderString("YOINK")
+                        f.fields[field.name] = form_field
+
+                    elif isinstance(field, poobrains.storage.fields.Field):
+
+                        if issubclass(field.form_class, fields.Choice):
+                            form_field = field.form_class(field.name, choices=field.choices, value=getattr(f.instance, field.name))
+                        else:
+                            form_field = field.form_class(field.name, value=getattr(f.instance, field.name))
+
+                        f.fields[field.name] = form_field
+                        #setattr(f, field.name, form_field)
+
+            f.controls['reset'] = Button('reset', label='Reset')
+            f.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
+
+        return f
+
+
+    def __init__(self, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
+    
+        self.mode = mode
 
         if name:
             self.name = name
@@ -328,12 +366,20 @@ class AutoForm(Form):
 
 
     def handle(self):
-
+        print "==================================== HANDLE"
         # handle POST for add and edit
         if self.mode in ('add', 'edit'):
-            for field_name in self.model._meta.get_field_names():
-                if not field_name in self.model.field_blacklist:
-                    setattr(self.instance, field_name, self.fields[field_name].value)
+            for field in self.model._meta.get_fields():
+                if not field.name in self.model.form_blacklist:
+                    if isinstance(getattr(self.model, field.name), poobrains.storage.fields.ForeignKeyField):
+                        print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> THIS BE FKFIELD; DUN FUCK IT UP"
+                        try:
+                            print type(self.fields[field.name].value), self.fields[field.name].value
+                            setattr(self.instance, field.name, field.rel_model.load(self.fields[field.name].value))
+                        except field.rel_model.DoesNotExist:
+                            flask.flash("%s instance %s does not exist anymore." % (field.rel_model.__name__, self.fields[field.name].value))
+                    else:
+                        setattr(self.instance, field.name, self.fields[field.name].value)
 
             try:
                 self.instance.save()
