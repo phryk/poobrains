@@ -13,8 +13,3 @@ def coerce_float(field, value):
 def coerce_bool(field, value):
     print "::::::::::::::::::::::::::::::::::::::::::::::::: coercing bool", value, bool(int(value))
     return bool(int(value))
-
-
-def coerce_storable(field, value):
-    print "coerce storable: ", field.storable
-    return field.storable.load(int(value))

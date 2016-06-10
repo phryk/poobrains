@@ -158,33 +158,23 @@ class RelatedForm(poobrains.form.Form):
 
     def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
 
-        poobrains.app.logger.debug("RelatedForm args:")
-        poobrains.app.logger.debug(cls)
-        poobrains.app.logger.debug(related_model)
-        poobrains.app.logger.debug(related_field)
-        poobrains.app.logger.debug(instance)
-        poobrains.app.logger.debug(name)
-        poobrains.app.logger.debug(title)
-        poobrains.app.logger.debug(method)
-        poobrains.app.logger.debug(action)
-
         f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
 
         for related_instance in getattr(instance, related_field.related_name):
-            key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
+            #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
+            key = related_instance.id_string
             f.fields[key] = poobrains.form.AutoFieldset(related_instance)
 
             if f.fields[key].fields.has_key(related_field.name):
-                print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>< YARRRRR", related_field.name
-                f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance)
-                #print f.fields[key].fields[related_field.name].rendered
-                #f.fields[key].fields[related_field.name].rendered = True
+                f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id)
+
             else:
                 poobrains.app.logger.debug("We need that 'if' after all!")
 
         related_instance = related_model()
         setattr(related_instance, related_field.name, instance) 
-        key = '%s-add' % related_model.__name__
+        #key = '%s-add' % related_model.__name__
+        key = related_instance.id_string
 
         f.fields[key] = poobrains.form.AutoFieldset(related_instance)
             
@@ -200,18 +190,15 @@ class RelatedForm(poobrains.form.Form):
         self.instance = instance
         self.related_model = related_model
         self.related_field = related_field
-#        print "RELFOO", self.fields['%s'
-        #super(RelatedForm, self).__init__(related_model, mode=mode, name=None, title=None, method=None, action=None)
 
 
     def handle(self):
 
-        flask.flash("Dat handle")
         for field in self.fields.itervalues():
             if isinstance(field, poobrains.form.AutoFieldset):
                 field.handle()
-                flask.flash("HANDLE")
         return flask.redirect(flask.request.url)
+
 
 class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     
@@ -221,7 +208,6 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     class Meta:
         abstract = True
     
-    name = poobrains.storage.fields.CharField(index=True, unique=True, constraints=[poobrains.storage.RegexpConstraint('name', '^[@a-zA-Z0-9_\-]+$')])
     actions = None
 
     @property
@@ -230,17 +216,33 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
         if not self.id:
             return None
 
-        actions = poobrains.rendering.Menu('%s-%d.actions' % (self.__class__.__name__, self.id))
+        actions = poobrains.rendering.Menu('%s.actions' % self.id_string)
         try:
             actions.append(self.url('full'), 'View')
+
+        except LookupError:
+            poobrains.app.logger.debug("Couldn't create view link for %s" % self.id_string)
+
+        try:
             actions.append(self.url('edit'), 'Edit')
+
+        except LookupError:
+            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.id_string)
+
+        try:
             actions.append(self.url('delete'), 'Delete')
 
-        except Exception as e:
-            poobrains.app.logger.error('Action menu generation failure.')
+        except LookupError:
+            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.id_string)
 
         return actions
+   
 
+    def __repr__(self):
+        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
+
+
+class NamedAdministerable(Administerable, poobrains.storage.Named):
 
     @classmethod
     def load(cls, id_or_name):
@@ -249,13 +251,6 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
 
         else:
             return cls.get(cls.name == id_or_name)
-    
-    
-    def __repr__(self):
-        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
-
-
-
 
 
 class UserPermissionRelatedForm(RelatedForm):
@@ -294,7 +289,7 @@ class UserPermissionRelatedForm(RelatedForm):
 
 
 
-class User(Administerable):
+class User(NamedAdministerable):
 
     #name = poobrains.storage.fields.CharField(unique=True)
     groups = None
@@ -330,6 +325,10 @@ class User(Administerable):
 
 
 class UserPermission(Administerable):
+
+    class Meta:
+        primary_key = peewee.CompositeKey('user', 'permission')
+        order_by = ('user', 'permission')
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
@@ -412,6 +411,7 @@ class ClientCertForm(poobrains.form.Form):
         r = werkzeug.wrappers.Response(client_cert.as_pem())
         r.mimetype = 'application/x-x509-user-cert'
         return r
+
 
 class ClientCertToken(Administerable):
 

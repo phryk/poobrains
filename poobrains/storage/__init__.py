@@ -2,6 +2,7 @@
 
 # external imports
 import math
+import collections
 import flask
 import werkzeug.routing
 import peewee
@@ -67,6 +68,31 @@ class Model(peewee.Model, helpers.ChildAware):
         return cls.get(cls.id == id)
 
 
+    @property
+    def id_string(self):
+        
+        segments = [self.__class__.__name__]
+        try:
+            pk = self._get_pk_value()
+        except peewee.DoesNotExist:
+            pk = None
+
+        if not isinstance(pk, collections.Iterable):
+            pk = [pk]
+
+        for kv in pk:
+            if isinstance(kv, Named):
+                segments.append(kv.name)
+            elif isinstance(kv, Model):
+                segments.append(kv.id)
+            elif kv == None:
+                return '%s-add' % self.__class__.__name__.lower()
+            else:
+                segments.append(kv)
+
+        return '-'.join(str(x) for x in segments).lower()
+
+
     def __repr__(self):
         return "<%s[%s]>" % (self.__class__.__name__, self.id) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
@@ -92,7 +118,7 @@ class Storable(Model, rendering.Renderable):
 
 
     def instance_url(self, mode=None):
-        return app.get_url(self.__class__, id_or_name=self.name, mode=mode)
+        return app.get_url(self.__class__, id_or_name=self.id, mode=mode)
 
 
     @classmethod
@@ -116,6 +142,14 @@ class Storable(Model, rendering.Renderable):
             return form.render()
 
         return super(Storable, self).render(mode)
+
+
+class Named(Storable):
+
+    name = fields.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[@a-z0-9_\-]+$')])
+
+    def instance_url(self, mode=None):
+        return app.get_url(self.__class__, id_or_name=self.name, mode=mode)
 
 
 class Listing(rendering.Renderable):

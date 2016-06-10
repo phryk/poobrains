@@ -163,6 +163,7 @@ class Poobrain(flask.Flask):
                     related_model = field.model_class
 
                     if issubclass(related_model, poobrains.auth.Administerable):
+
                         endpoint = "%s_%s" % (cls.__name__, related_model.__name__)
                         
                         #def view_func = functools.partial(cls.related_form, related_field=field)
@@ -180,7 +181,6 @@ class Poobrain(flask.Flask):
                                 instance = cls()
 
                             if hasattr(related_model, 'related_form'):
-                                print "####################### related form model: ", related_model
                                 form_class = related_model.related_form
                             else:
                                 form_class = functools.partial(poobrains.auth.RelatedForm, related_model)
@@ -188,7 +188,13 @@ class Poobrain(flask.Flask):
                             f = form_class(field, instance)
 
                             if flask.request.method == 'POST':
-                                f.validate_and_bind(flask.request.form[f.name])
+                                try:
+                                    f.validate_and_bind(flask.request.form[f.name])
+                                except form.errors.ValidationError as e:
+                                    flask.flash(e.message)
+                                except form.errors.BindingError as e:
+                                    flask.flash(e.message)
+
                                 return f.handle()
 
                             return f
@@ -407,7 +413,7 @@ class Pooprint(flask.Blueprint):
                             return instance
 
                         return instance.handle()
-                print "######################## view_func", instance.form()
+
                 return instance
 
         if force_secure:
@@ -507,7 +513,7 @@ class Pooprint(flask.Blueprint):
         return decorator
 
     
-    def box(self, name, ):
+    def box(self, name):
 
         def decorator(f):
             self.boxes[name] = f

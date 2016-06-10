@@ -196,7 +196,7 @@ class MultiIntegerChoice(MultiChoice):
     coercer = coercers.coerce_int
 
 
-class ForeignKeyChoice(Choice):
+class ForeignKeyChoice(IntegerChoice):
 
     """
     Warning: this field expects to be bound to a ForeignKeyField.
@@ -205,21 +205,16 @@ class ForeignKeyChoice(Choice):
     __metaclass__ = BoundFieldMeta
 
     storable = None
-    validator = validators.is_integer
-    coercer = coercers.coerce_storable
 
-    def __new__(cls, model_or_instance, *args, **kwargs):
-
-        instance = super(ForeignKeyChoice, cls).__new__(cls, *args, **kwargs)
-        
-        instance.storable = model_or_instance.rel_model
-        
-        return instance
+    def __new__(cls, fkfield, *args, **kwargs):
+        return super(ForeignKeyChoice, cls).__new__(cls, *args, **kwargs)
 
 
     def __init__(self, fkfield, *args, **kwargs):
-        print "??????????????????????????????????????????? storable choice init", fkfield, args, kwargs
 
+        self.storable = fkfield.rel_model
+        print "??????????????????????????????????????????? storable choice init", fkfield, args, kwargs
+        # TODO build default choices if not passed
         super(ForeignKeyChoice, self).__init__(*args, **kwargs)
 
 

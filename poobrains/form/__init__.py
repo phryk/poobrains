@@ -180,20 +180,20 @@ class BaseForm(poobrains.rendering.Renderable):
 
         for k, field in self.fields.iteritems():
 
-            if not values.has_key(field.name):
-
-                if field.coercer != None and field.required:
-                    validation_messages.append("Missing form input: %s.%s" % (field.prefix, field.name))
-                elif field.readonly or isinstance(field, fields.Checkbox): # or isinstance(field, fields.RadioButton
-                   field.value = field.empty_value 
-
-            elif isinstance(field, Fieldset):
+            if isinstance(field, Fieldset):
                 try:
                     field.validate_and_bind(values[field.name])
                 except errors.ValidationError as e:
                     validation_messages.append(e.message)
                 except ValueError: # happens when a coercer (.bind) fails
                     binding_messages.append("I don't understand %s for %s" % (value, field.name))
+
+            elif not values.has_key(field.name):
+
+                if field.coercer != None and field.required:
+                    validation_messages.append("Missing form input: %s.%s" % (field.prefix, field.name))
+                elif field.readonly or isinstance(field, fields.Checkbox): # or isinstance(field, fields.RadioButton
+                   field.value = field.empty_value 
 
             else:
 
@@ -206,8 +206,6 @@ class BaseForm(poobrains.rendering.Renderable):
                 except ValueError as e: # happens when a coercer (.bind) fails
                     binding_messages.append("I don't understand %s for %s" % (values[field.name], field.name))
                     field.value = values[field.name]
-                    print "error: ", e
-                    print "type: ", type(field.value), field.value
 
             #except:
             #    poobrains.app.logger.error("Possible bug in validate_and_bind or validator and coercer of %s not playing nice." % field.__class__)
@@ -287,6 +285,7 @@ class AutoForm(Form):
             if hasattr(f.instance, 'actions'):
                 f.actions = f.instance.actions
 
+
         if mode == 'delete':
 
             f.title = "Delete %s" % f.instance.name
@@ -315,7 +314,7 @@ class AutoForm(Form):
                             value = getattr(f.instance, field.name).id
                         except field.rel_model.DoesNotExist as e:
                             pass
-                        print "DAS INSTANCE: ", f.instance
+
                         form_field = field.form_class(field.name, choices=choices, value=value)
                         #form_field = poobrains.rendering.RenderString("YOINK")
                         f.fields[field.name] = form_field
@@ -340,14 +339,8 @@ class AutoForm(Form):
     
         self.mode = mode
 
-        if name:
-            self.name = name
-        else:
-
-            if self.instance.id:
-                self.name = "%s-%d-%s" % (self.model.__name__.lower(), self.instance.id, mode)
-            else:
-                self.name = "%s-%s" % (self.model.__name__.lower(), mode)
+        if not name:
+            self.name = self.instance.id_string
 
         super(AutoForm, self).__init__(name=self.name, title=title, method=method, action=action)
 
@@ -363,36 +356,39 @@ class AutoForm(Form):
                     self.title = "%s '%s'" % (self.title, self.instance.name)
                 else:
                     self.title = "%s #%d" % (self.title, self.instance.id)
+            print "]]]]]]]]]]]]]]]]]]]]]] using generated title: ", self.title
+
+        else:
+            self.title = title
+            print "[[[[[[[[[[[[[[[[[ using passed title: ", self.title
+
 
 
     def handle(self):
-        print "==================================== HANDLE"
         # handle POST for add and edit
         if self.mode in ('add', 'edit'):
             for field in self.model._meta.get_fields():
                 if not field.name in self.model.form_blacklist:
                     if isinstance(getattr(self.model, field.name), poobrains.storage.fields.ForeignKeyField):
-                        print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> THIS BE FKFIELD; DUN FUCK IT UP"
                         try:
-                            print type(self.fields[field.name].value), self.fields[field.name].value
                             setattr(self.instance, field.name, field.rel_model.load(self.fields[field.name].value))
                         except field.rel_model.DoesNotExist:
                             flask.flash("%s instance %s does not exist anymore." % (field.rel_model.__name__, self.fields[field.name].value))
+                            flask.flash(field.rel_model)
+                            flask.flash(self.fields[field.name].value)
                     else:
                         setattr(self.instance, field.name, self.fields[field.name].value)
 
             try:
-                self.instance.save()
+                if self.instance.save():
+                    flask.flash("Saved.")
+                    try:
+                        return flask.redirect(self.instance.url('edit'))
+                    except LookupError:
+                        return self
 
             except peewee.IntegrityError as e:
                 flask.flash('Integrity error: %s' % e.message, 'error')
-
-                if self.mode == 'edit':
-                    return flask.redirect(self.model.load(self.instance.id).url('edit'))
-
-                return flask.redirect(self.model.url(mode='teaser-edit'))
-            
-            return flask.redirect(self.instance.url(mode='edit'))
 
         # Why the fuck does HTML not support DELETE!?
         elif self.mode == 'delete' and flask.request.method in ('POST', 'DELETE') and self.instance.id:
@@ -400,7 +396,7 @@ class AutoForm(Form):
             self.instance.delete_instance()
             flask.flash(message)
 
-        return flask.redirect(self.model.url('teaser-edit'))
+        return self
 
 
 class Fieldset(BaseForm):

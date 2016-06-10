@@ -33,10 +33,17 @@ def render(mode='full'):
                 return rv # pass Responses (i.e. redirects) upwards
 
             if hasattr(content, 'title') and content.title:
-                g.title = content.title
+                print "RENDER HAS TITLE"
+                g.title = "YOINK"
+                #g.title = content.title
 
             elif hasattr(content, 'name') and content.name:
-                g.title = content.name
+                print "RENDER HAS NO TITLE"
+                print content
+                if hasattr(content, 'title'):
+                    print type(content.title), content.title
+                g.title = "BOINK"
+                #g.title = content.name
 
             else:
                 g.title = content.__class__.__name__
