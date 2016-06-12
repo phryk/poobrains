@@ -220,7 +220,6 @@ class BaseForm(poobrains.rendering.Renderable):
             raise errors.BindingError("Can't make sense of some of your input.\n%s" % '\n\t'.join(binding_messages))
 
 
-
     def handle(self):
 
 #        poobrains.app.logger.error("base handle")
@@ -265,14 +264,41 @@ class Form(BaseForm):
         super(Form, self).__setattr__(name, value)
 
 
-class AutoForm(Form):
+    @poobrains.helpers.render()
+    def view(self, mode=None):
 
+        """
+        view function to be called in a flask request context
+        """
+
+        if flask.request.method in ('POST', 'DELETE'):
+
+            try:
+                self.validate_and_bind(flask.request.form[self.name])
+
+            except errors.ValidationError as e:
+                flask.flash("Failed validating form. TODO: Proper error flash.")
+                flask.flash(e.message)
+                return self
+
+            except form.errors.BindingError:
+                flask.flash("Binding error")
+                return self
+
+            return self.handle()
+
+        return self
+
+
+class BoundForm(Form):
+
+    mode = None
     model = None
     instance = None
-
-    def __new__(cls, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
     
-        f = super(AutoForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
+    def __new__(cls, model_or_instance, mode=None, prefix=None, name=None, title=None, method=None, action=None):
+    
+        f = super(BoundForm, cls).__new__(cls, prefix=prefix, name=name, title=title, method=method, action=action)
 
         if isinstance(model_or_instance, type(poobrains.storage.Model)): # hacky
             f.model = model_or_instance
@@ -282,121 +308,175 @@ class AutoForm(Form):
             f.instance = model_or_instance
             f.model = f.instance.__class__
 
-            if hasattr(f.instance, 'actions'):
-                f.actions = f.instance.actions
+        if hasattr(f.instance, 'actions'):
+            f.actions = f.instance.actions
+
+        return f
+    
+    
+    def __init__(self, model_or_instance, mode=None, prefix=None, name=None, title=None, method=None, action=None):
+        super(BoundForm, self).__init__(prefix=prefix, name=name, title=title, method=method, action=action)
+        self.mode = mode
 
 
-        if mode == 'delete':
+# TODO: Actually split AutoForm
+class AddForm(BoundForm):
 
-            f.title = "Delete %s" % f.instance.name
-            f.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
-            f.submit = Button('submit', name='submit', value='delete', label='KILL')
+    def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
+        
+        f = super(AddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
 
-        else:
+        for field in f.model._meta.sorted_fields:
 
-            for field in f.model._meta.get_fields():
+            if field.name not in f.model.form_blacklist:
 
-                if field.name not in f.model.form_blacklist:
+                if isinstance(field, poobrains.storage.fields.ForeignKeyField):
+                    #TODO: is this the place to do permission checking for the field?
 
-                    if isinstance(field, poobrains.storage.fields.ForeignKeyField):
-                        #TODO: is this the place to do permission checking for the field?
-
-                        choices = []
-                        for choice in field.rel_model.select():
-                            if hasattr(choice, 'name') and choice.name:
-                                choice_name = choice.name
-                            else:
-                                choice_name = "%s #%d" % (choice.__class__.__name__, choice.id)
-                            choices.append((choice.id, choice_name))
-
-                        value = None
-                        try:
-                            value = getattr(f.instance, field.name).id
-                        except field.rel_model.DoesNotExist as e:
-                            pass
-
-                        form_field = field.form_class(field.name, choices=choices, value=value)
-                        #form_field = poobrains.rendering.RenderString("YOINK")
-                        f.fields[field.name] = form_field
-
-                    elif isinstance(field, poobrains.storage.fields.Field):
-
-                        if issubclass(field.form_class, fields.Choice):
-                            form_field = field.form_class(field.name, choices=field.choices, value=getattr(f.instance, field.name))
+                    choices = []
+                    for choice in field.rel_model.select():
+                        if hasattr(choice, 'name') and choice.name:
+                            choice_name = choice.name
                         else:
-                            form_field = field.form_class(field.name, value=getattr(f.instance, field.name))
+                            choice_name = "%s #%d" % (choice.__class__.__name__, choice.id)
+                        choices.append((choice.id, choice_name))
 
-                        f.fields[field.name] = form_field
-                        #setattr(f, field.name, form_field)
+                    form_field = field.form_class(field.name, choices=choices)
+                    #form_field = poobrains.rendering.RenderString("YOINK")
+                    f.fields[field.name] = form_field
+
+                elif isinstance(field, poobrains.storage.fields.Field):
+
+                    if issubclass(field.form_class, fields.Choice):
+                        form_field = field.form_class(field.name, choices=field.choices)
+                    else:
+                        form_field = field.form_class(field.name)
+
+                    f.fields[field.name] = form_field
 
             f.controls['reset'] = Button('reset', label='Reset')
             f.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
 
         return f
 
-
-    def __init__(self, model_or_instance, mode='add', name=None, title=None, method=None, action=None):
     
-        self.mode = mode
-
+    def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
+        
         if not name:
-            self.name = self.instance.id_string
+            name = self.instance.id_string
+    
+        super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
-        super(AutoForm, self).__init__(name=self.name, title=title, method=method, action=action)
 
-        # override default title unless title was explicitly passed.
         if not title:
-
             self.title = "%s %s" % (self.mode.capitalize(), self.model.__name__)
-
-            if self.instance.id:
-                if hasattr(self.instance, 'title') and self.instance.title:
-                    self.title = "%s '%s'" % (self.title, self.instance.title)
-                elif self.instance.name:
-                    self.title = "%s '%s'" % (self.title, self.instance.name)
-                else:
-                    self.title = "%s #%d" % (self.title, self.instance.id)
-            print "]]]]]]]]]]]]]]]]]]]]]] using generated title: ", self.title
-
-        else:
-            self.title = title
-            print "[[[[[[[[[[[[[[[[[ using passed title: ", self.title
-
-
-
+    
+    
     def handle(self):
-        # handle POST for add and edit
-        if self.mode in ('add', 'edit'):
-            for field in self.model._meta.get_fields():
-                if not field.name in self.model.form_blacklist:
-                    if isinstance(getattr(self.model, field.name), poobrains.storage.fields.ForeignKeyField):
-                        try:
-                            setattr(self.instance, field.name, field.rel_model.load(self.fields[field.name].value))
-                        except field.rel_model.DoesNotExist:
-                            flask.flash("%s instance %s does not exist anymore." % (field.rel_model.__name__, self.fields[field.name].value))
-                            flask.flash(field.rel_model)
-                            flask.flash(self.fields[field.name].value)
-                    else:
-                        setattr(self.instance, field.name, self.fields[field.name].value)
 
-            try:
-                if self.instance.save():
-                    flask.flash("Saved.")
+        for field in self.model._meta.sorted_fields:
+            if not field.name in self.model.form_blacklist:
+                if isinstance(getattr(self.model, field.name), poobrains.storage.fields.ForeignKeyField):
                     try:
-                        return flask.redirect(self.instance.url('edit'))
-                    except LookupError:
-                        return self
+                        setattr(self.instance, field.name, field.rel_model.load(self.fields[field.name].value))
+                    except field.rel_model.DoesNotExist:
+                        flask.flash("%s instance %s does not exist anymore." % (field.rel_model.__name__, self.fields[field.name].value))
+                        flask.flash(field.rel_model)
+                        flask.flash(self.fields[field.name].value)
+                else:
+                    setattr(self.instance, field.name, self.fields[field.name].value)
 
-            except peewee.IntegrityError as e:
-                flask.flash('Integrity error: %s' % e.message, 'error')
+        try:
 
-        # Why the fuck does HTML not support DELETE!?
-        elif self.mode == 'delete' and flask.request.method in ('POST', 'DELETE') and self.instance.id:
-            message = "Deleted %s '%s'." % (self.model.__name__, self.instance.name)
-            self.instance.delete_instance()
-            flask.flash(message)
+            if isinstance(self.instance, poobrains.auth.UserPermission):
+                print "DEM USERPERM INSTANCE: ", self.instance
+                print self.instance.user
+                print self.instance.permission
+                print self.instance._get_pk_value()
+            if self.mode == 'add':
+                print "VVVVVVVVVVVVVVVVVVVVVV INSERT FORCED"
+                saved = self.instance.save(force_insert=True) # To make sure Administerables with CompositeKey as primary get inserted properly
+            else:
+                print "VVVVVVVVVVVVVVVVV DEFAULT SAVE"
+                saved = self.instance.save()
+
+            if saved:
+                flask.flash("Saved.")
+                try:
+                    return flask.redirect(self.instance.url('edit'))
+                except LookupError:
+                    return self
+            else:
+                flask.flash("Couldn't save %s." % self.model.__name__)
+
+        except peewee.IntegrityError as e:
+            flask.flash('Integrity error: %s' % e.message, 'error')
 
         return self
+
+
+class EditForm(AddForm):
+    
+    def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+        
+        f = super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+
+        return f
+   
+
+    def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+
+        super(EditForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+
+        if hasattr(self.instance, 'title') and self.instance.title:
+            self.title = "%s '%s'" % (self.title, self.instance.title)
+        elif self.instance.name:
+            self.title = "%s '%s'" % (self.title, self.instance.name)
+        elif self.instance.id:
+            self.title = "%s #%d" % (self.title, self.instance.id)
+        else:
+            self.title = "%s %s" % (self.title, self.instance._get_pk_value())
+
+        for name, field in self.fields.iteritems():
+            if hasattr(self.instance, name) and getattr(self.instance, name):
+                field.value = getattr(self.instance, name) # TODO: implement setting 'value' for AutoFieldset
+                print "DAT FIELD VALUE: ", field.value
+            else:
+                print "SKIPPING FIELD IN FORM VALUE FOOBAR: ", field.name
+
+
+class DeleteForm(BoundForm):
+
+    def __new__(cls, model_or_instance, mode='delete', prefix=None, name=None, title=None, method=None, action=None):
+        
+        f = super(DeleteForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=None, title=title, method=method, action=action)
+
+        f.title = "Delete %s" % f.instance.name
+        f.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
+        f.submit = Button('submit', name='submit', value='delete', label='KILL')
+
+        return f
+
+
+    def __init__(self, model_or_instance, mode='delete', prefix=None, name=None, title=None, method=None, action=None):
+        super(DeleteForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=self.name, title=title, method=method, action=action)
+        if not title:
+            if hasattr(self.instance, 'title') and self.instance.title:
+                self.title = "Delete %s %s" % (self.model.__name__, self.instance.title)
+            else:
+                self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._get_pk_value()))
+
+    
+    def handle(self):
+
+        if hasattr(self.instance, 'title') and self.instance.title:
+            message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
+        else:
+            message = "Deleted %s '%s'." % (self.model.__name__, unicode(self.instance._get_pk_value()))
+        self.instance.delete_instance()
+        flask.flash(message)
+
+        return flask.redirect(self.model.url('teaser-edit'))
 
 
 class Fieldset(BaseForm):
@@ -429,14 +509,24 @@ class Fieldset(BaseForm):
             raise errors.ValidationError("Fieldset %s could not be validated, errors below.\n%s" % (self.name, '\n\t'.join(messages)))
 
 
-class AutoFieldset(AutoForm, Fieldset):
+class AddFieldset(AddForm, Fieldset):
 
     rendered = None
  
     def render(self, mode=None):
 
         self.rendered = True
-        return super(AutoForm, self).render(mode)
+        return super(AddFieldset, self).render(mode)
+
+
+class EditFieldset(EditForm, Fieldset):
+
+    rendered = None
+ 
+    def render(self, mode=None):
+
+        self.rendered = True
+        return super(EditFieldset, self).render(mode)
 
 
 class Button(poobrains.rendering.Renderable):

@@ -40,7 +40,7 @@ def admin_menu():
 
 
 @poobrains.app.admin.route('/')
-@poobrains.rendering.render()
+@poobrains.helpers.render()
 def admin_index():
     return admin_menu()
 
@@ -163,7 +163,7 @@ class RelatedForm(poobrains.form.Form):
         for related_instance in getattr(instance, related_field.related_name):
             #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
             key = related_instance.id_string
-            f.fields[key] = poobrains.form.AutoFieldset(related_instance)
+            f.fields[key] = poobrains.form.EditFieldset(related_instance)
 
             if f.fields[key].fields.has_key(related_field.name):
                 f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id)
@@ -176,7 +176,7 @@ class RelatedForm(poobrains.form.Form):
         #key = '%s-add' % related_model.__name__
         key = related_instance.id_string
 
-        f.fields[key] = poobrains.form.AutoFieldset(related_instance)
+        f.fields[key] = poobrains.form.AddFieldset(related_instance)
             
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
@@ -195,7 +195,7 @@ class RelatedForm(poobrains.form.Form):
     def handle(self):
 
         for field in self.fields.itervalues():
-            if isinstance(field, poobrains.form.AutoFieldset):
+            if isinstance(field, poobrains.form.Fieldset):
                 field.handle()
         return flask.redirect(flask.request.url)
 
@@ -203,7 +203,12 @@ class RelatedForm(poobrains.form.Form):
 class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     
     __metaclass__ = BaseAdministerable
-    related_form = RelatedForm
+
+    form_modes = ['add', 'edit', 'delete']
+    form_add = poobrains.form.AddForm
+    form_edit = poobrains.form.EditForm
+    form_delete = poobrains.form.DeleteForm
+    related_form = RelatedForm # TODO: make naming consistent
 
     class Meta:
         abstract = True
@@ -236,7 +241,50 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
             poobrains.app.logger.debug("Couldn't create delete link for %s" % self.id_string)
 
         return actions
-   
+
+
+    def form(self, mode=None):
+
+        if not mode in self.form_modes:
+            raise ValueError("%s is not a valid form mode for %s." % (mode, self.__class__.__name__))
+
+        n = 'form_%s' % mode
+        if not hasattr(self, n):
+            raise NotImplementedError("Form class %s.%s missing." % (self.__class__.__name__, n))
+
+        form_class = getattr(self, n)
+        return form_class(mode=mode)#, name=None, title=None, method=None, action=None)
+    
+
+    def view(self, mode=None):
+
+        """
+        view function to be called in a flask request context
+        """
+
+        if mode in self.form_modes:
+
+            f = self.form(mode)
+            if flask.request.method == f.method:
+
+                try:
+                    f.validate_and_bind(flask.request.form[f.name])
+
+                except form.errors.ValidationError as e:
+                    flask.flash("Failed validating form. TODO: Proper error flash.")
+                    flask.flash(e.message)
+                    return f
+
+                except form.errors.BindingError as e:
+                    flask.flash("Binding error: %s" % e.message)
+                    return f
+
+                return f.handle()
+
+            return f
+
+        return self
+
 
     def __repr__(self):
         return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
@@ -244,6 +292,9 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
 
 class NamedAdministerable(Administerable, poobrains.storage.Named):
 
+    class Meta:
+        abstract = True
+    
     @classmethod
     def load(cls, id_or_name):
         if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
@@ -314,7 +365,7 @@ class User(NamedAdministerable):
 
         super(User, self).save(*args, **kwargs)
 
-        UserPermission.delete().where(UserPermission.user == self)
+        rv = UserPermission.delete().where(UserPermission.user == self)
 
         for perm_name, access in self.permissions.iteritems():
             up = UserPermission()
@@ -322,6 +373,8 @@ class User(NamedAdministerable):
             up.permission = perm_name
             up.access = access
             up.save()
+
+        return rv
 
 
 class UserPermission(Administerable):
@@ -336,6 +389,14 @@ class UserPermission(Administerable):
     access.form_class = poobrains.form.fields.TextChoice
 
     #related_form = UserPermissionRelatedForm
+
+
+    @classmethod
+    def load(cls, id_perm_string):
+
+        (user_id, permission) = id_perm_string.split(',')
+        user = User.load(user_id)
+        return cls.get(cls.user == user, cls.permission == permission)
 
 
 @poobrains.app.expose('/cert/', force_secure=True)
@@ -417,7 +478,7 @@ class ClientCertToken(Administerable):
 
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User)
-    created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now)
+    created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     token = poobrains.storage.fields.CharField(unique=True)
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
     redeemed = poobrains.storage.fields.BooleanField()

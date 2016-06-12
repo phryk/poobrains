@@ -14,7 +14,7 @@ def front():
 
 
 @app.site.route('/form', methods=['GET', 'POST'])
-@poobrains.rendering.render()
+@poobrains.helpers.render()
 def form_test():
 
     form = TestForm()

@@ -99,8 +99,6 @@ class Model(peewee.Model, helpers.ChildAware):
 
 class Storable(Model, rendering.Renderable):
 
-    form = poobrains.form.AutoForm
-
     class Meta:
         abstract = True
 
@@ -108,45 +106,45 @@ class Storable(Model, rendering.Renderable):
     def __init__(self, *args, **kwargs):
 
         super(Storable, self).__init__(*args, **kwargs)
+        self.templates = self.instance_templates
         self.url = self.instance_url # make .url callable for class and instances
-        #self.form = self.instance_form # make .form callable for class and instance
-
-
-    @classmethod
-    def url(cls, mode=None):
-        return app.get_url(cls, mode=mode)
 
 
     def instance_url(self, mode=None):
-        return app.get_url(self.__class__, id_or_name=self.id, mode=mode)
+        if isinstance(self._meta.primary_key, peewee.ForeignKeyField):
+            url_id = getattr(self, self.__class__._meta.primary_key.name)._get_pk_value()# TODO: Test this; WTF happens when the referenced model has a CompositeKey primary key?
+        elif isinstance(self._meta.primary_key, peewee.CompositeKey):
+            fragments = []
+            for value in self._get_pk_value():
+                if isinstance(value, Storable):
+                    fragments.append(unicode(value._get_pk_value()))
+                else:
+                    fragments.append(unicode(value))
+
+            url_id = "%s" % ','.join(fragments)
+        else:
+            url_id = self._get_pk_value()
+
+        return app.get_url(self.__class__, id_or_name=url_id, mode=mode)
 
 
     @classmethod
-    def templates(cls, mode='add'):
+    def templates(cls, mode='full'):
         return super(Storable, cls).templates(mode) 
-    
+
+
     def instance_templates(self, mode='edit'):
         return self.__class__.templates(mode)
 
 
-    def render(self, mode='full'):
-
-        if mode in ('add', 'edit', 'delete'):
-
-            if mode == 'add':
-                form = self.__class__.form()
-
-            else:
-                form = self.form(mode=mode)
-
-            return form.render()
-
-        return super(Storable, self).render(mode)
-
-
 class Named(Storable):
 
-    name = fields.CharField(index=True, unique=True, constraints=[RegexpConstraint('name', '^[@a-z0-9_\-]+$')])
+    name = fields.CharField(index=True, unique=True, null=False, constraints=[RegexpConstraint('name', '^[@a-z0-9_\-]+$')])
+
+    def __init__(self, *args, **kwargs):
+
+        super(Named, self).__init__(*args, **kwargs)
+
 
     def instance_url(self, mode=None):
         return app.get_url(self.__class__, id_or_name=self.name, mode=mode)

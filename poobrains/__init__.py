@@ -170,7 +170,7 @@ class Poobrain(flask.Flask):
                         #print "view_func:", view_func
 
 
-                        @poobrains.rendering.render()
+                        @poobrains.helpers.render()
                         def view_func(cls, field, id_or_name=None):
 
                             related_model = field.model_class
@@ -353,7 +353,7 @@ class Pooprint(flask.Blueprint):
         self.db = app.db
 
 
-    def add_view(self, cls, rule, endpoint=None, view_func=None, mode='full', primary=False, force_secure=False, **options):
+    def add_view(self, cls, rule, endpoint=None, view_func=None, mode=None, primary=False, force_secure=False, **options):
 
         if not self.views.has_key(cls):
             self.views[cls] = collections.OrderedDict()
@@ -371,50 +371,51 @@ class Pooprint(flask.Blueprint):
                 rule = os.path.join(rule, 'delete')
                 options['methods'].append('DELETE')
 
-        if not view_func:
-            @poobrains.rendering.render(mode)
+            @poobrains.helpers.render(mode)
             def view_func(id_or_name=None):
+                print "DAT VIEW FUNC"
                 if id_or_name:
                     instance = cls.load(id_or_name)
 
                 else: # should only happen for 'add' mode for storables, or any for forms
                     instance = cls()
-                    
-                if flask.request.method in ('POST', 'DELETE'):
-                    if (mode in ('add', 'edit') and flask.request.method == 'POST') or mode == 'delete':
-                        f = instance.form(mode=mode)
-
-                        try:
-                            f.validate_and_bind(flask.request.form[f.name])
-
-                        except form.errors.ValidationError as e:
-                            flask.flash("Failed validating form. TODO: Proper error flash.")
-                            flask.flash(e.message)
-                            return f
-
-                        except form.errors.BindingError as e:
-                            flask.flash("Binding error: %s" % e.message)
-                            return f
-
-                        return f.handle()
-
-                    elif isinstance(instance, form.Form): # special case for when a Form class is directly @expose'd
-                        
-                        try:
-                            instance.validate_and_bind(flask.request.form[instance.name])
-
-                        except form.errors.ValidationError as e:
-                            flask.flash("Failed validating form. TODO: Proper error flash.")
-                            flask.flash(e.message)
-                            return instance
-
-                        except form.errors.BindingError:
-                            flask.flash("Binding error")
-                            return instance
-
-                        return instance.handle()
-
-                return instance
+                
+                return instance.view(mode)
+#                if flask.request.method in ('POST', 'DELETE'):
+#                    if (mode in ('add', 'edit') and flask.request.method == 'POST') or mode == 'delete':
+#                        f = instance.form(mode=mode)
+#
+#                        try:
+#                            f.validate_and_bind(flask.request.form[f.name])
+#
+#                        except form.errors.ValidationError as e:
+#                            flask.flash("Failed validating form. TODO: Proper error flash.")
+#                            flask.flash(e.message)
+#                            return f
+#
+#                        except form.errors.BindingError as e:
+#                            flask.flash("Binding error: %s" % e.message)
+#                            return f
+#
+#                        return f.handle()
+#
+#                    elif isinstance(instance, form.Form): # special case for when a Form class is directly @expose'd
+#                        
+#                        try:
+#                            instance.validate_and_bind(flask.request.form[instance.name])
+#
+#                        except form.errors.ValidationError as e:
+#                            flask.flash("Failed validating form. TODO: Proper error flash.")
+#                            flask.flash(e.message)
+#                            return instance
+#
+#                        except form.errors.BindingError:
+#                            flask.flash("Binding error")
+#                            return instance
+#
+#                        return instance.handle()
+#
+#                return instance
 
         if force_secure:
             view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
@@ -451,7 +452,7 @@ class Pooprint(flask.Blueprint):
 
         if view_func is None:
 
-            @poobrains.rendering.render('full')
+            @poobrains.helpers.render('full')
             def view_func(offset=0):
 
                 if action_func:
@@ -479,11 +480,11 @@ class Pooprint(flask.Blueprint):
     
 
     def listing(self, cls, rule, mode='teaser', title=None, **options):
-
+        # TODO: Is this even used? Does keeping it make sense?
         def decorator(f):
 
             @functools.wraps(f)
-            @poobrains.rendering.render('full')
+            @poobrains.helpers.render('full')
             def real(offset=0):
 
                 instance = poobrains.storage.Listing(cls, title=title, offset=offset, mode=mode)
@@ -496,12 +497,12 @@ class Pooprint(flask.Blueprint):
         return decorator
 
 
-    def view(self, cls, rule, mode='full', primary=False, **options):
+    def view(self, cls, rule, mode=None, primary=False, **options):
         # TODO: Why am I not using this in here? Change that - if it makes any sense.
         def decorator(f):
 
             @functools.wraps(f)
-            @poobrains.rendering.render(mode)
+            @poobrains.helpers.render(mode)
             def real(id_or_name):
 
                 instance = cls.load(id_or_name)
@@ -644,7 +645,7 @@ class ErrorPage(poobrains.rendering.Renderable):
             self.message = error.message
 
 
-@poobrains.rendering.render('full')
+@poobrains.helpers.render('full')
 def errorpage(error):
     return ErrorPage(error)
 

@@ -2,6 +2,7 @@
 
 import random
 import functools
+import werkzeug
 import flask
 
 from collections import OrderedDict
@@ -43,6 +44,47 @@ def is_secure(f):
             flask.abort(403, "You are trying to do naughty things without protection.")
 
     return substitute
+
+
+def render(mode=None):
+
+    def decorator(f):
+
+        @functools.wraps(f)
+        def real(*args, **kwargs):
+
+            rv = f(*args, **kwargs)
+
+            if isinstance(rv, tuple):
+                content = rv[0]
+                status_code = rv[1]
+
+            else:
+                content = rv
+                status_code = 200 # TODO: Find out if this is too naive
+
+            if isinstance(content, werkzeug.wrappers.Response):
+                return rv # pass Responses (i.e. redirects) upwards
+
+            if hasattr(content, 'title') and content.title:
+                flask.g.title = content.title
+
+            elif hasattr(content, 'name') and content.name:
+                flask.g.title = content.name
+
+            else:
+                flask.g.title = content.__class__.__name__
+            flask.g.content = content
+
+            if hasattr(flask.g, 'user'):
+                user = flask.g.user
+            else:
+                user = None
+            return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
+
+        return real
+
+    return decorator
 
 
 class ClassOrInstanceBound(type): # probably the worst name I ever picked, but hey it's descriptive! ¯\_(ツ)_/¯

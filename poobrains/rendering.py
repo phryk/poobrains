@@ -12,64 +12,27 @@ import jinja2
 import poobrains
 import helpers
 
-def render(mode='full'):
-
-    def decorator(f):
-
-        @wraps(f)
-        def real(*args, **kwargs):
-
-            rv = f(*args, **kwargs)
-
-            if isinstance(rv, tuple):
-                content = rv[0]
-                status_code = rv[1]
-
-            else:
-                content = rv
-                status_code = 200 # TODO: Find out if this is too naive
-
-            if isinstance(content, Response):
-                return rv # pass Responses (i.e. redirects) upwards
-
-            if hasattr(content, 'title') and content.title:
-                print "RENDER HAS TITLE"
-                g.title = "YOINK"
-                #g.title = content.title
-
-            elif hasattr(content, 'name') and content.name:
-                print "RENDER HAS NO TITLE"
-                print content
-                if hasattr(content, 'title'):
-                    print type(content.title), content.title
-                g.title = "BOINK"
-                #g.title = content.name
-
-            else:
-                g.title = content.__class__.__name__
-            g.content = content
-
-            if hasattr(g, 'user'):
-                user = g.user
-            else:
-                user = None
-            return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
-
-        return real
-
-    return decorator
-
 
 class Renderable(helpers.ChildAware):
 
     name = None
 
-    def __init__(self):
+    def __init__(self, name=None):
 
-        self.name = self.__class__.__name__.lower()
+        self.name = name
         self.templates = self.instance_templates
+        self.url = self.instance_url # make .url callable for class and instances
 
-    
+
+    @classmethod
+    def url(cls, mode=None):
+        return poobrains.app.get_url(cls, mode=mode)
+
+
+    def instance_url(self, mode=None):
+        return poobrains.app.get_url(self.__class__, id_or_name=self.name, mode=mode)
+
+
     @classmethod
     def templates(cls, mode=None):
 
@@ -90,23 +53,34 @@ class Renderable(helpers.ChildAware):
     def instance_templates(self, mode=None):
         return self.__class__.templates(mode)
 
-    
-    def render(self, mode=None):
 
+    def view(self, mode=None):
+
+        """
+        view function to be called in a flask request context
+        """
+
+        return self
+
+
+    def render(self, mode=None):
+        
         tpls = self.templates(mode)
         return jinja2.Markup(flask.render_template(tpls, content=self, mode=mode))
 
 
+    
 class RenderString(Renderable):
 
     value = None
 
-    def __init__(self, value):
+    def __init__(self, value, name=None):
+        super(RenderString, self).__init__(name=name)
         self.value = value
 
 
-    def render(self, mode=None):
-        return self.value
+    def render(self):
+        return self.value # TODO: cast to jinja2.Markup or sth?
 
 
 class MenuItem(object):
@@ -132,10 +106,11 @@ class Menu(Renderable):
 
     def __init__(self, name, title=None):
 
-        super(Menu, self).__init__()
+        super(Menu, self).__init__(name=name)
 
-        self.name = name
-        self.title = title if title else name
+        if title:
+            self.title = title
+
         self.items = []
 
 

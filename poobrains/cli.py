@@ -378,7 +378,7 @@ class Add(Command):
         instance = cls()
 
         stdout.write("Addding %s...\n" % (cls.__name__,))
-        for field in cls._meta.get_fields():
+        for field in cls._meta.sorted_fields:
 
             if not isinstance(field, peewee.PrimaryKeyField):
                 stdout.write("%s: " % (field.name,))

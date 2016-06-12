@@ -218,6 +218,15 @@ class ForeignKeyChoice(IntegerChoice):
         super(ForeignKeyChoice, self).__init__(*args, **kwargs)
 
 
+    def __setattr__(self, name, value):
+
+        if name == 'value' and isinstance(value, poobrains.storage.Storable):
+            print "KEYCHOICE GOT STORABLE",self, value._get_pk_value()
+            super(ForeignKeyChoice, self).__setattr__(name, value._get_pk_value())
+        else:
+            super(ForeignKeyChoice, self).__setattr__(name, value)
+
+
 class Checkbox(RangedInteger):
 
     empty_value = False
