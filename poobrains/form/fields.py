@@ -154,7 +154,6 @@ class Choice(Field):
         super(Choice, self).validate(value)
 
         if not self.coercer(value) in dict(self.choices).keys():
-            print ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>< approved choices:", dict(self.choices).keys()
             raise errors.ValidationError("%s is not an approved choice for %s.%s" % (value, self.prefix, self.name))
 
 
@@ -213,7 +212,6 @@ class ForeignKeyChoice(IntegerChoice):
     def __init__(self, fkfield, *args, **kwargs):
 
         self.storable = fkfield.rel_model
-        print "??????????????????????????????????????????? storable choice init", fkfield, args, kwargs
         # TODO build default choices if not passed
         super(ForeignKeyChoice, self).__init__(*args, **kwargs)
 
@@ -221,7 +219,6 @@ class ForeignKeyChoice(IntegerChoice):
     def __setattr__(self, name, value):
 
         if name == 'value' and isinstance(value, poobrains.storage.Storable):
-            print "KEYCHOICE GOT STORABLE",self, value._get_pk_value()
             super(ForeignKeyChoice, self).__setattr__(name, value._get_pk_value())
         else:
             super(ForeignKeyChoice, self).__setattr__(name, value)

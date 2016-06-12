@@ -39,14 +39,14 @@ class TestForm(poobrains.form.Form):
     trigger = poobrains.form.Button('submit', label='Hit me!')
 
 
-@app.expose('/news')
+@app.expose('/news', mode='full')
 class News(poobrains.auth.Administerable):
 
     title = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()
 
 
-@app.expose('/paste', title='Copypasta')
+@app.expose('/paste', mode='full', title='Copypasta')
 class Paste(poobrains.auth.Administerable):
 
     type = poobrains.storage.fields.CharField()

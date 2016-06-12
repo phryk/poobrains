@@ -388,16 +388,9 @@ class AddForm(BoundForm):
 
         try:
 
-            if isinstance(self.instance, poobrains.auth.UserPermission):
-                print "DEM USERPERM INSTANCE: ", self.instance
-                print self.instance.user
-                print self.instance.permission
-                print self.instance._get_pk_value()
             if self.mode == 'add':
-                print "VVVVVVVVVVVVVVVVVVVVVV INSERT FORCED"
                 saved = self.instance.save(force_insert=True) # To make sure Administerables with CompositeKey as primary get inserted properly
             else:
-                print "VVVVVVVVVVVVVVVVV DEFAULT SAVE"
                 saved = self.instance.save()
 
             if saved:
@@ -440,9 +433,6 @@ class EditForm(AddForm):
         for name, field in self.fields.iteritems():
             if hasattr(self.instance, name) and getattr(self.instance, name):
                 field.value = getattr(self.instance, name) # TODO: implement setting 'value' for AutoFieldset
-                print "DAT FIELD VALUE: ", field.value
-            else:
-                print "SKIPPING FIELD IN FORM VALUE FOOBAR: ", field.name
 
 
 class DeleteForm(BoundForm):

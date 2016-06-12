@@ -110,7 +110,7 @@ class Storable(Model, rendering.Renderable):
         self.url = self.instance_url # make .url callable for class and instances
 
 
-    def instance_url(self, mode=None):
+    def instance_url(self, mode='full'):
         if isinstance(self._meta.primary_key, peewee.ForeignKeyField):
             url_id = getattr(self, self.__class__._meta.primary_key.name)._get_pk_value()# TODO: Test this; WTF happens when the referenced model has a CompositeKey primary key?
         elif isinstance(self._meta.primary_key, peewee.CompositeKey):
@@ -146,7 +146,7 @@ class Named(Storable):
         super(Named, self).__init__(*args, **kwargs)
 
 
-    def instance_url(self, mode=None):
+    def instance_url(self, mode='full'):
         return app.get_url(self.__class__, id_or_name=self.name, mode=mode)
 
 

@@ -281,14 +281,14 @@ class Poobrain(flask.Flask):
             self.db.close()
 
 
-    def expose(self, rule, title=None, force_secure=False):
+    def expose(self, rule, mode=None, title=None, force_secure=False):
 
         def decorator(cls):
 
             if issubclass(cls, storage.Storable):
 
-                self.site.add_listing(cls, rule, title=title, force_secure=force_secure)
-                self.site.add_view(cls, rule, force_secure=force_secure)
+                self.site.add_listing(cls, rule, mode='teaser', title=title, force_secure=force_secure)
+                self.site.add_view(cls, rule, mode=mode, force_secure=force_secure)
 
             elif issubclass(cls, form.Form):
 
@@ -365,66 +365,29 @@ class Pooprint(flask.Blueprint):
             rule = os.path.join(rule, '<id_or_name>')
 
         # Why the fuck does HTML not support DELETE!?
-        if mode in ('add', 'edit', 'delete') or issubclass(cls, form.Form): 
-            options['methods'] = ['GET', 'POST']
-            if mode == 'delete':
-                rule = os.path.join(rule, 'delete')
-                options['methods'].append('DELETE')
+        options['methods'] = ['GET', 'POST']
+        if mode == 'delete':
+            rule = os.path.join(rule, 'delete')
+            options['methods'].append('DELETE')
 
-            @poobrains.helpers.render(mode)
-            def view_func(id_or_name=None):
-                print "DAT VIEW FUNC"
-                if id_or_name:
-                    instance = cls.load(id_or_name)
 
-                else: # should only happen for 'add' mode for storables, or any for forms
-                    instance = cls()
-                
-                return instance.view(mode)
-#                if flask.request.method in ('POST', 'DELETE'):
-#                    if (mode in ('add', 'edit') and flask.request.method == 'POST') or mode == 'delete':
-#                        f = instance.form(mode=mode)
-#
-#                        try:
-#                            f.validate_and_bind(flask.request.form[f.name])
-#
-#                        except form.errors.ValidationError as e:
-#                            flask.flash("Failed validating form. TODO: Proper error flash.")
-#                            flask.flash(e.message)
-#                            return f
-#
-#                        except form.errors.BindingError as e:
-#                            flask.flash("Binding error: %s" % e.message)
-#                            return f
-#
-#                        return f.handle()
-#
-#                    elif isinstance(instance, form.Form): # special case for when a Form class is directly @expose'd
-#                        
-#                        try:
-#                            instance.validate_and_bind(flask.request.form[instance.name])
-#
-#                        except form.errors.ValidationError as e:
-#                            flask.flash("Failed validating form. TODO: Proper error flash.")
-#                            flask.flash(e.message)
-#                            return instance
-#
-#                        except form.errors.BindingError:
-#                            flask.flash("Binding error")
-#                            return instance
-#
-#                        return instance.handle()
-#
-#                return instance
+        @poobrains.helpers.render(mode)
+        def view_func(id_or_name=None):
+            if id_or_name:
+                instance = cls.load(id_or_name)
+
+            else: # should only happen for 'add' mode for storables, or any for forms
+                instance = cls()
+            
+            return instance.view(mode)
+
 
         if force_secure:
             view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
 
-
         endpoint = self.next_endpoint(cls, mode, 'view')
 
-
-        if endpoint is None:
+        if endpoint is None: # TODO: does this even happen? kill it if not.
             endpoint = view_func.__name__
 
         self.add_url_rule(rule, endpoint, view_func, **options)
