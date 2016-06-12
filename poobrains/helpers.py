@@ -249,5 +249,10 @@ class CustomOrderedDict(dict):
             yield self[key]
 
 
+    def clear(self):
+        super(CustomOrderedDict, self).clear()
+        self.order = []
+
+
     def keys(self):
         return self.order

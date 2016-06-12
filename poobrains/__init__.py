@@ -195,7 +195,8 @@ class Poobrain(flask.Flask):
                                 except form.errors.BindingError as e:
                                     flask.flash(e.message)
 
-                                return f.handle()
+                                else:
+                                    return f.handle()
 
                             return f
 

@@ -154,7 +154,7 @@ class Choice(Field):
         super(Choice, self).validate(value)
 
         if not self.coercer(value) in dict(self.choices).keys():
-            raise errors.ValidationError("%s is not an approved choice for %s.%s" % (value, self.prefix, self.name))
+            raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (value, self.prefix, self.name))
 
 
 class MultiChoice(Choice):
@@ -218,10 +218,13 @@ class ForeignKeyChoice(IntegerChoice):
 
     def __setattr__(self, name, value):
 
-        if name == 'value' and isinstance(value, poobrains.storage.Storable):
-            super(ForeignKeyChoice, self).__setattr__(name, value._get_pk_value())
-        else:
-            super(ForeignKeyChoice, self).__setattr__(name, value)
+        if name == 'value':
+            if value == '':
+                return super(ForeignKeyChoice, self).__setattr__(name, None) # empty string counts as no value in HTML select
+            elif isinstance(value, poobrains.storage.Storable):
+                return super(ForeignKeyChoice, self).__setattr__(name, value._get_pk_value())
+
+        super(ForeignKeyChoice, self).__setattr__(name, value)
 
 
 class Checkbox(RangedInteger):

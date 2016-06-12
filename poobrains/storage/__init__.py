@@ -80,17 +80,17 @@ class Model(peewee.Model, helpers.ChildAware):
         if not isinstance(pk, collections.Iterable):
             pk = [pk]
 
-        for kv in pk:
-            if isinstance(kv, Named):
-                segments.append(kv.name)
-            elif isinstance(kv, Model):
-                segments.append(kv.id)
-            elif kv == None:
-                return '%s-add' % self.__class__.__name__.lower()
+        for pk_value in pk:
+            if isinstance(pk_value, Named):
+                segments.append(pk_value.name)
+            elif isinstance(pk_value, Model):
+                segments.append(pk_value.id)
+            elif pk_value == None:
+                return '%s-add' % self.__class__.__name__
             else:
-                segments.append(kv)
+                segments.append(pk_value)
 
-        return '-'.join(str(x) for x in segments).lower()
+        return '-'.join(str(x) for x in segments)
 
 
     def __repr__(self):

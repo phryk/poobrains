@@ -63,8 +63,7 @@ class BaseForm(poobrains.rendering.Renderable):
     def __init__(self, prefix=None, name=None, title=None):
         
         super(BaseForm, self).__init__()
-        self.name = name if name else self.__class__.__name__.lower()
-
+        self.name = name if name else self.__class__.__name__
 
         if title:
             self.title = title
@@ -264,14 +263,13 @@ class Form(BaseForm):
         super(Form, self).__setattr__(name, value)
 
 
-    @poobrains.helpers.render()
     def view(self, mode=None):
 
         """
         view function to be called in a flask request context
         """
 
-        if flask.request.method in ('POST', 'DELETE'):
+        if flask.request.method == self.method:
 
             try:
                 self.validate_and_bind(flask.request.form[self.name])
@@ -285,7 +283,9 @@ class Form(BaseForm):
                 flask.flash("Binding error")
                 return self
 
-            return self.handle()
+            else:
+                print "CALLING HANDLE ON: ", self.name
+                return self.handle()
 
         return self
 
@@ -367,11 +367,22 @@ class AddForm(BoundForm):
     
         super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
-
         if not title:
-            self.title = "%s %s" % (self.mode.capitalize(), self.model.__name__)
     
-    
+            if hasattr(self.instance, 'title') and self.instance.title:
+                self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance.title)
+            elif self.instance.name:
+                self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance.name)
+            elif self.instance.id:
+                self.title = "%s %s #%d" % (self.mode, self.model.__name__, self.instance.id)
+            else:
+                self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance._get_pk_value())
+
+        for name, field in self.fields.iteritems():
+            if hasattr(self.instance, name) and getattr(self.instance, name):
+                field.value = getattr(self.instance, name)
+ 
+
     def handle(self):
 
         for field in self.model._meta.sorted_fields:
@@ -411,28 +422,12 @@ class AddForm(BoundForm):
 class EditForm(AddForm):
     
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        
-        f = super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-
-        return f
+        return super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
    
 
     def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-
         super(EditForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
-        if hasattr(self.instance, 'title') and self.instance.title:
-            self.title = "%s '%s'" % (self.title, self.instance.title)
-        elif self.instance.name:
-            self.title = "%s '%s'" % (self.title, self.instance.name)
-        elif self.instance.id:
-            self.title = "%s #%d" % (self.title, self.instance.id)
-        else:
-            self.title = "%s %s" % (self.title, self.instance._get_pk_value())
-
-        for name, field in self.fields.iteritems():
-            if hasattr(self.instance, name) and getattr(self.instance, name):
-                field.value = getattr(self.instance, name) # TODO: implement setting 'value' for AutoFieldset
 
 
 class DeleteForm(BoundForm):
@@ -497,6 +492,17 @@ class Fieldset(BaseForm):
 
         if len(messages):
             raise errors.ValidationError("Fieldset %s could not be validated, errors below.\n%s" % (self.name, '\n\t'.join(messages)))
+
+
+    def __setattr__(self, name, value):
+
+        if name == 'value':
+            print "FIELDSET VALUE"
+            for field in self.fields.itervalues():
+                if hasattr(value, field.name):
+                    field.value = getattr(value, field.name)
+        else:
+            super(Fieldset, self).__setattr__(name, value)
 
 
 class AddFieldset(AddForm, Fieldset):

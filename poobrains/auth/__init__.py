@@ -265,23 +265,7 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
         if mode in self.form_modes:
 
             f = self.form(mode)
-            if flask.request.method == f.method:
-
-                try:
-                    f.validate_and_bind(flask.request.form[f.name])
-
-                except form.errors.ValidationError as e:
-                    flask.flash("Failed validating form. TODO: Proper error flash.")
-                    flask.flash(e.message)
-                    return f
-
-                except form.errors.BindingError as e:
-                    flask.flash("Binding error: %s" % e.message)
-                    return f
-
-                return f.handle()
-
-            return f
+            return f.view(mode)
 
         return self
 
@@ -310,30 +294,36 @@ class UserPermissionRelatedForm(RelatedForm):
 
         f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
 
+        f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
+
         for name, perm in Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
 
             try:
                 perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == perm.__name__)
                 perm_mode = 'edit'
+
+                f.fields[perm.__name__] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=perm.__name__)
+
             except:
                 perm_info = UserPermission()
                 perm_info.user = instance
                 perm_info.permission = perm.__name__
-                perm_info.access = False
+                perm_info.access = None
                 perm_mode = 'add'
 
-            f.fields[perm.__name__] = poobrains.form.AutoFieldset(perm_info, perm_mode, name=perm.__name__)
+                f.fields[perm.__name__] = poobrains.form.AddFieldset(perm_info, mode=perm_mode, name=perm.__name__)
+
         return f
 
 
     def handle(self):
 
         self.instance.permissions.clear()
-        for perm_fieldset in self.fields['permissions']:
+        for perm_fieldset in self.fields.itervalues():
             if perm_fieldset.fields['access'].value:
                 self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
 
-        response = super(UserForm, self).handle()
+        response = super(UserPermissionRelatedForm, self).handle()
 
 #        for name, perm in Permission.children_keyed().items()
         return response
@@ -347,13 +337,13 @@ class User(NamedAdministerable):
     permissions = None
     _permissions = None # filled by UserPermission.permission ForeignKeyField
 
-
     #form = UserForm
 
     def __init__(self, *args, **kwargs):
 
         super(User, self).__init__(*args, **kwargs)
         self.permissions = {}
+
 
     def prepared(self):
 
@@ -385,10 +375,10 @@ class UserPermission(Administerable):
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
-    access = poobrains.storage.fields.CharField(max_length=4, choices=[('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
+    access = poobrains.storage.fields.CharField(max_length=4, null=False, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
     access.form_class = poobrains.form.fields.TextChoice
 
-    #related_form = UserPermissionRelatedForm
+    related_form = UserPermissionRelatedForm
 
 
     @classmethod
@@ -401,7 +391,7 @@ class UserPermission(Administerable):
 
 @poobrains.app.expose('/cert/', force_secure=True)
 class ClientCertForm(poobrains.form.Form):
-    
+
     #passphrase = poobrains.form.fields.ObfuscatedText()
     title = "Be safe, certificatisize yourself!"
     token = poobrains.form.fields.ObfuscatedText(label='Token')
@@ -409,7 +399,6 @@ class ClientCertForm(poobrains.form.Form):
     submit = poobrains.form.Button('submit', label='Generate Certificate')
 
     def __init__(self, *args, **kwargs):
-
         super(ClientCertForm, self).__init__(*args, **kwargs)
         flask.session['key_challenge'] = self.key.challenge
 
