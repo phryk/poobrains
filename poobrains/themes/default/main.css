@@ -3,3 +3,11 @@ body {
     color: #AACCFF;
     font-family: sans-serif;
 }
+
+.invalid {
+    border: 2px solid #f00;
+}
+
+.valid {
+    border: 2px solid #0f0;
+}

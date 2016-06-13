@@ -159,7 +159,7 @@ class Poobrain(flask.Flask):
                 self.admin.add_view(cls, rule, mode='delete', force_secure=True)
                 self.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
 
-                for field in cls._meta.reverse_rel.itervalues():
+                for field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
                     related_model = field.model_class
 
                     if issubclass(related_model, poobrains.auth.Administerable):
@@ -186,19 +186,8 @@ class Poobrain(flask.Flask):
                                 form_class = functools.partial(poobrains.auth.RelatedForm, related_model)
 
                             f = form_class(field, instance)
-
-                            if flask.request.method == 'POST':
-                                try:
-                                    f.validate_and_bind(flask.request.form[f.name])
-                                except form.errors.ValidationError as e:
-                                    flask.flash(e.message)
-                                except form.errors.BindingError as e:
-                                    flask.flash(e.message)
-
-                                else:
-                                    return f.handle()
-
-                            return f
+                            
+                            return f.view()
 
 
                         self.admin.add_url_rule("%s<id_or_name>/%s/" % (rule, related_model.__name__.lower()), endpoint, functools.partial(view_func, cls=cls, field=field), methods=['GET', 'POST'])

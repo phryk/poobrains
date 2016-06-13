@@ -23,6 +23,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
     __metaclass__ = FormMeta
 
+    errors = None
     fields = None
     controls = None
     
@@ -63,6 +64,7 @@ class BaseForm(poobrains.rendering.Renderable):
     def __init__(self, prefix=None, name=None, title=None):
         
         super(BaseForm, self).__init__()
+        self.errors = []
         self.name = name if name else self.__class__.__name__
 
         if title:
@@ -173,50 +175,48 @@ class BaseForm(poobrains.rendering.Renderable):
 
     def validate_and_bind(self, values):
 
-        validation_messages = []
-        binding_messages = []
-
+        compound_error = errors.CompoundError()
 
         for k, field in self.fields.iteritems():
 
-            if isinstance(field, Fieldset):
+            if not values.has_key(field.name):
+
+                if not hasattr(field, 'coercer') or (field.coercer != None and field.required):
+                    e = errors.ValidationError("Missing form input: %s.%s" % (field.prefix, field.name))
+                    compound_error.append(e)
+                    field.errors.append(e)
+
+                elif field.readonly or isinstance(field, fields.Checkbox): # or isinstance(field, fields.RadioButton
+                   field.value = field.empty_value
+
+            elif isinstance(field, Fieldset):
                 try:
                     field.validate_and_bind(values[field.name])
-                except errors.ValidationError as e:
-                    validation_messages.append(e.message)
-                except ValueError: # happens when a coercer (.bind) fails
-                    binding_messages.append("I don't understand %s for %s" % (value, field.name))
-
-            elif not values.has_key(field.name):
-
-                if field.coercer != None and field.required:
-                    validation_messages.append("Missing form input: %s.%s" % (field.prefix, field.name))
-                elif field.readonly or isinstance(field, fields.Checkbox): # or isinstance(field, fields.RadioButton
-                   field.value = field.empty_value 
+                except errors.CompoundError as e:
+                    compound_error.append(e)
+                    field.errors.append(e)
 
             else:
-
                 try:
                     field.validate(values[field.name])
                     field.bind(values[field.name])
                 except errors.ValidationError as e:
-                    validation_messages.append(e.message)
+                    compound_error.append(e)
+                    field.errors.append(e)
                     field.value = values[field.name]
                 except ValueError as e: # happens when a coercer (.bind) fails
-                    binding_messages.append("I don't understand %s for %s" % (values[field.name], field.name))
-                    field.value = values[field.name]
+                    e = errors.BindingError("I don't understand %s for %s" % (values[field.name], field.name))
+                    compound_error.append(e)
+                    field.errors.append(e)
+                    field.value = values[field.name] # Put the value into the field nevertheless, so users can be shown their faulty value
 
             #except:
             #    poobrains.app.logger.error("Possible bug in validate_and_bind or validator and coercer of %s not playing nice." % field.__class__)
             #    poobrains.app.logger.debug("Affected field: %s %s" % (field.__class__.__name__, field.name))
             #    raise
 
-
-        if len(validation_messages):
-            raise errors.ValidationError("Form was not validated. Errors were as follows:\n%s" % '\n\t'.join(validation_messages))
-
-        if len(binding_messages):
-            raise errors.BindingError("Can't make sense of some of your input.\n%s" % '\n\t'.join(binding_messages))
+        if len(compound_error):
+            raise compound_error
 
 
     def handle(self):
@@ -274,14 +274,9 @@ class Form(BaseForm):
             try:
                 self.validate_and_bind(flask.request.form[self.name])
 
-            except errors.ValidationError as e:
-                flask.flash("Failed validating form. TODO: Proper error flash.")
-                flask.flash(e.message)
-                return self
-
-            except form.errors.BindingError:
-                flask.flash("Binding error")
-                return self
+            except errors.CompoundError as e:
+                for error in e.errors:
+                    flask.flash(error.message)
 
             else:
                 print "CALLING HANDLE ON: ", self.name
@@ -405,7 +400,7 @@ class AddForm(BoundForm):
                 saved = self.instance.save()
 
             if saved:
-                flask.flash("Saved.")
+                flask.flash("Saved %s %s." % (self.model.__name__, self.instance.id_string))
                 try:
                     return flask.redirect(self.instance.url('edit'))
                 except LookupError:

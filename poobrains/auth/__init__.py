@@ -191,6 +191,29 @@ class RelatedForm(poobrains.form.Form):
         self.related_model = related_model
         self.related_field = related_field
 
+    
+    def view(self, mode=None):
+
+        """
+        view function to be called in a flask request context
+        """
+
+        if flask.request.method == self.method:
+
+            try:
+                self.validate_and_bind(flask.request.form[self.name])
+
+            except poobrains.form.errors.CompoundError as e:
+                for error in e.errors:
+                    flask.flash(error.message)
+
+            for field in self.fields:
+                if isinstance(field, poobrains.form.Fieldset) and not field.errors:
+                    field.handle()
+                    flask.flash("Handled %s.%s" % (field.prefix, field.name))
+
+        return self
+   
 
     def handle(self):
 
@@ -316,17 +339,16 @@ class UserPermissionRelatedForm(RelatedForm):
         return f
 
 
-    def handle(self):
+#    def handle(self):
+#        self.instance.permissions.clear()
+#        for perm_fieldset in self.fields.itervalues():
+#            if perm_fieldset.fields['access'].value:
+#                self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
 
-        self.instance.permissions.clear()
-        for perm_fieldset in self.fields.itervalues():
-            if perm_fieldset.fields['access'].value:
-                self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
-
-        response = super(UserPermissionRelatedForm, self).handle()
+        #response = super(UserPermissionRelatedForm, self).handle()
 
 #        for name, perm in Permission.children_keyed().items()
-        return response
+#        return flask.redirect(flask.request.url)
 
 
 

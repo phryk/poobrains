@@ -18,6 +18,7 @@ class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.Clas
 
 class Field(rendering.Renderable):
 
+    errors = None
     prefix = None
     name = None
     value = None
@@ -33,6 +34,7 @@ class Field(rendering.Renderable):
 
     def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
 
+        self.errors = []
         self.name = name
         self.value = value
         self.label = label if label else name
@@ -81,6 +83,11 @@ class Field(rendering.Renderable):
                     tpls.append('%s-%s.jinja' % (name, mode))
 
         return tpls
+
+    
+    @property
+    def empty(self):
+        return not self.value # ultra naive, but should work™ in most cases
 
     
     def validate(self, value):
