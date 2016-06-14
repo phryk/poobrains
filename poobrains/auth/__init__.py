@@ -231,6 +231,11 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     form_add = poobrains.form.AddForm
     form_edit = poobrains.form.EditForm
     form_delete = poobrains.form.DeleteForm
+
+    fieldset_add = poobrains.form.AddFieldset
+    fieldset_edit = poobrains.form.EditFieldset
+    #fieldset_delete = poobrains.form.DeleteFieldset doesn't yet exist, and isn't used.
+
     related_form = RelatedForm # TODO: make naming consistent
 
     class Meta:
@@ -309,6 +314,7 @@ class NamedAdministerable(Administerable, poobrains.storage.Named):
 
         else:
             return cls.get(cls.name == id_or_name)
+
 
 
 class UserPermissionRelatedForm(RelatedForm):

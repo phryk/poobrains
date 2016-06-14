@@ -75,6 +75,13 @@ class BaseForm(poobrains.rendering.Renderable):
         self.prefix = prefix
 
 
+    def empty(self):
+        for field in self.fields.itervalues():
+            if not field.empty():
+                return False
+        return True
+
+
     def render_fields(self):
 
         """
