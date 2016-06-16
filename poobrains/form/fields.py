@@ -23,6 +23,7 @@ class Field(rendering.Renderable):
     name = None
     value = None
     empty_value = ''
+    missing_value = None
     label = None
     placeholder = None
     readonly = None
@@ -85,17 +86,26 @@ class Field(rendering.Renderable):
         return tpls
 
     
-    @property
-    def empty(self):
-        return not self.value # ultra naive, but should work™ in most cases
+    def empty(self, value=None):
+        if value is None:
+            value = self.value
+        return value == self.empty_value
 
     
     def validate(self, value):
-        self.validator(value)
+        if not self.empty(value):
+            self.validator(value)
+
+        elif self.required:
+            raise errors.ValidationError("Required field '%s' was left empty." % self.name)
 
     
     def bind(self, value):
-        self.value = self.coercer(value)
+
+        if self.empty(value):
+            self.value = self.empty_value
+        else:
+            self.value = self.coercer(value)
 
 
     def render(self):
@@ -108,12 +118,7 @@ class Message(Field):
     coercer = None # Makes this field be ignored when checking for missing form data
 
 class Value(Field):
-
-    def coercers(self, value):
-        return value
-
-    def render(self, mode=None):
-        return ''
+    pass
 
 
 class Text(Field):
@@ -237,10 +242,18 @@ class ForeignKeyChoice(IntegerChoice):
 class Checkbox(RangedInteger):
 
     empty_value = False
+    missing_value = False
     min = 0
     max = 1
 
     coercer = coercers.coerce_bool
+
+    def empty(self, value=None):
+
+        if value is None:
+            value = self.value
+
+        return value != ''
 
 
 class Float(Field):

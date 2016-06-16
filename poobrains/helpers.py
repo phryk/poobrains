@@ -225,7 +225,6 @@ class TrueDict(OrderedDict):
 
 class CustomOrderedDict(dict):
 
-
     order = None
 
     def __init__(self, *args, **kw):

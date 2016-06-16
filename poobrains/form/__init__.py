@@ -45,13 +45,13 @@ class BaseForm(poobrains.rendering.Renderable):
             if isinstance(attr, fields.Field):
                 label = attr.label if attr.label else label_default
                 clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validator=attr.validator)
-                instance.fields[attr_name] = clone
-                #setattr(instance, attr_name, clone)
+                #instance.fields[attr_name] = clone
+                setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Fieldset):
                 clone = attr.__class__(name=attr_name, title=attr.title)
-                instance.fields[attr_name] = clone
-                #setattr(instance, attr_name, clone)
+                #instance.fields[attr_name] = clone
+                setattr(instance, attr_name, clone)
 
             elif isinstance(attr, Button):
                 label = attr.label if attr.label else label_default
@@ -76,10 +76,72 @@ class BaseForm(poobrains.rendering.Renderable):
 
 
     def empty(self):
-        for field in self.fields.itervalues():
+        for field in self:
             if not field.empty():
                 return False
         return True
+    
+    
+    def validate(self, values):
+
+        compound_error = errors.CompoundError()
+
+        for field in self:
+
+            try:
+                field_values = values[field.name]
+
+                try:
+                    field.validate(field_values)
+                except errors.ValidationError as e:
+                    compound_error.append(e)
+
+
+            except werkzeug.exceptions.BadRequestKeyError as e:
+
+                if isinstance(field, Fieldset):
+
+                    poobrains.app.logger.error('All data for fieldset %s.%s missing.' % (field.prefix, field.name))
+                    poobrains.app.debugger.set_trace()
+                    raise # da woof!
+
+                else:
+
+                    try:
+                        field.validate(field.missing_value)
+
+                    except errors.ValidationError as e:
+                        compound_error.append(e)
+
+        if len(compound_error):
+            raise compound_error
+
+
+    def bind(self, values):
+
+        compound_error = errors.CompoundError()
+
+        for field in self: # magic iteration skipping type fields.Value
+            
+            try:
+                field_values = values[field.name]
+            
+                try:
+                    field.bind(values[field.name])
+                #except errors.BindingError as e
+                except ValueError as e:
+                    compound_error.append(e)
+
+            except werkzeug.exceptions.BadRequestKeyError as e:
+
+                if isinstance(field, Fieldset):
+                    raise
+                else:
+                    field.value = field.missing_value # because no value is a negative value, according to html form behavior :F
+
+
+        if len(compound_error):
+            raise compound_error
 
 
     def render_fields(self):
@@ -90,7 +152,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
         rendered_fields = u''
 
-        for field in self.fields.itervalues():
+        for field in self:
             if not field.rendered:
                 rendered_fields += field.render()
 
@@ -151,9 +213,13 @@ class BaseForm(poobrains.rendering.Renderable):
     def __iter__(self):
 
         """
-        Iterate over this forms fields. Yes, this comment is incredibly helpful.
+        Iterate over this forms fields except ValueFields.
+        Yes, this is incredibly helpful.
         """
-        return self.fields.__iter__()
+
+        for k in self.fields.keys():
+            if not isinstance(self.fields[k], fields.Value):
+                yield self.fields[k]
     
     
     @classmethod
@@ -178,52 +244,6 @@ class BaseForm(poobrains.rendering.Renderable):
                     tpls.append('%s-%s.jinja' % (name, mode))
 
         return tpls
-
-
-    def validate_and_bind(self, values):
-
-        compound_error = errors.CompoundError()
-
-        for k, field in self.fields.iteritems():
-
-            if not values.has_key(field.name):
-
-                if not hasattr(field, 'coercer') or (field.coercer != None and field.required):
-                    e = errors.ValidationError("Missing form input: %s.%s" % (field.prefix, field.name))
-                    compound_error.append(e)
-                    field.errors.append(e)
-
-                elif field.readonly or isinstance(field, fields.Checkbox): # or isinstance(field, fields.RadioButton
-                   field.value = field.empty_value
-
-            elif isinstance(field, Fieldset):
-                try:
-                    field.validate_and_bind(values[field.name])
-                except errors.CompoundError as e:
-                    compound_error.append(e)
-                    field.errors.append(e)
-
-            else:
-                try:
-                    field.validate(values[field.name])
-                    field.bind(values[field.name])
-                except errors.ValidationError as e:
-                    compound_error.append(e)
-                    field.errors.append(e)
-                    field.value = values[field.name]
-                except ValueError as e: # happens when a coercer (.bind) fails
-                    e = errors.BindingError("I don't understand %s for %s" % (values[field.name], field.name))
-                    compound_error.append(e)
-                    field.errors.append(e)
-                    field.value = values[field.name] # Put the value into the field nevertheless, so users can be shown their faulty value
-
-            #except:
-            #    poobrains.app.logger.error("Possible bug in validate_and_bind or validator and coercer of %s not playing nice." % field.__class__)
-            #    poobrains.app.logger.debug("Affected field: %s %s" % (field.__class__.__name__, field.name))
-            #    raise
-
-        if len(compound_error):
-            raise compound_error
 
 
     def handle(self):
@@ -277,17 +297,22 @@ class Form(BaseForm):
         """
 
         if flask.request.method == self.method:
+        
+            values = flask.request.form[self.name]
 
             try:
-                self.validate_and_bind(flask.request.form[self.name])
+                self.validate(values)
 
             except errors.CompoundError as e:
                 for error in e.errors:
-                    flask.flash(error.message)
+                    flask.flash(error.message, 'error')
 
-            else:
-                print "CALLING HANDLE ON: ", self.name
-                return self.handle()
+            try:
+                self.bind(values)
+
+            except errors.CompoundError as e:
+                for error in e.errors:
+                    flask.flash(error.message, 'error')
 
         return self
 
@@ -344,8 +369,8 @@ class AddForm(BoundForm):
                         choices.append((choice.id, choice_name))
 
                     form_field = field.form_class(field.name, choices=choices)
-                    #form_field = poobrains.rendering.RenderString("YOINK")
-                    f.fields[field.name] = form_field
+                    #f.fields[field.name] = form_field
+                    setattr(f, field.name, form_field)
 
                 elif isinstance(field, poobrains.storage.fields.Field):
 
@@ -354,7 +379,8 @@ class AddForm(BoundForm):
                     else:
                         form_field = field.form_class(field.name)
 
-                    f.fields[field.name] = form_field
+                    #f.fields[field.name] = form_field
+                    setattr(f, field.name, form_field)
 
             f.controls['reset'] = Button('reset', label='Reset')
             f.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
@@ -377,8 +403,10 @@ class AddForm(BoundForm):
                 self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance.name)
             elif self.instance.id:
                 self.title = "%s %s #%d" % (self.mode, self.model.__name__, self.instance.id)
-            else:
+            elif self.instance._get_pk_value():
                 self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance._get_pk_value())
+            else:
+                self.title = "%s %s" % (self.mode, self.model.__name__)
 
         for name, field in self.fields.iteritems():
             if hasattr(self.instance, name) and getattr(self.instance, name):
@@ -482,20 +510,6 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
-    def validate(self, values):
-
-        messages = []
-
-        for field in self.fields.itervalues():
-            try:
-                field.validate(values[field.name])
-            except errors.ValidationError as e:
-                messages.append(e.message)
-
-        if len(messages):
-            raise errors.ValidationError("Fieldset %s could not be validated, errors below.\n%s" % (self.name, '\n\t'.join(messages)))
-
-
     def __setattr__(self, name, value):
 
         if name == 'value':
@@ -510,7 +524,16 @@ class Fieldset(BaseForm):
 class AddFieldset(AddForm, Fieldset):
 
     rendered = None
- 
+
+
+    def __new__(cls, *args, **kwargs):
+
+        f = super(AddFieldset, cls).__new__(cls, *args, **kwargs)
+        f.controls.clear()
+
+        return f
+    
+
     def render(self, mode=None):
 
         self.rendered = True

@@ -21,6 +21,7 @@ import defaults
 try:
     import config # imports config relative to main project
 
+
 except ImportError as e:
 
     print "Poobrains: This application has no config module. Just so you know…"
@@ -61,6 +62,9 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
 
         # TODO: Make form ImmutableDict again?
 
+        #if app.debug:
+        #    app.debugger.set_trace()
+
         return (stream, form, files_flat)
 
 
@@ -73,6 +77,7 @@ class Request(flask.Request):
 class Poobrain(flask.Flask):
 
     request_class = Request
+    debugger = None
 
     site = None
     admin = None
@@ -118,6 +123,27 @@ class Poobrain(flask.Flask):
             # show SQL queries
             peeweelog = logging.getLogger('peewee')
             peeweelog.setLevel(logging.DEBUG)
+
+            try:
+
+                print "DEBUGGER UID: ", os.getuid()
+                print os.environ.get('HOME', 'yoink')
+
+                import signal
+                import pudb
+                if hasattr(signal, 'SIGINFO'):
+                    pudb.set_interrupt_handler(signal.SIGINFO)
+                    print "%s: a graphical debugger can be invoked with SIGINFO (^T)" % (self.name.upper())
+
+                self.debugger = pudb
+
+            except ImportError:
+                print "pudb not installed, falling back to pdb!"
+
+                import signal # shouldn't be needed but feels hacky to leave out
+                import pdb
+                if hasattr(signal, 'SIGINFO'):
+                    pdb.set_interrupt_handler(signal.SIGINFO)
 
 
         self.poobrain_path = os.path.dirname(__file__)
@@ -600,6 +626,8 @@ class ErrorPage(poobrains.rendering.Renderable):
 
 @poobrains.helpers.render('full')
 def errorpage(error):
+    if hasattr(error, 'code'):
+        return (ErrorPage(error), error.code)
     return ErrorPage(error)
 
 app.register_error_handler(400, errorpage)

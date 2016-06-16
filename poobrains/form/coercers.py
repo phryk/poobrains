@@ -11,5 +11,4 @@ def coerce_float(field, value):
     return float(value)
 
 def coerce_bool(field, value):
-    print "::::::::::::::::::::::::::::::::::::::::::::::::: coercing bool", value, bool(int(value))
     return bool(int(value))

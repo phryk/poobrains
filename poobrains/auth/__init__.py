@@ -44,6 +44,7 @@ def admin_menu():
 def admin_index():
     return admin_menu()
 
+
 def access(*args, **kwargs):
 
     """
@@ -104,6 +105,244 @@ def access(*args, **kwargs):
 
     return decorator
 
+@poobrains.app.expose('/cert/', force_secure=True)
+class ClientCertForm(poobrains.form.Form):
+
+    #passphrase = poobrains.form.fields.ObfuscatedText()
+    title = "Be safe, certificatisize yourself!"
+    token = poobrains.form.fields.ObfuscatedText(label='Token')
+    key = poobrains.form.fields.Keygen()
+    submit = poobrains.form.Button('submit', label='Generate Certificate')
+
+    def __init__(self, *args, **kwargs):
+        super(ClientCertForm, self).__init__(*args, **kwargs)
+        flask.session['key_challenge'] = self.key.challenge
+
+
+    def handle(self):
+
+        try:
+            token = ClientCertToken.get(ClientCertToken.token == self.fields['token'].value)
+
+        except Exception as e:
+            return poobrains.rendering.RenderString("No such token.")
+
+
+        try:
+
+            ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
+            ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
+
+        except Exception as e:
+
+            poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
+            poobrains.app.logger.debug(e)
+            return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
+
+
+        try:
+            spkac = pyspkac.SPKAC(self.fields['key'].value, flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
+            spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
+            spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
+
+            spkac.subject.C = ca_cert.get_subject().C
+
+            not_before = int(time.time())
+            not_after = not_before + poobrains.app.config['CERT_LIFETIME']
+
+            client_cert = spkac.gen_crt(ca_key, ca_cert, 44, not_before, not_after, hash_algo='sha512')
+
+        except Exception as e:
+
+            if poobrains.app.debug:
+                raise
+
+            return poobrains.rendering.RenderString("Client certificate creation failed.")
+
+        try:
+            cert_info = ClientCert()
+            cert_info.name = token.name
+            cert_info.user = token.user
+            #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
+            cert_info.subject_name = unicode(client_cert.get_subject())
+            cert_info.save()
+
+        except Exception as e:
+
+            if poobrains.app.debug:
+                raise
+
+            return poobrains.rendering.RenderString("Failed to write info into database. Disregard this certificate.")
+
+        r = werkzeug.wrappers.Response(client_cert.as_pem())
+        r.mimetype = 'application/x-x509-user-cert'
+        return r
+
+
+class RelatedForm(poobrains.form.Form):
+   
+    instance = None
+    related_model = None
+    related_field = None
+
+    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
+
+        f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
+
+        for related_instance in getattr(instance, related_field.related_name):
+            #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
+            key = related_instance.id_string
+            #f.fields[key] = poobrains.form.EditFieldset(related_instance)
+            #f.fields[key] = related_instance.fieldset_edit()
+            setattr(f, key, related_instance.fieldset_edit())
+
+            if f.fields[key].fields.has_key(related_field.name):
+                #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # TODO: Won't work with `CompositeKeyField`s
+                setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # TODO: Won't work with `CompositeKeyField`s
+
+
+        related_instance = related_model()
+        setattr(related_instance, related_field.name, instance) 
+        #key = '%s-add' % related_model.__name__
+        key = related_instance.id_string
+
+        #f.fields[key] = poobrains.form.AddFieldset(related_instance)
+        setattr(f, key, related_instance.fieldset_add())
+
+        if f.fields[key].fields.has_key(related_field.name):
+            #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # TODO: Won't work with `CompositeKeyField`s
+            setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # TODO: Won't work with `CompositeKeyField`s
+        else:
+            poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % self.related_model.__name__)
+            
+        f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
+        f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
+
+        return f
+
+    
+    def __init__(self, related_model, related_field, instance, id_or_name=None, prefix=None, name=None, title=None, method=None, action=None):
+        super(RelatedForm, self).__init__(prefix=None, name=None, title=None, method=None, action=None)
+
+        self.instance = instance
+        self.related_model = related_model
+        self.related_field = related_field
+
+    
+    def view(self, mode=None):
+
+        """
+        view function to be called in a flask request context
+        """
+        if flask.request.method == self.method:
+
+            values = flask.request.form[self.name]
+
+            for field in self:
+
+                if not field.empty():
+                    try:
+                        field.validate(values[field.name])
+
+                        try:
+
+                            field.bind(values[field.name])
+
+                            if isinstance(field, poobrains.form.Fieldset) and not field.errors:
+                                field.handle()
+                                flask.flash("Handled %s.%s" % (field.prefix, field.name))
+                            else:
+                                flask.flash("Not handled:")
+                                flask.flash(field.empty())
+
+
+                        except poobrains.form.errors.BindingError as e:
+                            flask.flash(e.message)
+
+                    except (poobrains.form.errors.ValidationError, poobrains.form.errors.CompoundError) as e:
+                        flask.flash(e.message)
+
+                try:
+
+                    if hasattr(field, 'empty_value'):
+                        default = field.empty_value
+                    else:
+                        default = None
+                    field.bind(values[field.name]) # bind to show erroneous values to user
+                except poobrains.form.errors.BindingError as e:
+                    flask.flash(e.message)
+
+
+        return self
+   
+
+    def handle(self):
+
+        for field in self.fields.itervalues():
+            if isinstance(field, poobrains.form.Fieldset):
+                field.handle()
+        return flask.redirect(flask.request.url)
+
+
+class UserPermissionAddFieldset(poobrains.form.AddFieldset):
+
+    def empty(self):
+        rv = self.fields['permission'].empty()
+        return rv
+
+class UserPermissionEditFieldset(UserPermissionAddFieldset):
+
+    def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+        return super(UserPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+   
+
+    def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+        super(UserPermissionEditFieldset, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+ 
+
+class UserPermissionRelatedForm(RelatedForm):
+
+    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
+
+        f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
+
+        f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
+
+        for name, perm in Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
+
+            try:
+                perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == perm.__name__)
+                perm_mode = 'edit'
+
+                #f.fields[perm.__name__] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=perm.__name__)
+                #f.fields[perm.__name__] = perm_info.fieldset_edit(mode=perm_mode)
+                setattr(f, perm.__name__, perm_info.fieldset_edit(mode=perm_mode))
+
+            except:
+                perm_info = UserPermission()
+                perm_info.user = instance
+                perm_info.permission = perm.__name__
+                perm_info.access = None
+                perm_mode = 'add'
+
+                #f.fields[perm.__name__] = poobrains.form.AddFieldset(perm_info, mode=perm_mode, name=perm.__name__)
+                #f.fields[perm.__name__] = perm_info.fieldset_add(mode=perm_mode)
+                setattr(f, perm.__name__, perm_info.fieldset_add(mode=perm_mode))
+
+        return f
+
+
+#    def handle(self):
+#        self.instance.permissions.clear()
+#        for perm_fieldset in self.fields.itervalues():
+#            if perm_fieldset.fields['access'].value:
+#                self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
+
+        #response = super(UserPermissionRelatedForm, self).handle()
+
+#        for name, perm in Permission.children_keyed().items()
+#        return flask.redirect(flask.request.url)
+
 
 class Permission(poobrains.helpers.ChildAware):
    
@@ -148,79 +387,6 @@ class BaseAdministerable(poobrains.storage.BaseModel):
         cls.Delete = type('%sDelete' % name, (Permission,), perm_attrs)
 
         return cls
-
-
-class RelatedForm(poobrains.form.Form):
-   
-    instance = None
-    related_model = None
-    related_field = None
-
-    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
-
-        f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
-
-        for related_instance in getattr(instance, related_field.related_name):
-            #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
-            key = related_instance.id_string
-            f.fields[key] = poobrains.form.EditFieldset(related_instance)
-
-            if f.fields[key].fields.has_key(related_field.name):
-                f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id)
-
-            else:
-                poobrains.app.logger.debug("We need that 'if' after all!")
-
-        related_instance = related_model()
-        setattr(related_instance, related_field.name, instance) 
-        #key = '%s-add' % related_model.__name__
-        key = related_instance.id_string
-
-        f.fields[key] = poobrains.form.AddFieldset(related_instance)
-            
-        f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
-        f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
-
-        return f
-
-    
-    def __init__(self, related_model, related_field, instance, id_or_name=None, prefix=None, name=None, title=None, method=None, action=None):
-        super(RelatedForm, self).__init__(prefix=None, name=None, title=None, method=None, action=None)
-
-        self.instance = instance
-        self.related_model = related_model
-        self.related_field = related_field
-
-    
-    def view(self, mode=None):
-
-        """
-        view function to be called in a flask request context
-        """
-
-        if flask.request.method == self.method:
-
-            try:
-                self.validate_and_bind(flask.request.form[self.name])
-
-            except poobrains.form.errors.CompoundError as e:
-                for error in e.errors:
-                    flask.flash(error.message)
-
-            for field in self.fields:
-                if isinstance(field, poobrains.form.Fieldset) and not field.errors:
-                    field.handle()
-                    flask.flash("Handled %s.%s" % (field.prefix, field.name))
-
-        return self
-   
-
-    def handle(self):
-
-        for field in self.fields.itervalues():
-            if isinstance(field, poobrains.form.Fieldset):
-                field.handle()
-        return flask.redirect(flask.request.url)
 
 
 class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
@@ -316,48 +482,6 @@ class NamedAdministerable(Administerable, poobrains.storage.Named):
             return cls.get(cls.name == id_or_name)
 
 
-
-class UserPermissionRelatedForm(RelatedForm):
-
-    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
-
-        f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
-
-        f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
-
-        for name, perm in Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
-
-            try:
-                perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == perm.__name__)
-                perm_mode = 'edit'
-
-                f.fields[perm.__name__] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=perm.__name__)
-
-            except:
-                perm_info = UserPermission()
-                perm_info.user = instance
-                perm_info.permission = perm.__name__
-                perm_info.access = None
-                perm_mode = 'add'
-
-                f.fields[perm.__name__] = poobrains.form.AddFieldset(perm_info, mode=perm_mode, name=perm.__name__)
-
-        return f
-
-
-#    def handle(self):
-#        self.instance.permissions.clear()
-#        for perm_fieldset in self.fields.itervalues():
-#            if perm_fieldset.fields['access'].value:
-#                self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
-
-        #response = super(UserPermissionRelatedForm, self).handle()
-
-#        for name, perm in Permission.children_keyed().items()
-#        return flask.redirect(flask.request.url)
-
-
-
 class User(NamedAdministerable):
 
     #name = poobrains.storage.fields.CharField(unique=True)
@@ -397,6 +521,9 @@ class User(NamedAdministerable):
 
 class UserPermission(Administerable):
 
+    fieldset_add = UserPermissionAddFieldset
+    fieldset_edit = UserPermissionEditFieldset
+
     class Meta:
         primary_key = peewee.CompositeKey('user', 'permission')
         order_by = ('user', 'permission')
@@ -415,80 +542,6 @@ class UserPermission(Administerable):
         (user_id, permission) = id_perm_string.split(',')
         user = User.load(user_id)
         return cls.get(cls.user == user, cls.permission == permission)
-
-
-@poobrains.app.expose('/cert/', force_secure=True)
-class ClientCertForm(poobrains.form.Form):
-
-    #passphrase = poobrains.form.fields.ObfuscatedText()
-    title = "Be safe, certificatisize yourself!"
-    token = poobrains.form.fields.ObfuscatedText(label='Token')
-    key = poobrains.form.fields.Keygen()
-    submit = poobrains.form.Button('submit', label='Generate Certificate')
-
-    def __init__(self, *args, **kwargs):
-        super(ClientCertForm, self).__init__(*args, **kwargs)
-        flask.session['key_challenge'] = self.key.challenge
-
-
-    def handle(self):
-
-        try:
-            token = ClientCertToken.get(ClientCertToken.token == self.fields['token'].value)
-
-        except Exception as e:
-            return poobrains.rendering.RenderString("No such token.")
-
-
-        try:
-
-            ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
-            ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
-
-        except Exception as e:
-
-            poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
-            poobrains.app.logger.debug(e)
-            return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
-
-
-        try:
-            spkac = pyspkac.SPKAC(self.fields['key'].value, flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
-            spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
-            spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
-
-            spkac.subject.C = ca_cert.get_subject().C
-
-            not_before = int(time.time())
-            not_after = not_before + poobrains.app.config['CERT_LIFETIME']
-
-            client_cert = spkac.gen_crt(ca_key, ca_cert, 44, not_before, not_after, hash_algo='sha512')
-
-        except Exception as e:
-
-            if poobrains.app.debug:
-                raise
-
-            return poobrains.rendering.RenderString("Client certificate creation failed.")
-
-        try:
-            cert_info = ClientCert()
-            cert_info.name = token.name
-            cert_info.user = token.user
-            #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
-            cert_info.subject_name = unicode(client_cert.get_subject())
-            cert_info.save()
-
-        except Exception as e:
-
-            if poobrains.app.debug:
-                raise
-
-            return poobrains.rendering.RenderString("Failed to write info into database. Disregard this certificate.")
-
-        r = werkzeug.wrappers.Response(client_cert.as_pem())
-        r.mimetype = 'application/x-x509-user-cert'
-        return r
 
 
 class ClientCertToken(Administerable):
@@ -513,3 +566,5 @@ class ClientCert(Administerable):
 
     user = poobrains.storage.fields.ForeignKeyField(User)
     subject_name = poobrains.storage.fields.CharField()
+
+
