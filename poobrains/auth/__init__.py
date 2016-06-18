@@ -190,6 +190,9 @@ class RelatedForm(poobrains.form.Form):
         f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
 
         for related_instance in getattr(instance, related_field.related_name):
+
+            # Fieldset to edit an existing related instance of this instance
+
             #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
             key = related_instance.id_string
             #f.fields[key] = poobrains.form.EditFieldset(related_instance)
@@ -201,6 +204,7 @@ class RelatedForm(poobrains.form.Form):
                 setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # TODO: Won't work with `CompositeKeyField`s
 
 
+        # Fieldset to add a new related instance to this instance
         related_instance = related_model()
         setattr(related_instance, related_field.name, instance) 
         #key = '%s-add' % related_model.__name__
@@ -235,6 +239,8 @@ class RelatedForm(poobrains.form.Form):
         view function to be called in a flask request context
         """
         if flask.request.method == self.method:
+
+            poobrains.app.debugger.set_trace()
 
             values = flask.request.form[self.name]
 

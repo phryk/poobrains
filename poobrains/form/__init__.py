@@ -74,106 +74,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
         self.prefix = prefix
 
-
-    def empty(self):
-        for field in self:
-            if not field.empty():
-                return False
-        return True
     
-    
-    def validate(self, values):
-
-        compound_error = errors.CompoundError()
-
-        for field in self:
-
-            try:
-                field_values = values[field.name]
-
-                try:
-                    field.validate(field_values)
-                except errors.ValidationError as e:
-                    compound_error.append(e)
-
-
-            except werkzeug.exceptions.BadRequestKeyError as e:
-
-                if isinstance(field, Fieldset):
-
-                    poobrains.app.logger.error('All data for fieldset %s.%s missing.' % (field.prefix, field.name))
-                    poobrains.app.debugger.set_trace()
-                    raise # da woof!
-
-                else:
-
-                    try:
-                        field.validate(field.missing_value)
-
-                    except errors.ValidationError as e:
-                        compound_error.append(e)
-
-        if len(compound_error):
-            raise compound_error
-
-
-    def bind(self, values):
-
-        compound_error = errors.CompoundError()
-
-        for field in self: # magic iteration skipping type fields.Value
-            
-            try:
-                field_values = values[field.name]
-            
-                try:
-                    field.bind(values[field.name])
-                #except errors.BindingError as e
-                except ValueError as e:
-                    compound_error.append(e)
-
-            except werkzeug.exceptions.BadRequestKeyError as e:
-
-                if isinstance(field, Fieldset):
-                    raise
-                else:
-                    field.value = field.missing_value # because no value is a negative value, according to html form behavior :F
-
-
-        if len(compound_error):
-            raise compound_error
-
-
-    def render_fields(self):
-
-        """
-        Render fields of this form which have not yet been rendered.
-        """
-
-        rendered_fields = u''
-
-        for field in self:
-            if not field.rendered:
-                rendered_fields += field.render()
-
-        return rendered_fields
-
-
-    def render_controls(self):
-
-        """
-        Render controls for this form.
-        TODO: Do we *want* to filter out already rendered controls, like we do with fields?
-        """
-
-        rendered_controls = u''
-
-        for control in self.controls.itervalues():
-            rendered_controls += control.render()
-
-        return rendered_controls
-
-
     def __setattr__(self, name, value):
 
         if isinstance(value, fields.Field) or isinstance(value, Fieldset):
@@ -213,15 +114,114 @@ class BaseForm(poobrains.rendering.Renderable):
     def __iter__(self):
 
         """
-        Iterate over this forms fields except ValueFields.
-        Yes, this is incredibly helpful.
+        Iterate over this forms renderable fields.
         """
 
-        for k in self.fields.keys():
-            if not isinstance(self.fields[k], fields.Value):
-                yield self.fields[k]
+        for field in self.fields.itervalues():
+            if isinstance(field, (fields.RenderableField, Fieldset)):
+                yield field
+
+
+    @property
+    def renderable_fields(self):
+
+        return [field for field in self] 
+
+
+    @property
+    def validatable_fields(self):
+
+        fields = []
+        for field in self.fields.itervalues():
+            if not field.validator == None:
+                fields.append(field)
+
+        return fields
+
+
+    def empty(self):
+        for field in self:
+            if not field.empty():
+                return False
+        return True
     
     
+    def validate(self, values):
+
+        compound_error = errors.CompoundError()
+
+        for field in self.validatable_fields:
+
+            if values.has_key(field.name):
+                field_values = values[field.name]
+
+                try:
+                    field.validate(field_values)
+                except errors.ValidationError as e:
+                    compound_error.append(e)
+
+            else:
+
+                try:
+                    field.validate(errors.MissingValue())
+
+                except errors.ValidationError as e:
+                    compound_error.append(e)
+
+        if len(compound_error):
+            raise compound_error
+
+
+    def bind(self, values):
+
+        compound_error = errors.CompoundError()
+
+        for field in self: # magic iteration yielding only renderable fields
+           
+            if values.has_key(field.name):
+                field_values = values[field.name]
+            else:
+                field_values = errors.MissingValue()
+            
+                try:
+                    field.bind(field_values)
+                except errors.BindingError as e:
+                    compound_error.append(e)
+
+        if len(compound_error):
+            raise compound_error
+
+
+    def render_fields(self):
+
+        """
+        Render fields of this form which have not yet been rendered.
+        """
+
+        rendered_fields = u''
+
+        for field in self:
+            if not field.rendered:
+                rendered_fields += field.render()
+
+        return rendered_fields
+
+
+    def render_controls(self):
+
+        """
+        Render controls for this form.
+        TODO: Do we *want* to filter out already rendered controls, like we do with fields?
+        """
+
+        rendered_controls = u''
+
+        for control in self.controls.itervalues():
+            rendered_controls += control.render()
+
+        return rendered_controls
+
+
     @classmethod
     def templates(cls, mode=None):
 
@@ -272,22 +272,22 @@ class Form(BaseForm):
         self.method = method if method else 'POST'
         self.action = action if action else ''
 
-    def __setattr__(self, name, value):
-
-        if self.name:
-            if name == 'name' and not self.prefix:
-                if flask.g.forms.has_key(self.name):
-                    del(flask.g.forms[self.name])
-                flask.g.forms[value] = self
-
-            if name == 'prefix':
-                if not value:
-                    flask.g.forms[self.name] = self
-
-                elif flask.g.forms.has_key(self.name):
-                    del(flask.g.forms[self.name])
-
-        super(Form, self).__setattr__(name, value)
+#    def __setattr__(self, name, value):
+#
+#        if self.name:
+#            if name == 'name' and not self.prefix:
+#                if flask.g.forms.has_key(self.name):
+#                    del(flask.g.forms[self.name])
+#                flask.g.forms[value] = self
+#
+#            if name == 'prefix':
+#                if not value:
+#                    flask.g.forms[self.name] = self
+#
+#                elif flask.g.forms.has_key(self.name):
+#                    del(flask.g.forms[self.name])
+#
+#        super(Form, self).__setattr__(name, value)
 
 
     def view(self, mode=None):
@@ -297,22 +297,26 @@ class Form(BaseForm):
         """
 
         if flask.request.method == self.method:
-        
+
+            validation_error = None
+            binding_error = None
             values = flask.request.form[self.name]
-
-            try:
-                self.validate(values)
-
-            except errors.CompoundError as e:
-                for error in e.errors:
-                    flask.flash(error.message, 'error')
-
+            
             try:
                 self.bind(values)
 
-            except errors.CompoundError as e:
-                for error in e.errors:
+            except errors.CompoundError as binding_error:
+                for error in binding_error.errors:
                     flask.flash(error.message, 'error')
+
+            try:
+                self.validate(values)
+                self.handle()
+
+            except errors.CompoundError as validation_error:
+                for error in validation_error.errors:
+                    flask.flash(error.message, 'error')
+
 
         return self
 
@@ -346,7 +350,6 @@ class BoundForm(Form):
         self.mode = mode
 
 
-# TODO: Actually split AutoForm
 class AddForm(BoundForm):
 
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
@@ -415,6 +418,7 @@ class AddForm(BoundForm):
 
     def handle(self):
 
+        poobrains.app.debugger.set_trace()
         for field in self.model._meta.sorted_fields:
             if not field.name in self.model.form_blacklist:
                 if isinstance(getattr(self.model, field.name), poobrains.storage.fields.ForeignKeyField):
@@ -496,6 +500,7 @@ class DeleteForm(BoundForm):
 
 class Fieldset(BaseForm):
 
+    missing_value = werkzeug.datastructures.MultiDict()
     rendered = None
 
     def __init__(self, *args, **kw):

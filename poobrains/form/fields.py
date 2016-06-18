@@ -16,21 +16,20 @@ class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.Clas
     pass
 
 
-class Field(rendering.Renderable):
+class Field(object):
 
     errors = None
     prefix = None
     name = None
     value = None
-    empty_value = ''
-    missing_value = None
+    empty_value = '' # used instead of client input when the field has been determined to be "empty"
+    missing_value = None # used when client sends no value for this field
     label = None
     placeholder = None
     readonly = None
     required = None
     validator = validators.is_string
     coercer = coercers.coerce_string
-    rendered = None
 
 
     def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
@@ -102,26 +101,57 @@ class Field(rendering.Renderable):
     
     def bind(self, value):
 
-        if self.empty(value):
+        #if value == self.missing_value:
+        if isinstance(value, errors.MissingValue):
+            self.value = self.missing_value
+
+        elif self.empty(value):
             self.value = self.empty_value
+
         else:
-            self.value = self.coercer(value)
+            try:
+                self.value = self.coercer(value)
+            except ValueError as e:
+                raise errors.CoercionError("%s failed with value '%s'." % (self.coercer.__name__, str(value)))
+
+
+class Value(Field):
+    """ To put a static value into the form. """
+
+    def validate(self, value):
+        pass
+
+
+    def bind(self, value):
+        pass
+
+
+class RenderableField(Field, poobrains.rendering.Renderable):
+
+    rendered = None
 
 
     def render(self):
 
         self.rendered = True
-        return super(Field, self).render()
+        return super(RenderableField, self).render()
 
 
-class Message(Field):
-    coercer = None # Makes this field be ignored when checking for missing form data
+class Message(RenderableField):
 
-class Value(Field):
-    pass
+    def __repr__(self):
+        return "<%s: %s>" % (self.__class__.__name__, self.value)
+
+    
+    def validate(self, value):
+        pass
 
 
-class Text(Field):
+    def bind(self, value):
+        pass
+
+
+class Text(RenderableField):
     pass
 
 
@@ -133,7 +163,7 @@ class TextArea(Text):
     pass
 
 
-class Integer(Field):
+class Integer(RenderableField):
     validator = validators.is_integer 
 
 
@@ -150,7 +180,7 @@ class RangedInteger(Integer):
             raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, value, self.min, self.max))
 
 
-class Choice(Field):
+class Choice(RenderableField):
 
     multi = False
     choices = None
@@ -256,7 +286,7 @@ class Checkbox(RangedInteger):
         return value != ''
 
 
-class Float(Field):
+class Float(RenderableField):
     validator = validators.is_float
 
 
@@ -266,7 +296,7 @@ class RangedFloat(RangedInteger):
 
 
 
-class Keygen(Field):
+class Keygen(RenderableField):
     
     challenge = None
 
@@ -282,5 +312,5 @@ class Keygen(Field):
         super(Keygen, self).__init__(*args, **kw)
 
 
-class File(Field):
+class File(RenderableField):
     pass

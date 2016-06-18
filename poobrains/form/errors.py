@@ -4,9 +4,16 @@ class ValidationError(Exception):
     pass
 
 
-class BindingError(Exception):
+class BindingError(Exception): # If we have CoercionError, is this even needed?
     pass
 
+
+class CoercionError(Exception):
+    pass
+
+
+class MissingValue(Exception):
+    pass
 
 class CompoundError(Exception):
 
