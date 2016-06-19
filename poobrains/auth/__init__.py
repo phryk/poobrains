@@ -353,6 +353,7 @@ class UserPermissionRelatedForm(RelatedForm):
 class Permission(poobrains.helpers.ChildAware):
    
     instance = None
+    choices = [('all', 'For all instances'), ('deny', 'Explicitly deny')]
 
     class Meta:
         abstract = True
@@ -367,6 +368,10 @@ class Permission(poobrains.helpers.ChildAware):
 
     def instance_check(self, user):
         pass
+
+
+class OwnedPermission(Permission):
+    choices = [('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
 
 
 class BaseAdministerable(poobrains.storage.BaseModel):

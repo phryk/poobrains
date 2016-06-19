@@ -183,10 +183,10 @@ class BaseForm(poobrains.rendering.Renderable):
             else:
                 field_values = errors.MissingValue()
             
-                try:
-                    field.bind(field_values)
-                except errors.BindingError as e:
-                    compound_error.append(e)
+            try:
+                field.bind(field_values)
+            except errors.BindingError as e:
+                compound_error.append(e)
 
         if len(compound_error):
             raise compound_error
@@ -311,7 +311,7 @@ class Form(BaseForm):
 
             try:
                 self.validate(values)
-                self.handle()
+                return self.handle()
 
             except errors.CompoundError as validation_error:
                 for error in validation_error.errors:
@@ -418,7 +418,6 @@ class AddForm(BoundForm):
 
     def handle(self):
 
-        poobrains.app.debugger.set_trace()
         for field in self.model._meta.sorted_fields:
             if not field.name in self.model.form_blacklist:
                 if isinstance(getattr(self.model, field.name), poobrains.storage.fields.ForeignKeyField):
