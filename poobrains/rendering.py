@@ -17,8 +17,6 @@ import helpers
 class Renderable(helpers.ChildAware):
 
     name = None
-    site_modes = ['view']
-    admin_modes = []
     permissions = None
 
 

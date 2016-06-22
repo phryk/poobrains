@@ -126,9 +126,6 @@ class Poobrain(flask.Flask):
 
             try:
 
-                print "DEBUGGER UID: ", os.getuid()
-                print os.environ.get('HOME', 'yoink')
-
                 import signal
                 import pudb
                 if hasattr(signal, 'SIGINFO'):
@@ -585,11 +582,13 @@ class Pooprint(flask.Blueprint):
 app = Poobrain(__name__) # TODO: Make app class configurable.
 
 # delayed internal imports which may depend on app
-import poobrains.form
-import poobrains.auth
+import poobrains.helpers
+import poobrains.permission
 import poobrains.rendering
+import poobrains.form
 import poobrains.storage
 import poobrains.cli
+import poobrains.auth
 
 
 class ErrorPage(poobrains.rendering.Renderable):

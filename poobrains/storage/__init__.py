@@ -52,6 +52,9 @@ class BaseModel(helpers.MetaCompatibility, peewee.BaseModel):
 #        return cls
 
 
+class BaseModelPermissionInjection(BaseModel, poobrains.permission.PermissionInjection):
+    pass
+
 class Model(peewee.Model, helpers.ChildAware):
 
     __metaclass__ = BaseModel
@@ -98,6 +101,8 @@ class Model(peewee.Model, helpers.ChildAware):
 
 
 class Storable(Model, rendering.Renderable):
+
+    #__metaclass__ = BaseModelPermissionInjection
 
     class Meta:
         abstract = True

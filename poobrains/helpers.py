@@ -155,12 +155,10 @@ class MetaCompatibility(type):
     def __new__(cls, name, bases, attrs):
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
-
         
         if hasattr(cls, 'Meta'):
 
             if not hasattr(cls, '_meta'):
-                print ";;;;;; ADDING FAKEMETA", name, cls.Meta
                 cls._meta = FakeMetaOptions()
 
             if hasattr(cls.Meta, 'abstract'):
@@ -172,7 +170,6 @@ class MetaCompatibility(type):
             delattr(cls, 'Meta')
 
         elif hasattr(cls, '_meta'):
-            print ";;;;;; _meta exists already: ", name, cls._meta
             if isinstance(cls._meta, FakeMetaOptions):
 
                 if hasattr(cls._meta, 'abstract'):
@@ -181,10 +178,7 @@ class MetaCompatibility(type):
             else:
                 cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky
 
-
-
         else:
-            print ";;;;;; Neither Meta nor _meta found", name
             cls._meta = FakeMetaOptions()
 
         return cls
@@ -252,20 +246,6 @@ class ChildAware(object):
             r += ancestors
 
         return r
-
-
-class PermissionInjection(MetaCompatibility): # TODO: probably not going to use this after all; if so, get rid of it
-
-    def __new__(cls, *args, **kwargs):
-
-        cls = super(PermissionInjection, cls).__new__(*args, **kwargs)
-        cls.permissions = collections.OrderedDict()
-
-        for mode in cls.site_modes:
-            perm_name = "%s_%s" % (cls.__name__, mode)
-            cls.permissions[mode] = type(perm_name, (Permission,), {})
-
-        return cls
 
 
 class TrueDict(OrderedDict):

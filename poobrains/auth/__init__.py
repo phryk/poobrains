@@ -322,7 +322,7 @@ class UserPermissionRelatedForm(RelatedForm):
 
         f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
 
-        for name, perm in Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
+        for name, perm in poobrains.permission.Permission.children_keyed().iteritems(): # TODO: sorting doesn't help, problem with/CustomOrderedDict?
 
             try:
                 perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == perm.__name__)
@@ -358,30 +358,6 @@ class UserPermissionRelatedForm(RelatedForm):
 #        return flask.redirect(flask.request.url)
 
 
-class Permission(poobrains.helpers.ChildAware):
-   
-    instance = None
-    choices = [('grant', 'For all instances'), ('deny', 'Explicitly deny')]
-
-    class Meta:
-        abstract = True
-
-    def __init__(self, instance):
-        self.instance = instance
-        self.check = self.instance_check
-
-    @classmethod
-    def check(cls, user):
-        return user.access(cls)
-
-    def instance_check(self, user):
-        pass
-
-
-class OwnedPermission(Permission):
-    choices = [('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
-
-
 class BaseAdministerable(poobrains.storage.BaseModel):
 
     """
@@ -408,12 +384,15 @@ class BaseAdministerable(poobrains.storage.BaseModel):
         return cls
 
 
+class ProtectedRenderable(poobrains.rendering.Renderable):
+
+    __metaclass__ = poobrains.permission.PermissionInjection
+
+
 class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     
     __metaclass__ = BaseAdministerable
 
-    admin_modes = ['add', 'edit', 'delete'] 
-    form_modes = admin_modes
     form_add = poobrains.form.AddForm
     form_edit = poobrains.form.EditForm
     form_delete = poobrains.form.DeleteForm
@@ -426,6 +405,7 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
 
     class Meta:
         abstract = True
+        modes = ['full', 'teaser', 'add', 'edit', 'delete']
     
     actions = None
 
@@ -459,9 +439,6 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
 
     def form(self, mode=None):
 
-        if not mode in self.form_modes:
-            raise ValueError("%s is not a valid form mode for %s." % (mode, self.__class__.__name__))
-
         n = 'form_%s' % mode
         if not hasattr(self, n):
             raise NotImplementedError("Form class %s.%s missing." % (self.__class__.__name__, n))
@@ -476,7 +453,7 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
         view function to be called in a flask request context
         """
 
-        if mode in self.form_modes:
+        if mode in ('add', 'edit', 'delete'):
 
             f = self.form(mode)
             return f.view(mode)
