@@ -14,6 +14,14 @@ from functools import wraps
 # local imports
 import poobrains
 
+#def get_permission(permission_name):
+#
+#    for perm in Permission.children():
+#        if permission_name == perm.__name__:
+#            return perm
+#
+#    raise LookupError("Unknown permission: %s" % str(permission_name))
+
 
 def admin_listing_actions(cls):
 
@@ -45,65 +53,67 @@ def admin_index():
     return admin_menu()
 
 
-def access(*args, **kwargs):
-
-    """
-    Decorator; Sets the permission needed to access this page.
-
-    Alternatively, a custom access callback returning True or False might be
-    passed.
 
 
-    Example, using a permission name to determine access rights::
-
-        @app.route('/foo')
-        @access('access_foo')
-        @view
-        def page_foo():
-            return value('Here be page content.')
-
-
-    Example, using a custom access callback to determine access rights::
-
-        def access_anon(user):
-            if(user.id == 0):
-                return True
-            return False
-
-        @app.route('/only/for/anon')
-        @access(callback=access_anon)
-        @view
-        def page_anon():
-            return (value('Only anon visitors get access to this.')
-      
-
-    ..  warning::
-        
-        This decorator has to be the below the app.route decorator for the page callback.
-
-
-    ..  todo::
-        
-        Check if the custom callback example actually works
-    """
-
-    def decorator(func):
-
-        @wraps(func)
-        def c(*a, **kw):
-
-            params = {'args': a, 'kwargs': kw}
-
-            kwargs['params'] = params
-
-
-            if flask.g.user.access(*args, **kwargs):
-                return func(*a, **kw)
-            else:
-                abort(401, "Not authorized for access.")        
-        return c
-
-    return decorator
+#def access(*args, **kwargs):
+#
+#    """
+#    Decorator; Sets the permission needed to access this page.
+#
+#    Alternatively, a custom access callback returning True or False might be
+#    passed.
+#
+#
+#    Example, using a permission name to determine access rights::
+#
+#        @app.route('/foo')
+#        @access('access_foo')
+#        @view
+#        def page_foo():
+#            return value('Here be page content.')
+#
+#
+#    Example, using a custom access callback to determine access rights::
+#
+#        def access_anon(user):
+#            if(user.id == 0):
+#                return True
+#            return False
+#
+#        @app.route('/only/for/anon')
+#        @access(callback=access_anon)
+#        @view
+#        def page_anon():
+#            return (value('Only anon visitors get access to this.')
+#      
+#
+#    ..  warning::
+#        
+#        This decorator has to be the below the app.route decorator for the page callback.
+#
+#
+#    ..  todo::
+#        
+#        Check if the custom callback example actually works
+#    """
+#
+#    def decorator(func):
+#
+#        @wraps(func)
+#        def c(*a, **kw):
+#
+#            params = {'args': a, 'kwargs': kw}
+#
+#            kwargs['params'] = params
+#
+#
+#            if flask.g.user.access(*args, **kwargs):
+#                return func(*a, **kw)
+#            else:
+#                abort(401, "Not authorized for access.")        
+#        return c
+#
+#    return decorator
 
 @poobrains.app.expose('/cert/', force_secure=True)
 class ClientCertForm(poobrains.form.Form):
@@ -240,8 +250,6 @@ class RelatedForm(poobrains.form.Form):
         """
         if flask.request.method == self.method:
 
-            poobrains.app.debugger.set_trace()
-
             values = flask.request.form[self.name]
 
             for field in self:
@@ -353,7 +361,7 @@ class UserPermissionRelatedForm(RelatedForm):
 class Permission(poobrains.helpers.ChildAware):
    
     instance = None
-    choices = [('all', 'For all instances'), ('deny', 'Explicitly deny')]
+    choices = [('grant', 'For all instances'), ('deny', 'Explicitly deny')]
 
     class Meta:
         abstract = True
@@ -392,10 +400,10 @@ class BaseAdministerable(poobrains.storage.BaseModel):
 
             perm_attrs['Meta'] = Meta # Makes Permissions for abstract Administerables abstract, too
 
-        cls.Create = type('%sCreate' % name, (Permission,), perm_attrs)
-        cls.Read   = type('%sRead' % name, (Permission,), perm_attrs)
-        cls.Update = type('%sUpdate' % name, (Permission,), perm_attrs)
-        cls.Delete = type('%sDelete' % name, (Permission,), perm_attrs)
+        #cls.Create = type('%sCreate' % name, (Permission,), perm_attrs)
+        #cls.Read   = type('%sRead' % name, (Permission,), perm_attrs)
+        #cls.Update = type('%sUpdate' % name, (Permission,), perm_attrs)
+        #cls.Delete = type('%sDelete' % name, (Permission,), perm_attrs)
 
         return cls
 
@@ -404,7 +412,8 @@ class Administerable(poobrains.storage.Storable, poobrains.helpers.ChildAware):
     
     __metaclass__ = BaseAdministerable
 
-    form_modes = ['add', 'edit', 'delete']
+    admin_modes = ['add', 'edit', 'delete'] 
+    form_modes = admin_modes
     form_add = poobrains.form.AddForm
     form_edit = poobrains.form.EditForm
     form_delete = poobrains.form.DeleteForm

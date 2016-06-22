@@ -28,24 +28,6 @@ def choose_primary(d):
     return d.values()[0]
 
 
-def is_secure(f):
-
-    """
-    decorator. Denies access if an url is accessed without TLS.
-    """
-
-    @functools.wraps(f)
-    def substitute(*args, **kwargs):
-
-        if flask.request.is_secure:
-            return f(*args, **kwargs)
-
-        else:
-            flask.abort(403, "You are trying to do naughty things without protection.")
-
-    return substitute
-
-
 def render(mode=None):
 
     def decorator(f):
@@ -87,6 +69,60 @@ def render(mode=None):
     return decorator
 
 
+def is_secure(f):
+
+    """
+    decorator. Denies access if an url is accessed without TLS.
+    """
+
+    @functools.wraps(f)
+    def substitute(*args, **kwargs):
+
+        if flask.request.is_secure:
+            return f(*args, **kwargs)
+
+        else:
+            flask.abort(403, "You are trying to do naughty things without protection.")
+
+    return substitute
+
+
+def load_storable(cls):
+
+    def decorator(func):
+
+        @functools.wraps(func)
+        def substitute(id_or_name=None, *args, **kwargs):
+            if id_or_name:
+                instance = cls.load(id_or_name)
+
+            else: # should only happen for 'add' mode for storables, or any for forms
+                instance = cls()
+
+            return func(instance, *args, **kwargs)
+
+        return substitute
+
+    return decorator
+
+
+def access(permission):
+
+    def decorator(func):
+
+        @functools.wraps(func)
+        def substitute(*args, **kwargs):
+
+            poobrains.app.debugger.set_trace()
+
+            try:
+                flask.g.user.access(permission)
+            except errors.PermissionDenied as e:
+                abort(401, 'Permission denied!') # TODO: Find out if this actually stops further execution of this function
+
+            return func(*args, **kwargs)
+
+
 class ClassOrInstanceBound(type): # probably the worst name I ever picked, but hey it's descriptive! ¯\_(ツ)_/¯
 
     def __get__(self, instance, owner):
@@ -120,19 +156,36 @@ class MetaCompatibility(type):
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
 
+        
         if hasattr(cls, 'Meta'):
 
-            cls._meta = FakeMetaOptions()
+            if not hasattr(cls, '_meta'):
+                print ";;;;;; ADDING FAKEMETA", name, cls.Meta
+                cls._meta = FakeMetaOptions()
 
             if hasattr(cls.Meta, 'abstract'):
                 cls._meta.abstract = cls.Meta.abstract
+
+            if hasattr(cls.Meta, 'modes'):
+                cls._meta.modes = cls.Meta.modes
+
             delattr(cls, 'Meta')
 
         elif hasattr(cls, '_meta'):
+            print ";;;;;; _meta exists already: ", name, cls._meta
             if isinstance(cls._meta, FakeMetaOptions):
-                cls._meta = FakeMetaOptions()
+
+                if hasattr(cls._meta, 'abstract'):
+                    cls._meta.abstract = False # TODO: Would delattr be "cleaner"?
+
             else:
-                cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable.
+                cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky
+
+
+
+        else:
+            print ";;;;;; Neither Meta nor _meta found", name
+            cls._meta = FakeMetaOptions()
 
         return cls
 
@@ -199,6 +252,20 @@ class ChildAware(object):
             r += ancestors
 
         return r
+
+
+class PermissionInjection(MetaCompatibility): # TODO: probably not going to use this after all; if so, get rid of it
+
+    def __new__(cls, *args, **kwargs):
+
+        cls = super(PermissionInjection, cls).__new__(*args, **kwargs)
+        cls.permissions = collections.OrderedDict()
+
+        for mode in cls.site_modes:
+            perm_name = "%s_%s" % (cls.__name__, mode)
+            cls.permissions[mode] = type(perm_name, (Permission,), {})
+
+        return cls
 
 
 class TrueDict(OrderedDict):

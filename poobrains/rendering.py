@@ -4,6 +4,7 @@ from flask import abort, render_template, g
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException
 
+import collections
 import flask
 import werkzeug
 import jinja2
@@ -16,6 +17,22 @@ import helpers
 class Renderable(helpers.ChildAware):
 
     name = None
+    site_modes = ['view']
+    admin_modes = []
+    permissions = None
+
+
+    class Meta:
+        modes = ['full'] 
+
+
+    def __new__(cls, *args, **kwargs):
+
+        cls = super(Renderable, cls).__new__(cls, *args, **kwargs)
+        cls.permissions = collections.OrderedDict()
+
+        return cls
+
 
     def __init__(self, name=None):
 

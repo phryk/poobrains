@@ -386,15 +386,11 @@ class Pooprint(flask.Blueprint):
             rule = os.path.join(rule, 'delete')
             options['methods'].append('DELETE')
 
-
         @poobrains.helpers.render(mode)
+        #@poobrains.helpers.access(getattr(cls, perm_names[mode]))
+        @poobrains.helpers.load_storable(cls)
         def view_func(id_or_name=None):
-            if id_or_name:
-                instance = cls.load(id_or_name)
-
-            else: # should only happen for 'add' mode for storables, or any for forms
-                instance = cls()
-            
+            instance = id_or_name 
             return instance.view(mode)
 
 
@@ -589,9 +585,10 @@ class Pooprint(flask.Blueprint):
 app = Poobrain(__name__) # TODO: Make app class configurable.
 
 # delayed internal imports which may depend on app
+import poobrains.form
+import poobrains.auth
 import poobrains.rendering
 import poobrains.storage
-import poobrains.auth
 import poobrains.cli
 
 
