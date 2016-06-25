@@ -1,4 +1,5 @@
 <select name={{ content.prefix }}.{{ content.name }} {% if content.multi %}multiple{% endif %} class="{% if content.errors %}invalid{% endif %}">
+  <option value=''>{{ content.empty_label }}</option>
   {% for value, label in content.choices %}
   <option value="{% if value %}{{ value }}{% endif %}" {% if value == content.value %}selected{% endif %}>{{ label }}</option>
   {% endfor %}

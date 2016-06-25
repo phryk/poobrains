@@ -92,7 +92,7 @@ class Field(object):
 
     
     def validate(self, value):
-        if not self.empty(value):
+        if not self.empty(value) and not isinstance(value, errors.MissingValue):
             self.validator(value)
 
         elif self.required:
@@ -171,19 +171,24 @@ class RangedInteger(Integer):
 
     min = None
     max = None
-    
+
+
     def validate(self, value):
 
-        self.validator(value)
-        x = int(value)
-        if x <self. min or x > self.max:
-            raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, value, self.min, self.max))
+        super(RangedInteger, self).validate(value)
+
+        if not self.empty(value) and not isinstance(value, errors.MissingValue):
+
+            x = int(value)
+            if x <self. min or x > self.max:
+                raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, value, self.min, self.max))
 
 
 class Choice(RenderableField):
 
     multi = False
     choices = None
+    empty_label = 'Please choose'
     
     def __init__(self, name=None, choices=[],  value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
 

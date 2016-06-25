@@ -1,2 +1,4 @@
-class PermissionDenied(Exception):
-    pass
+import werkzeug
+
+class PermissionDenied(werkzeug.exceptions.HTTPException):
+    code = 403
