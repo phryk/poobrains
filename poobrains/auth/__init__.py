@@ -437,6 +437,10 @@ class ProtectedRenderable(poobrains.rendering.Renderable):
 
     __metaclass__ = poobrains.permission.PermissionInjection
 
+    class Meta:
+        abstract = True
+        permission_class = poobrains.permission.Permission
+
 
 class Administerable(poobrains.storage.Storable, ProtectedRenderable):
     
@@ -455,6 +459,7 @@ class Administerable(poobrains.storage.Storable, ProtectedRenderable):
     class Meta:
         abstract = True
         modes = ['full', 'teaser', 'add', 'edit', 'delete']
+        permission_class = poobrains.permission.OwnedPermission
     
     actions = None
 

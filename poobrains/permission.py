@@ -47,6 +47,6 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably
         for mode in cls._meta.modes:
             perm_name = "%s_%s" % (cls.__name__, mode)
             perm_label = "%s %s" % (mode.capitalize(), cls.__name__)
-            cls._meta.permissions[mode] = type(perm_name, (Permission,), {})
+            cls._meta.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
 
         return cls

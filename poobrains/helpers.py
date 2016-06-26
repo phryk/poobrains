@@ -155,17 +155,22 @@ class MetaCompatibility(type):
     def __new__(cls, name, bases, attrs):
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
+        recognized_options = ['abstract', 'modes', 'permission_class']
         
         if hasattr(cls, 'Meta'):
 
             if not hasattr(cls, '_meta'):
                 cls._meta = FakeMetaOptions()
 
-            if hasattr(cls.Meta, 'abstract'):
-                cls._meta.abstract = cls.Meta.abstract
+#            if hasattr(cls.Meta, 'abstract'):
+#                cls._meta.abstract = cls.Meta.abstract
+#
+#            if hasattr(cls.Meta, 'modes'):
+#                cls._meta.modes = cls.Meta.modes
 
-            if hasattr(cls.Meta, 'modes'):
-                cls._meta.modes = cls.Meta.modes
+            for option_name in recognized_options:
+                if hasattr(cls.Meta, option_name):
+                    setattr(cls._meta, option_name, getattr(cls.Meta, option_name))
 
             delattr(cls, 'Meta')
 
