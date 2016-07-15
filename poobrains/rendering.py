@@ -45,7 +45,7 @@ class Renderable(helpers.ChildAware):
 
 
     def instance_url(self, mode=None):
-        return poobrains.app.get_url(self.__class__, id_or_name=self.name, mode=mode)
+        return poobrains.app.get_url(self.__class__, id_or_name=self.name, mode=mode) # FIXME/TODO: at least the naming doesn't fit. Ponder instantiated Renderables which are not Storables.
 
 
     @classmethod
@@ -94,7 +94,7 @@ class RenderString(Renderable):
         self.value = value
 
 
-    def render(self):
+    def render(self, mode=None):
         return self.value # TODO: cast to jinja2.Markup or sth?
 
 

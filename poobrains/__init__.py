@@ -315,6 +315,7 @@ class Poobrain(flask.Flask):
     def get_url(self, cls, id_or_name=None, mode=None):
 
         try:
+            #TODO: Is it wise to just prefer self.site?
             return self.site.get_url(cls, id_or_name=id_or_name, mode=mode)
 
         except LookupError:
@@ -375,7 +376,7 @@ class Pooprint(flask.Blueprint):
             self.views[cls][mode] = collections.OrderedDict()
 
         if mode != 'add' and issubclass(cls, poobrains.storage.Storable): # excludes adding and non-Storable Renderables like Forms
-            rule = os.path.join(rule, '<id_or_name>')
+            rule = os.path.join(rule, '<id_or_name>/')
 
         # Why the fuck does HTML not support DELETE!?
         options['methods'] = ['GET', 'POST']

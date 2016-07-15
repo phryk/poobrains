@@ -157,6 +157,8 @@ class Named(Storable):
 
 class Listing(rendering.Renderable):
 
+    #TODO: Make a Listing class that works with non-Storable Renderables
+
     cls = None
     mode = None
     title = None
@@ -231,3 +233,8 @@ class Listing(rendering.Renderable):
         except werkzeug.routing.BuildError as e:
             app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
+
+    def view(self, mode):
+
+        poobrains.app.debugger.set_trace() 
+        return super(Listing, self).view(mode)

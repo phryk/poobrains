@@ -40,14 +40,14 @@ class TestForm(poobrains.form.Form):
 
 
 @app.expose('/news', mode='full')
-class News(poobrains.auth.Administerable):
+class News(poobrains.auth.Owned):
 
     title = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()
 
 
 @app.expose('/paste', mode='full', title='Copypasta')
-class Paste(poobrains.auth.Administerable):
+class Paste(poobrains.auth.Owned):
 
     type = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()

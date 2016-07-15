@@ -369,6 +369,7 @@ class List(Command):
 
 class Add(Command):
 
+    #FIXME: This doesn't work for Storables with CompositeKey as primary key.
     #params = {'storable': coerce_storable, 'id_or_name': 'coerce_string'}
     storable = StorableParam()
 

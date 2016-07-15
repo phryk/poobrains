@@ -2,6 +2,7 @@
 
 # external imports
 import functools
+import collections
 import M2Crypto #import X509, EVP
 import pyspkac #import SPKAC
 import time
@@ -137,22 +138,18 @@ def protected(func):
     @functools.wraps(func)
     #def substitute(instance, *args, **kwargs):
     def substitute(instance, mode):
-        print ">>>>>>>>>>>>>>>>>>>>>>>>>> protected substitute", instance, func, mode
 
         user = flask.g.user # FIXME: How do I get rid of the smell?
 
-        if not isinstance(instance, ProtectedRenderable):
+        if not isinstance(instance, Protected):
             raise ValueError("@protected used with non-protected class '%s'." % instance.__class__.__name__)
 
-        if not instance._meta.permissions.has_key(mode):
-            print "######################", instance._meta.permissions
-            raise ValueError("Did not find permission for mode '%s' in instance of class '%s'." % (mode, instance.__class__.__name__))
+        if not instance.permissions.has_key(mode):
+            print "######################", instance.permissions
+            raise NotImplementedError("Did not find permission for mode '%s' in instance of class '%s'." % (mode, instance.__class__.__name__))
         
 
-        #poobrains.app.debugger.set_trace()
-
-
-        instance._meta.permissions[mode].check(user)
+        instance.permissions[mode].check(user)
 
         #return func(instance, *args, **kwargs)
         return func(instance, mode)
@@ -256,7 +253,8 @@ class RelatedForm(poobrains.form.Form):
 
             if f.fields[key].fields.has_key(related_field.name):
                 #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # FIXME: Won't work with `CompositeKeyField`s
-                setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
+                #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
+                setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
 
 
         # Fieldset to add a new related instance to this instance
@@ -270,7 +268,8 @@ class RelatedForm(poobrains.form.Form):
 
         if f.fields[key].fields.has_key(related_field.name):
             #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # FIXME: Won't work with `CompositeKeyField`s
-            setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
+            #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
+            setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
         else:
             poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % self.related_model.__name__)
             
@@ -433,7 +432,7 @@ class BaseAdministerable(poobrains.storage.BaseModel, poobrains.permission.Permi
         return cls
 
 
-class ProtectedRenderable(poobrains.rendering.Renderable):
+class Protected(poobrains.rendering.Renderable):
 
     __metaclass__ = poobrains.permission.PermissionInjection
 
@@ -442,7 +441,22 @@ class ProtectedRenderable(poobrains.rendering.Renderable):
         permission_class = poobrains.permission.Permission
 
 
-class Administerable(poobrains.storage.Storable, ProtectedRenderable):
+    def __new__(instance, *args, **kwargs):
+
+        instance = super(Protected, instance).__new__(instance, *args, **kwargs)
+        #poobrains.app.debugger.set_trace()
+        for mode, perm_class in instance.__class__.permissions.iteritems():
+            instance.permissions[mode] = perm_class(instance)
+        return instance
+
+
+
+    @protected
+    def render(self, *args, **kwargs):
+        return super(Protected, self).render(*args, **kwargs)
+
+
+class Administerable(poobrains.storage.Storable, Protected):
     
     __metaclass__ = BaseAdministerable
 
@@ -458,8 +472,8 @@ class Administerable(poobrains.storage.Storable, ProtectedRenderable):
 
     class Meta:
         abstract = True
+        permission_class = poobrains.permission.Permission 
         modes = ['full', 'teaser', 'add', 'edit', 'delete']
-        permission_class = poobrains.permission.OwnedPermission
     
     actions = None
 
@@ -516,6 +530,11 @@ class Administerable(poobrains.storage.Storable, ProtectedRenderable):
         return self
 
 
+    @protected
+    def render(self, *args, **kwargs):
+        return super(Administerable, self).render(*args, **kwargs)
+
+
     def __repr__(self):
         return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
@@ -538,7 +557,7 @@ class User(NamedAdministerable):
 
     #name = poobrains.storage.fields.CharField(unique=True)
     groups = None
-    permissions = None
+    own_permissions = None
     _permissions = None # filled by UserPermission.permission ForeignKeyField
 
     #form = UserForm
@@ -546,13 +565,13 @@ class User(NamedAdministerable):
     def __init__(self, *args, **kwargs):
 
         super(User, self).__init__(*args, **kwargs)
-        self.permissions = {}
+        self.own_permissions = collections.OrderedDict()
 
 
     def prepared(self):
 
         for up in self._permissions:
-            self.permissions[up.permission] = up.access
+            self.own_permissions[up.permission] = up.access
 
     
     def save(self, *args, **kwargs):
@@ -561,7 +580,7 @@ class User(NamedAdministerable):
 
         rv = UserPermission.delete().where(UserPermission.user == self)
 
-        for perm_name, access in self.permissions.iteritems():
+        for perm_name, access in self.own_permissions.iteritems():
             up = UserPermission()
             up.user = self
             up.permission = perm_name
@@ -596,6 +615,23 @@ class UserPermission(Administerable):
         return cls.get(cls.user == user, cls.permission == permission)
 
 
+class Group(NamedAdministerable):
+    pass
+
+
+class GroupPermission(Administerable):
+
+    class Meta:
+        primary_key = peewee.CompositeKey('group', 'permission')
+        order_by = ('group', 'permission')
+
+    group = poobrains.storage.fields.ForeignKeyField(Group, null=False)
+    permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
+    access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
+    access.form_class = poobrains.form.fields.TextChoice
+
+
+
 class ClientCertToken(Administerable):
 
     validity = None
@@ -620,3 +656,13 @@ class ClientCert(Administerable):
     subject_name = poobrains.storage.fields.CharField()
 
 
+
+class Owned(Administerable):
+
+    class Meta:
+        abstract = True
+        permission_class = poobrains.permission.OwnedPermission
+
+
+    owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
+    #group = poobrains.

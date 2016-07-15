@@ -113,8 +113,6 @@ def access(permission):
         @functools.wraps(func)
         def substitute(*args, **kwargs):
 
-            poobrains.app.debugger.set_trace()
-
             try:
                 flask.g.user.access(permission)
             except errors.PermissionDenied as e:
