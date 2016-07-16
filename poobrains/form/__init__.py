@@ -494,7 +494,7 @@ class DeleteForm(BoundForm):
         self.instance.delete_instance()
         flask.flash(message)
 
-        return flask.redirect(self.model.url('teaser-edit'))
+        return flask.redirect(self.model.url('teaser')) # TODO app.admin.get_listing_url?
 
 
 class Fieldset(BaseForm):

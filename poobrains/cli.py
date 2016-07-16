@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from sys import exit, stdout
 from playhouse.db_url import connect
 from collections import OrderedDict
@@ -5,6 +7,7 @@ import peewee
 import helpers
 
 # local imports
+import permission
 import storage
 import auth
 
@@ -247,19 +250,53 @@ class Install(Command):
     def execute(self):
         import storage
         import auth
-        stdout.write("Really execute installation procedure? (y/N)")
+        stdout.write("Really execute installation procedure? (y/N): ")
         value = raw_input().lower()
         if value == 'y':
+
             stdout.write("Installing now...\n")
+
             self.shell.db.create_tables(storage.Model.children())
             stdout.write("Database tables created!\n")
+
             anon = auth.User()
             anon.name = 'Anonymous'
             anon.id = 1 # Should theoretically always happen, but let's make sure anyways
             anon.save(force_insert=True)
             stdout.write("Anonymous user created.\n")
             stdout.write(str(anon))
-            stdout.write("Installation complete!")
+
+            stdout.write("Creating administrator account…\n")
+            admin = auth.User()
+            admin.name = 'Administrator'
+            for cls in permission.Permission.children():
+                choice_values = [x[0] for x in cls.choices]
+                if 'all' in choice_values:
+                    access = 'all'
+                elif 'grant' in choice_values:
+                    access = 'grant'
+                else:
+                    stdout.write("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
+                    break
+
+                stdout.write("Adding permission %s: %s\n" % (cls.__name__, access))
+                admin.own_permissions[cls.__name__] = access
+
+            if admin.save():
+
+                stdout.write("Successfully saved administrator account.\n")
+                stdout.write("Please type in a token for client certificate generation: ")
+                token = raw_input()
+
+                t = auth.ClientCertToken()
+                t.user = admin
+                t.token = token
+                t.save()
+                stdout.write("Installation complete!")
+
+            else:
+                stdout.write("Couldn't save administrator, please try again or fix according bugs.")
+
 
 
 

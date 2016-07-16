@@ -576,16 +576,16 @@ class User(NamedAdministerable):
     
     def save(self, *args, **kwargs):
 
-        super(User, self).save(*args, **kwargs)
+        rv = super(User, self).save(*args, **kwargs)
 
-        rv = UserPermission.delete().where(UserPermission.user == self)
-
+        UserPermission.delete().where(UserPermission.user == self)
+        poobrains.app.debugger.set_trace()
         for perm_name, access in self.own_permissions.iteritems():
             up = UserPermission()
             up.user = self
             up.permission = perm_name
             up.access = access
-            up.save()
+            up.save(force_insert=True)
 
         return rv
 
@@ -615,6 +615,18 @@ class UserPermission(Administerable):
         return cls.get(cls.user == user, cls.permission == permission)
 
 
+    def save(self, *args, **kwargs):
+
+        valid_permission_names = []
+        for cls in poobrains.permission.Permission.children():
+            valid_permission_names.append(cls.__name__)
+
+        if self.permission not in valid_permission_names:
+            raise ValueError("Invalid permission name: %s" % self.permission)
+
+        return super(UserPermission, self).save(*args, **kwargs)
+
+
 class Group(NamedAdministerable):
     pass
 
@@ -639,7 +651,7 @@ class ClientCertToken(Administerable):
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     token = poobrains.storage.fields.CharField(unique=True)
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
-    redeemed = poobrains.storage.fields.BooleanField()
+    redeemed = poobrains.storage.fields.BooleanField(default=False)
 
 
     def __init__(self, *args, **kw):

@@ -36,6 +36,9 @@ class Permission(poobrains.helpers.ChildAware):
 
 class OwnedPermission(Permission):
     choices = [('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
+    
+    class Meta:
+        abstract = True
 
     @classmethod
     def check(cls, user):

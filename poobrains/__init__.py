@@ -177,7 +177,7 @@ class Poobrain(flask.Flask):
                 rule = '%s/' % key
                 actions = functools.partial(auth.admin_listing_actions, cls)
 
-                self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser-edit', action_func=actions, force_secure=True)
+                self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
                 self.admin.add_view(cls, rule, mode='edit', force_secure=True)
                 self.admin.add_view(cls, rule, mode='delete', force_secure=True)
                 self.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
