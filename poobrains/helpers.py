@@ -282,6 +282,17 @@ class CustomOrderedDict(dict):
         super(CustomOrderedDict, self).__init__(*args, **kw)
 
 
+    def __repr__(self):
+
+        repr = '{'
+
+        for k, v in self.iteritems():
+            repr += '%s: %s' % (k.__repr__(), v.__repr__())
+
+        repr += '}'
+        return repr
+
+
     def __setitem__(self, key, value):
         super(CustomOrderedDict, self).__setitem__(key, value)
         self.order.append(key)
@@ -295,7 +306,13 @@ class CustomOrderedDict(dict):
     def __iter__(self):
 
         for key in self.keys():
-            yield self[key]
+            yield key
+
+
+    def iteritems(self):
+
+        for key in self.keys():
+            yield key, self[key]
 
 
     def clear(self):
