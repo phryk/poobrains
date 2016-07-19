@@ -366,7 +366,7 @@ class UserPermissionRelatedForm(RelatedForm):
 
         f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
 
-        for name, perm in poobrains.permission.Permission.children_keyed().iteritems(): # FIXME: sorting doesn't help, problem with/CustomOrderedDict?
+        for name, perm in poobrains.permission.Permission.children_keyed().iteritems():
 
             try:
                 perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == perm.__name__)
@@ -411,25 +411,25 @@ class BaseAdministerable(poobrains.storage.BaseModel, poobrains.permission.Permi
     """
     Metaclass for `Administerable`s.
     """
-
-    def __new__(cls, name, bases, attrs):
-
-        cls = super(BaseAdministerable, cls).__new__(cls, name, bases, attrs)
-
-        perm_attrs = {}
-        if hasattr(cls, '_meta') and hasattr(cls._meta, 'abstract') and cls._meta.abstract:
-
-            class Meta:
-                abstract = True
-
-            perm_attrs['Meta'] = Meta # Makes Permissions for abstract Administerables abstract, too
-
-        #cls.Create = type('%sCreate' % name, (Permission,), perm_attrs)
-        #cls.Read   = type('%sRead' % name, (Permission,), perm_attrs)
-        #cls.Update = type('%sUpdate' % name, (Permission,), perm_attrs)
-        #cls.Delete = type('%sDelete' % name, (Permission,), perm_attrs)
-
-        return cls
+    pass
+#    def __new__(cls, name, bases, attrs):
+#
+#        cls = super(BaseAdministerable, cls).__new__(cls, name, bases, attrs)
+#
+#        perm_attrs = {}
+#        if hasattr(cls, '_meta') and hasattr(cls._meta, 'abstract') and cls._meta.abstract:
+#
+#            class Meta:
+#                abstract = True
+#
+#            perm_attrs['Meta'] = Meta # Makes Permissions for abstract Administerables abstract, too
+#
+#        #cls.Create = type('%sCreate' % name, (Permission,), perm_attrs)
+#        #cls.Read   = type('%sRead' % name, (Permission,), perm_attrs)
+#        #cls.Update = type('%sUpdate' % name, (Permission,), perm_attrs)
+#        #cls.Delete = type('%sDelete' % name, (Permission,), perm_attrs)
+#
+#        return cls
 
 
 class Protected(poobrains.rendering.Renderable):

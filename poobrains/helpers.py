@@ -116,7 +116,7 @@ def access(permission):
             try:
                 flask.g.user.access(permission)
             except errors.PermissionDenied as e:
-                abort(401, 'Permission denied!') # TODO: Find out if this actually stops further execution of this function
+                abort(403, 'Permission denied!') # TODO: Find out if this actually stops further execution of this function
 
             return func(*args, **kwargs)
 
@@ -134,6 +134,8 @@ class ClassOrInstanceBound(type): # probably the worst name I ever picked, but h
 class FakeMetaOptions(object):
 
     abstract = None
+    modes = None
+    permission_class = None
     _additional_keys = None
 
     def __init__(self):
@@ -151,6 +153,9 @@ class MetaCompatibility(type):
     """
 
     def __new__(cls, name, bases, attrs):
+        
+        #if name.startswith('Owned'):
+            #import pudb; pudb.set_trace()
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
         recognized_options = ['abstract', 'modes', 'permission_class']
@@ -294,8 +299,10 @@ class CustomOrderedDict(dict):
 
 
     def __setitem__(self, key, value):
+
         super(CustomOrderedDict, self).__setitem__(key, value)
-        self.order.append(key)
+        if key not in self.keys(): # add key to order only if needed, leave position unchanged otherwise
+            self.order.append(key)
 
 
     def __delitem__(self, key):
@@ -313,6 +320,12 @@ class CustomOrderedDict(dict):
 
         for key in self.keys():
             yield key, self[key]
+
+
+    def itervalues(self):
+
+        for key in self.keys():
+            yield self[key]
 
 
     def clear(self):

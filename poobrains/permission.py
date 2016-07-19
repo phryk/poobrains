@@ -55,7 +55,7 @@ class OwnedPermission(Permission):
 class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably not going to use this after all; if so, get rid of it
 
     def __new__(cls, name, bases, attrs):
-        print "PermissionInjection: ", name
+        
         cls = super(PermissionInjection, cls).__new__(cls, name, bases, attrs)
         #cls._meta.permissions = collections.OrderedDict()
         cls.permissions = collections.OrderedDict()
@@ -64,6 +64,26 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably
             perm_name = "%s_%s" % (cls.__name__, mode)
             perm_label = "%s %s" % (mode.capitalize(), cls.__name__)
             #cls._meta.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
-            cls.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
+            perm_attrs = dict()
 
+            if hasattr(cls._meta, 'abstract') and cls._meta.abstract:
+
+                # Make permissions belonging to abstract Renderables abstract as well
+                #FIXME: I have no clue why both _meta and Meta are needed, grok it, simplify if sensible
+
+                meta = poobrains.helpers.FakeMetaOptions()
+                meta.abstract = True
+                perm_attrs['_meta'] = meta
+
+                class Meta:
+                    abstract = True
+
+                perm_attrs['Meta'] = Meta
+            
+            cls.permissions[mode] = type(perm_name, (cls._meta.permission_class,), perm_attrs)
+
+        if name == 'Owned':
+            import pudb; pudb.set_trace()
+        else:
+            print name
         return cls

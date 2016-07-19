@@ -189,6 +189,8 @@ class Command(helpers.ChildAware):
     parameters = None
     values = None
 
+    class Meta:
+        abstract = True
     
     @classmethod
     def get_parameters(cls):
