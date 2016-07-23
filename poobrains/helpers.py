@@ -3,6 +3,7 @@
 import random
 import functools
 import werkzeug
+import peewee
 import flask
 
 from collections import OrderedDict
@@ -159,7 +160,13 @@ class MetaCompatibility(type):
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
         recognized_options = ['abstract', 'modes', 'permission_class']
-        
+
+        if issubclass(cls, peewee.Model): # Maybe suboptimal, but can't get poobrains.storage from here, I think
+            print "jackpot: ", name
+        else:
+            print "nope: ", name
+
+
         if hasattr(cls, 'Meta'):
 
             if not hasattr(cls, '_meta'):

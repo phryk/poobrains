@@ -86,4 +86,5 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably
             import pudb; pudb.set_trace()
         else:
             print name
+
         return cls

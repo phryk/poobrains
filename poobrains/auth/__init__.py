@@ -406,7 +406,8 @@ class UserPermissionRelatedForm(RelatedForm):
 #        return flask.redirect(flask.request.url)
 
 
-class BaseAdministerable(poobrains.storage.BaseModel, poobrains.permission.PermissionInjection):
+#class BaseAdministerable(poobrains.storage.BaseModel, poobrains.permission.PermissionInjection):
+class BaseAdministerable(poobrains.permission.PermissionInjection, poobrains.storage.BaseModel):
 
     """
     Metaclass for `Administerable`s.
