@@ -93,13 +93,7 @@ class Field(object):
     
     def validate(self, value):
         if not self.empty(value) and not isinstance(value, errors.MissingValue):
-
-            try:
-                self.validator(value)
-            except Exception as e:
-                self.errors.append(e)
-                raise e
-
+            self.validator(value)
 
         elif self.required:
             raise errors.ValidationError("Required field '%s' was left empty." % self.name)
