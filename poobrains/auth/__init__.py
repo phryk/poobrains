@@ -540,7 +540,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
 
 
-class NamedAdministerable(Administerable, poobrains.storage.Named):
+class Named(Administerable, poobrains.storage.Named):
 
     class Meta:
         abstract = True
@@ -554,7 +554,7 @@ class NamedAdministerable(Administerable, poobrains.storage.Named):
             return cls.get(cls.name == id_or_name)
 
 
-class User(NamedAdministerable):
+class User(Named):
 
     #name = poobrains.storage.fields.CharField(unique=True)
     groups = None
@@ -628,8 +628,14 @@ class UserPermission(Administerable):
         return super(UserPermission, self).save(*args, **kwargs)
 
 
-class Group(NamedAdministerable):
+class Group(Named):
     pass
+
+
+class UserGroup(poobrains.storage.Storable):
+
+    user = poobrains.storage.fields.ForeignKeyField(User, related_name='_groups')
+    group = poobrains.storage.fields.ForeignKeyField(Group, related_name='_users')
 
 
 class GroupPermission(Administerable):
@@ -678,4 +684,8 @@ class Owned(Administerable):
 
 
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
-    #group = poobrains.
+    group = poobrains.storage.fields.ForeignKeyField(Group, null=False)
+    group_mode = poobrains.storage.fields.CharField(null=False, default='')
+
+class NamedOwned(Owned, Named):
+    pass

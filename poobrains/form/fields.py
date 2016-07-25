@@ -93,7 +93,13 @@ class Field(object):
     
     def validate(self, value):
         if not self.empty(value) and not isinstance(value, errors.MissingValue):
-            self.validator(value)
+
+            try:
+                self.validator(value)
+            except Exception as e:
+                self.errors.append(e)
+                raise e
+
 
         elif self.required:
             raise errors.ValidationError("Required field '%s' was left empty." % self.name)
@@ -199,6 +205,11 @@ class Choice(RenderableField):
     def validate(self, value):
 
         super(Choice, self).validate(value)
+
+        try:
+            self.coercer(value)
+        except Exception as e:
+            raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (value, self.prefix, self.name))
 
         if not self.coercer(value) in dict(self.choices).keys():
             raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (value, self.prefix, self.name))

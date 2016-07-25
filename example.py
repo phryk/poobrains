@@ -40,7 +40,7 @@ class TestForm(poobrains.form.Form):
 
 
 @app.expose('/news', mode='full')
-class News(poobrains.auth.Owned):
+class News(poobrains.auth.NamedOwned):
 
     title = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()

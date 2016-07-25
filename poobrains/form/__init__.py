@@ -23,6 +23,9 @@ class BaseForm(poobrains.rendering.Renderable):
 
     __metaclass__ = FormMeta
 
+    class Meta:
+        abstract = True
+
     errors = None
     fields = None
     controls = None
@@ -159,6 +162,7 @@ class BaseForm(poobrains.rendering.Renderable):
                     field.validate(field_values)
                 except errors.ValidationError as e:
                     compound_error.append(e)
+                    field.errors.append(e)
 
             else:
 
@@ -167,6 +171,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
                 except errors.ValidationError as e:
                     compound_error.append(e)
+                    field.errors.append(e)
 
         if len(compound_error):
             raise compound_error
@@ -265,6 +270,9 @@ class Form(BaseForm):
 
     method = None
     action = None
+
+    class Meta:
+        abstract = True
 
     def __init__(self, prefix=None, name=None, title=None, method=None, action=None):
 
@@ -501,6 +509,10 @@ class Fieldset(BaseForm):
 
     missing_value = werkzeug.datastructures.MultiDict()
     rendered = None
+
+    class Meta:
+        abstract = True
+
 
     def __init__(self, *args, **kw):
 

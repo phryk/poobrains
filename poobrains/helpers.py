@@ -154,47 +154,34 @@ class MetaCompatibility(type):
     """
 
     def __new__(cls, name, bases, attrs):
-        
-        #if name.startswith('Owned'):
-            #import pudb; pudb.set_trace()
-
-        cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
+ 
         recognized_options = ['abstract', 'modes', 'permission_class']
 
-        if issubclass(cls, peewee.Model): # Maybe suboptimal, but can't get poobrains.storage from here, I think
-            print "jackpot: ", name
-        else:
-            print "nope: ", name
-
-
-        if hasattr(cls, 'Meta'):
-
-            if not hasattr(cls, '_meta'):
-                cls._meta = FakeMetaOptions()
-
-#            if hasattr(cls.Meta, 'abstract'):
-#                cls._meta.abstract = cls.Meta.abstract
-#
-#            if hasattr(cls.Meta, 'modes'):
-#                cls._meta.modes = cls.Meta.modes
-
+        cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
+ 
+        defaults = {}
+        if hasattr(cls, '_meta'):
             for option_name in recognized_options:
-                if hasattr(cls.Meta, option_name):
-                    setattr(cls._meta, option_name, getattr(cls.Meta, option_name))
+                if hasattr(cls._meta, option_name):
+                    defaults[option_name] = getattr(cls._meta, option_name)
 
-            delattr(cls, 'Meta')
+        defaults['abstract'] = False
 
-        elif hasattr(cls, '_meta'):
-            if isinstance(cls._meta, FakeMetaOptions):
+        if not issubclass(cls, peewee.Model): # Maybe suboptimal, but can't get poobrains.storage from here, I think
 
-                if hasattr(cls._meta, 'abstract'):
-                    cls._meta.abstract = False # TODO: Would delattr be "cleaner"?
-
-            else:
-                cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky
-
-        else:
             cls._meta = FakeMetaOptions()
+
+            if hasattr(cls, 'Meta'):
+                print "has Meta"
+                for option_name in recognized_options:
+                    if hasattr(cls.Meta, option_name):
+                        setattr(cls._meta, option_name, getattr(cls.Meta, option_name))
+                    elif defaults.has_key(option_name):
+                        setattr(cls._meta, option_name, defaults[option_name])
+
+                delattr(cls, 'Meta')
+        else:
+            cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky
 
         return cls
 
@@ -211,7 +198,7 @@ class ChildAware(object):
 
         for child in children:
 
-            if abstract or not hasattr(child, '_meta') or not hasattr(child._meta, 'abstract') or not child._meta.abstract:
+            if abstract or not hasattr(child._meta, 'abstract') or not child._meta.abstract:
                 reported_children.append(child)
 
             reported_children += child.children()
