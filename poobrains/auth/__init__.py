@@ -321,11 +321,6 @@ class RelatedForm(poobrains.form.Form):
                         flask.flash(e.message)
 
                 try:
-
-                    if hasattr(field, 'empty_value'):
-                        default = field.empty_value
-                    else:
-                        default = None
                     field.bind(values[field.name]) # bind to show erroneous values to user
                 except poobrains.form.errors.BindingError as e:
                     flask.flash(e.message)

@@ -18,11 +18,13 @@ class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.Clas
 
 class Field(object):
 
+    _empty = None # hint if value of this field was set to empty_value
     errors = None
     prefix = None
     name = None
     value = None
-    empty_value = '' # used instead of client input when the field has been determined to be "empty"
+    empty_value = '' # value which is considered to be "empty"
+    empty_default = None # used instead of client input when the field has been determined to be "empty"
     missing_value = None # used when client sends no value for this field
     label = None
     placeholder = None
@@ -59,6 +61,17 @@ class Field(object):
             return real_value
 
 
+    def __setattr__(self, name, value):
+
+        if name == 'value' and self.empty(value):
+            super(Field, self).__setattr__(name, self.empty_default)
+            self._empty = True
+        else:
+            if name == 'value':
+                self._empty = False
+            super(Field, self).__setattr__(name, value)
+
+
     @classmethod
     def templates(cls, mode=None):
 
@@ -87,7 +100,8 @@ class Field(object):
     
     def empty(self, value=None):
         if value is None:
-            value = self.value
+            #value = self.value
+            return self._empty
         return value == self.empty_value
 
     
@@ -106,7 +120,7 @@ class Field(object):
             self.value = self.missing_value
 
         elif self.empty(value):
-            self.value = self.empty_value
+            self.value = self.empty_default
 
         else:
             try:
@@ -270,11 +284,8 @@ class ForeignKeyChoice(IntegerChoice):
 
     def __setattr__(self, name, value):
 
-        if name == 'value':
-            if value == '':
-                return super(ForeignKeyChoice, self).__setattr__(name, None) # empty string counts as no value in HTML select
-            elif isinstance(value, poobrains.storage.Storable):
-                return super(ForeignKeyChoice, self).__setattr__(name, value._get_pk_value())
+        if name == 'value' and isinstance(value, poobrains.storage.Storable):
+            return super(ForeignKeyChoice, self).__setattr__(name, value._get_pk_value())
 
         super(ForeignKeyChoice, self).__setattr__(name, value)
 
