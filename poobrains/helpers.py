@@ -154,7 +154,7 @@ class MetaCompatibility(type):
     """
 
     def __new__(cls, name, bases, attrs):
- 
+
         recognized_options = ['abstract', 'modes', 'permission_class']
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
@@ -171,15 +171,17 @@ class MetaCompatibility(type):
 
             cls._meta = FakeMetaOptions()
 
-            if hasattr(cls, 'Meta'):
-                print "has Meta"
+            #if hasattr(cls, 'Meta'):
+            if attrs.has_key('Meta'):
+                
                 for option_name in recognized_options:
-                    if hasattr(cls.Meta, option_name):
-                        setattr(cls._meta, option_name, getattr(cls.Meta, option_name))
+                    if hasattr(attrs['Meta'], option_name):
+                        setattr(cls._meta, option_name, getattr(attrs['Meta'], option_name))
                     elif defaults.has_key(option_name):
                         setattr(cls._meta, option_name, defaults[option_name])
 
                 delattr(cls, 'Meta')
+
         else:
             cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky
 

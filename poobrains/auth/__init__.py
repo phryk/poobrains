@@ -471,13 +471,13 @@ class Administerable(poobrains.storage.Storable, Protected):
         permission_class = poobrains.permission.Permission 
         modes = ['full', 'teaser', 'add', 'edit', 'delete']
     
-    actions = None
-
     @property
     def actions(self):
 
-        if not self.id:
-            return None
+        try:
+            self._get_pk_value()
+        except self.__class__.DoesNotExist:
+            return poobrains.rendering.RenderString('No actions')
 
         actions = poobrains.rendering.Menu('%s.actions' % self.id_string)
         try:

@@ -206,7 +206,7 @@ class Poobrain(flask.Flask):
                             if hasattr(related_model, 'related_form'):
                                 form_class = related_model.related_form
                             else:
-                                form_class = functools.partial(poobrains.auth.RelatedForm, related_model)
+                                form_class = functools.partial(poobrains.auth.RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
 
                             f = form_class(field, instance)
                             
