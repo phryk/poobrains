@@ -531,7 +531,7 @@ class Pooprint(flask.Blueprint):
         
         if id_or_name is not None:
             instance = cls.load(id_or_name)
-            offset = cls.select().where(cls.id > instance.id).count()
+            offset = cls.select().where(cls.id > instance.id).count() # FIXME: Won't work with non-"id" primary keys
 
         if not self.listings.has_key(cls):
             raise LookupError("No registered listings for class %s." % (cls.__name__,))

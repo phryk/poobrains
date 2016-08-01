@@ -68,7 +68,7 @@ class Model(peewee.Model, helpers.ChildAware):
 
     @classmethod
     def load(cls, id):
-        return cls.get(cls.id == id)
+        return cls.get(cls.id == id) # FIXME: Won't work with `CompositeKey`s
 
 
     @property

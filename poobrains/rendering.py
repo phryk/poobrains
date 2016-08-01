@@ -79,7 +79,7 @@ class Renderable(helpers.ChildAware):
 
 
     def render(self, mode=None):
-        poobrains.app.debugger.set_trace()    
+        
         tpls = self.templates(mode)
         return jinja2.Markup(flask.render_template(tpls, content=self, mode=mode))
 
