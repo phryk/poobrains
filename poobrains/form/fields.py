@@ -204,7 +204,10 @@ class Choice(RenderableField):
     choices = None
     empty_label = 'Please choose'
     
-    def __init__(self, name=None, choices=[],  value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
+    def __init__(self, name=None, choices=None,  value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
+
+        if choices is None:
+            choices = []
 
         super(Choice, self).__init__(name=name, value=value, label=label, placeholder=placeholder, readonly=readonly, required=required, validator=validator)
         self.choices = choices
@@ -279,6 +282,7 @@ class ForeignKeyChoice(IntegerChoice):
 
         self.storable = fkfield.rel_model
         # TODO build default choices if not passed
+        #poobrains.app.debugger.set_trace()
         super(ForeignKeyChoice, self).__init__(*args, **kwargs)
 
 

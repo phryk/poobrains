@@ -364,27 +364,27 @@ class UserPermissionRelatedForm(RelatedForm):
         for name, perm in poobrains.permission.Permission.children_keyed().iteritems():
 
             try:
-                perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == perm.__name__)
+                perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == name)
                 perm_mode = 'edit'
 
-                #f.fields[perm.__name__] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=perm.__name__)
-                #f.fields[perm.__name__] = perm_info.fieldset_edit(mode=perm_mode)
+                #f.fields[name] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=name)
+                #f.fields[name] = perm_info.fieldset_edit(mode=perm_mode)
                 fieldset = perm_info.fieldset_edit(mode=perm_mode)
                 fieldset.fields['access'].choices = perm.choices
-                setattr(f, perm.__name__, fieldset) 
+                setattr(f, name, fieldset) 
 
             except:
                 perm_info = UserPermission()
                 perm_info.user = instance
-                perm_info.permission = perm.__name__
+                perm_info.permission = name
                 perm_info.access = None
                 perm_mode = 'add'
 
-                #f.fields[perm.__name__] = poobrains.form.AddFieldset(perm_info, mode=perm_mode, name=perm.__name__)
-                #f.fields[perm.__name__] = perm_info.fieldset_add(mode=perm_mode)
+                #f.fields[name] = poobrains.form.AddFieldset(perm_info, mode=perm_mode, name=name)
+                #f.fields[name] = perm_info.fieldset_add(mode=perm_mode)
                 fieldset = perm_info.fieldset_add(mode=perm_mode)
                 fieldset.fields['access'].choices = perm.choices
-                setattr(f, perm.__name__, fieldset)
+                setattr(f, name, fieldset)
 
         return f
 
@@ -476,27 +476,36 @@ class Administerable(poobrains.storage.Storable, Protected):
 
         try:
             self._get_pk_value()
-        except self.__class__.DoesNotExist:
+        #except self.__class__.DoesNotExist:
+        except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
             return poobrains.rendering.RenderString('No actions')
 
         actions = poobrains.rendering.Menu('%s.actions' % self.id_string)
-        try:
-            actions.append(self.url('full'), 'View')
+#        try:
+#            actions.append(self.url('full'), 'View')
+#
+#        except LookupError:
+#            poobrains.app.logger.debug("Couldn't create view link for %s" % self.id_string)
+#
+#        try:
+#            actions.append(self.url('edit'), 'Edit')
+#
+#        except LookupError:
+#            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.id_string)
+#
+#        try:
+#            actions.append(self.url('delete'), 'Delete')
+#
+#        except LookupError:
+#            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.id_string)
 
-        except LookupError:
-            poobrains.app.logger.debug("Couldn't create view link for %s" % self.id_string)
+        for mode in self.__class__._meta.modes:
 
-        try:
-            actions.append(self.url('edit'), 'Edit')
+            try:
+                actions.append(self.url(mode), mode)
 
-        except LookupError:
-            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.id_string)
-
-        try:
-            actions.append(self.url('delete'), 'Delete')
-
-        except LookupError:
-            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.id_string)
+            except Exception:
+                poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.id_string))
 
         return actions
 
@@ -532,7 +541,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
 
     def __repr__(self):
-        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__
+        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__ # FIXME: not CompositeKey compatible
 
 
 class Named(Administerable, poobrains.storage.Named):
@@ -575,7 +584,6 @@ class User(Named):
         rv = super(User, self).save(*args, **kwargs)
 
         UserPermission.delete().where(UserPermission.user == self)
-        poobrains.app.debugger.set_trace()
         for perm_name, access in self.own_permissions.iteritems():
             up = UserPermission()
             up.user = self
@@ -586,8 +594,10 @@ class User(Named):
         return rv
 
 
+@poobrains.app.expose('/userperm', mode='full')
 class UserPermission(Administerable):
 
+    permission_class = None
     fieldset_add = UserPermissionAddFieldset
     fieldset_edit = UserPermissionEditFieldset
 
@@ -602,6 +612,14 @@ class UserPermission(Administerable):
 
     related_form = UserPermissionRelatedForm
 
+    
+    def prepared(self):
+
+        try:
+            self.permission_class = poobrains.permission.Permission.children_keyed()[self.permission]
+        except Exception as e:
+            poobrains.app.debugger.set_trace()
+            pass#raise
 
     @classmethod
     def load(cls, id_perm_string):
@@ -621,6 +639,17 @@ class UserPermission(Administerable):
             raise ValueError("Invalid permission name: %s" % self.permission)
 
         return super(UserPermission, self).save(*args, **kwargs)
+
+    
+    def form(self, mode=None):
+
+        f = super(UserPermission, self).form(mode=mode)
+
+        if mode == 'edit':
+            f.fields['access'].choices = self.permission_class.choices 
+
+        return f
+
 
 
 class Group(Named):

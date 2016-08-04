@@ -389,7 +389,7 @@ class StorableParam(StringParam):
         if self.optional and value is None:
             return None
 
-        if not value in storables.keys():
+        if not value in [k.lower() for k in storables.keys()]:
             raise InvalidValue("Not a known storable: %s. Take one of these: %s" % (value, ', '.join(storables.keys())))
 
         return storables[value]

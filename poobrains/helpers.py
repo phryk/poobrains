@@ -213,7 +213,7 @@ class ChildAware(object):
         children_keyed = OrderedDict()
 
         for child in cls.children():
-            children_keyed[child.__name__.lower()] = child
+            children_keyed[child.__name__] = child
 
         return children_keyed
 

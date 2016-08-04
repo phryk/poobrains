@@ -236,5 +236,4 @@ class Listing(rendering.Renderable):
 
     def view(self, mode):
 
-        poobrains.app.debugger.set_trace() 
         return super(Listing, self).view(mode)

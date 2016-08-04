@@ -123,6 +123,7 @@ class Poobrain(flask.Flask):
             # show SQL queries
             peeweelog = logging.getLogger('peewee')
             peeweelog.setLevel(logging.DEBUG)
+            peeweelog.addHandler(logging.StreamHandler())
 
             try:
 
@@ -173,11 +174,11 @@ class Poobrain(flask.Flask):
         if not self._got_first_request:
 
             for (key, cls) in auth.Administerable.children_keyed().iteritems():
-
-                rule = '%s/' % key
+                
+                rule = '%s/' % key.lower()
                 actions = functools.partial(auth.admin_listing_actions, cls)
 
-                self.admin.add_listing(cls, key, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
+                self.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
                 self.admin.add_view(cls, rule, mode='edit', force_secure=True)
                 self.admin.add_view(cls, rule, mode='delete', force_secure=True)
                 self.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
@@ -530,8 +531,20 @@ class Pooprint(flask.Blueprint):
             mode = 'teaser'
         
         if id_or_name is not None:
+            self.app.debugger.set_trace()
             instance = cls.load(id_or_name)
-            offset = cls.select().where(cls.id > instance.id).count() # FIXME: Won't work with non-"id" primary keys
+
+            clauses = []
+            for order_field in cls._meta.order_by:
+                #clauses.append(order_field > getattr(instance, order_field.name))
+                if order_field._ordering == 'ASC':
+                    clauses.append(instance._meta.fields[order_field.name] <= getattr(instance, order_field.name))
+                else: # We'll just assume there can only be ASC and DESC
+                    clauses.append(instance._meta.fields[order_field.name] >= getattr(instance, order_field.name))
+
+            #clause = 
+
+            offset = cls.select().where(*clauses).count() - 1
 
         if not self.listings.has_key(cls):
             raise LookupError("No registered listings for class %s." % (cls.__name__,))
@@ -623,6 +636,9 @@ class ErrorPage(poobrains.rendering.Renderable):
 
 @poobrains.helpers.render('full')
 def errorpage(error):
+
+    app.logger.error(str(error))
+
     if hasattr(error, 'code'):
         return (ErrorPage(error), error.code)
     return ErrorPage(error)

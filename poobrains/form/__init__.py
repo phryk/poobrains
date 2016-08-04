@@ -336,7 +336,7 @@ class BoundForm(Form):
     instance = None
     
     def __new__(cls, model_or_instance, mode=None, prefix=None, name=None, title=None, method=None, action=None):
-    
+
         f = super(BoundForm, cls).__new__(cls, prefix=prefix, name=name, title=title, method=method, action=action)
 
         if isinstance(model_or_instance, type(poobrains.storage.Model)): # hacky
@@ -414,14 +414,25 @@ class AddForm(BoundForm):
                 self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance.name)
             elif self.instance.id:
                 self.title = "%s %s #%d" % (self.mode, self.model.__name__, self.instance.id)
-            elif self.instance._get_pk_value():
-                self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance._get_pk_value())
             else:
-                self.title = "%s %s" % (self.mode, self.model.__name__)
+                try:
+
+                    if self.instance._get_pk_value():
+                        self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance._get_pk_value())
+                    else:
+                        self.title = "%s %s" % (self.mode, self.model.__name__)
+
+                except Exception as e:
+                    if poobrains.app.debug:
+                        poobrains.app.debugger.set_trace()
+                    self.title = "%s %s" % (self.mode, self.model.__name__)
 
         for name, field in self.fields.iteritems():
-            if hasattr(self.instance, name) and getattr(self.instance, name):
-                field.value = getattr(self.instance, name)
+            if hasattr(self.instance, name):
+                try:
+                    field.value = getattr(self.instance, name)
+                except Exception as e:
+                    pass
  
 
     def handle(self):
