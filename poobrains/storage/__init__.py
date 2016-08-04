@@ -97,7 +97,10 @@ class Model(peewee.Model, helpers.ChildAware):
 
 
     def __repr__(self):
-        return "<%s[%s]>" % (self.__class__.__name__, self.id) if self.id else "<%s, unsaved.>" % self.__class__.__name__
+        try:
+            return "<%s[%s]>" % (self.__class__.__name__, self._get_pk_value())
+        except Exception:
+            return "<%s, unsaved/no primary key>" % self.__class__.__name__
 
 
 class Storable(Model, rendering.Renderable):

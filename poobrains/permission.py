@@ -82,9 +82,4 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably
             
             cls.permissions[mode] = type(perm_name, (cls._meta.permission_class,), perm_attrs)
 
-        if name == 'Owned':
-            import pudb; pudb.set_trace()
-        else:
-            print name
-
         return cls

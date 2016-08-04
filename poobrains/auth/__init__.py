@@ -540,10 +540,6 @@ class Administerable(poobrains.storage.Storable, Protected):
         return super(Administerable, self).render(*args, **kwargs)
 
 
-    def __repr__(self):
-        return "<%s[%s] %s>" % (self.__class__.__name__, self.id, self.name) if self.id else "<%s, unsaved.>" % self.__class__.__name__ # FIXME: not CompositeKey compatible
-
-
 class Named(Administerable, poobrains.storage.Named):
 
     class Meta:
