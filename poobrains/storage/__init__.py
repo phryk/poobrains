@@ -67,8 +67,9 @@ class Model(peewee.Model, helpers.ChildAware):
 
 
     @classmethod
-    def load(cls, id):
-        return cls.get(cls.id == id) # FIXME: Won't work with `CompositeKey`s
+    def load(cls, pk_value):
+        #return cls.get(cls.id == id) # FIXME: Won't work with `CompositeKey`s
+        return cls.get(cls._meta.primary_key == pk_value)
 
 
     @property
