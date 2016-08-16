@@ -29,45 +29,44 @@ def choose_primary(d):
     return d.values()[0]
 
 
-def render(mode=None):
+def themed(f):
 
-    def decorator(f):
+    @functools.wraps(f)
+    #def real(*args, **kwargs):
+    def real(cls, mode=None, id_or_name=None):
 
-        @functools.wraps(f)
-        def real(*args, **kwargs):
+        #rv = f(*args, **kwargs)
+        rv = f(cls, mode=mode, id_or_name=id_or_name)
 
-            rv = f(*args, **kwargs)
+        if isinstance(rv, tuple):
+            content = rv[0]
+            status_code = rv[1]
 
-            if isinstance(rv, tuple):
-                content = rv[0]
-                status_code = rv[1]
+        else:
+            content = rv
+            status_code = 200 # TODO: Find out if this is too naive
 
-            else:
-                content = rv
-                status_code = 200 # TODO: Find out if this is too naive
+        if isinstance(content, werkzeug.wrappers.Response):
+            return rv # pass Responses (i.e. redirects) upwards
 
-            if isinstance(content, werkzeug.wrappers.Response):
-                return rv # pass Responses (i.e. redirects) upwards
+        if hasattr(content, 'title') and content.title:
+            flask.g.title = content.title
 
-            if hasattr(content, 'title') and content.title:
-                flask.g.title = content.title
+        elif hasattr(content, 'name') and content.name:
+            flask.g.title = content.name
 
-            elif hasattr(content, 'name') and content.name:
-                flask.g.title = content.name
+        else:
+            flask.g.title = content.__class__.__name__
+        flask.g.content = content
 
-            else:
-                flask.g.title = content.__class__.__name__
-            flask.g.content = content
+        if hasattr(flask.g, 'user'):
+            user = flask.g.user
+        else:
+            user = None
+        return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
 
-            if hasattr(flask.g, 'user'):
-                user = flask.g.user
-            else:
-                user = None
-            return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
+    return real
 
-        return real
-
-    return decorator
 
 
 def is_secure(f):

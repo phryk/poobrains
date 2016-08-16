@@ -73,28 +73,54 @@ class Model(peewee.Model, helpers.ChildAware):
 
 
     @property
-    def id_string(self):
+    def pk_string(self):
         
-        segments = [self.__class__.__name__]
-        try:
-            pk = self._get_pk_value()
-        except peewee.DoesNotExist:
-            pk = None
+#        segments = [self.__class__.__name__]
+#        try:
+#            pk = self._get_pk_value()
+#        except peewee.DoesNotExist:
+#            pk = None
+#
+#        if not isinstance(pk, collections.Iterable):
+#            pk = [pk]
+#
+#        for pk_value in pk:
+#            if isinstance(pk_value, Named):
+#                segments.append(pk_value.name)
+#            elif isinstance(pk_value, Model):
+#                segments.append(pk_value.id)
+#            elif pk_value == None:
+#                return '%s-add' % self.__class__.__name__
+#            else:
+#                segments.append(pk_value)
+#
+#        return '-'.join(str(x) for x in segments)
 
-        if not isinstance(pk, collections.Iterable):
-            pk = [pk]
+        pk = self._get_pk_value()
 
-        for pk_value in pk:
-            if isinstance(pk_value, Named):
-                segments.append(pk_value.name)
-            elif isinstance(pk_value, Model):
-                segments.append(pk_value.id)
-            elif pk_value == None:
-                return '%s-add' % self.__class__.__name__
+        if not isinstance(pk, tuple):
+            pk = (pk,)
+
+        segments = []
+        for segment in pk:
+
+            if isinstance(segment, Model):
+                # NOTE: This will probably fuck shit up if the primary key contains a foreignkey pointing to another table with a primary key containing a foreign key field
+                segments.append(segment.pk_string)
             else:
-                segments.append(pk_value)
+                segments.append(str(segment))
 
-        return '-'.join(str(x) for x in segments)
+        return ':'.join(segments)
+
+    
+    @classmethod
+    def string_pk(cls, string):
+
+        if string.find(':'):
+            return tuple(string.split(':'))
+
+        return string
+
 
 
     def __repr__(self):
@@ -120,21 +146,8 @@ class Storable(Model, rendering.Renderable):
 
 
     def instance_url(self, mode='full'):
-        if isinstance(self._meta.primary_key, peewee.ForeignKeyField):
-            url_id = getattr(self, self.__class__._meta.primary_key.name)._get_pk_value()# TODO: Test this; WTF happens when the referenced model has a CompositeKey primary key?
-        elif isinstance(self._meta.primary_key, peewee.CompositeKey):
-            fragments = []
-            for value in self._get_pk_value():
-                if isinstance(value, Storable):
-                    fragments.append(unicode(value._get_pk_value()))
-                else:
-                    fragments.append(unicode(value))
 
-            url_id = "%s" % ','.join(fragments)
-        else:
-            url_id = self._get_pk_value()
-
-        return app.get_url(self.__class__, id_or_name=url_id, mode=mode)
+        return app.get_url(self.__class__, id_or_name=self.pk_string, mode=mode)
 
 
     @classmethod

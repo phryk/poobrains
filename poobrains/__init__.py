@@ -194,12 +194,12 @@ class Poobrain(flask.Flask):
                         #print "view_func:", view_func
 
 
-                        @poobrains.helpers.render()
+                        @poobrains.helpers.themed
                         def view_func(cls, field, id_or_name=None):
 
                             related_model = field.model_class
                             if id_or_name:
-                                instance = cls.load(id_or_name)
+                                instance = cls.load(cls.pk_string(id_or_name))
 
                             else: # should only happen for 'add' mode for storables, or any for forms
                                 instance = cls()
@@ -385,16 +385,18 @@ class Pooprint(flask.Blueprint):
             rule = os.path.join(rule, 'delete')
             options['methods'].append('DELETE')
 
-        @poobrains.helpers.render(mode)
+        #@poobrains.helpers.themed(mode)
         #@poobrains.helpers.access(getattr(cls, perm_names[mode]))
-        @poobrains.helpers.load_storable(cls)
-        def view_func(id_or_name=None):
-            instance = id_or_name 
-            return instance.view(mode)
+        #def view_func(id_or_name=None):
+        #    
+        #    instance = cls.load(cls.string_pk(id_or_name))
+        #    return instance.view(mode)
+
+        view_func = functools.partial(cls.view, cls, mode)
 
 
-        if force_secure:
-            view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
+#        if force_secure:
+#            view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
 
         endpoint = self.next_endpoint(cls, mode, 'view')
 
@@ -426,7 +428,7 @@ class Pooprint(flask.Blueprint):
 
         if view_func is None:
 
-            @poobrains.helpers.render('full')
+            @poobrains.helpers.themed
             def view_func(offset=0):
 
                 if action_func:
@@ -458,7 +460,7 @@ class Pooprint(flask.Blueprint):
         def decorator(f):
 
             @functools.wraps(f)
-            @poobrains.helpers.render('full')
+            @poobrains.helpers.themed
             def real(offset=0):
 
                 instance = poobrains.storage.Listing(cls, title=title, offset=offset, mode=mode)
@@ -476,10 +478,10 @@ class Pooprint(flask.Blueprint):
         def decorator(f):
 
             @functools.wraps(f)
-            @poobrains.helpers.render(mode)
+            @poobrains.helpers.themed
             def real(id_or_name):
 
-                instance = cls.load(id_or_name)
+                instance = cls.load(cls.string_pk(id_or_name))
                 return f(instance)
 
             self.add_view(cls, rule, view_func=real, mode=mode, primary=primary, **options)
@@ -634,8 +636,8 @@ class ErrorPage(poobrains.rendering.Renderable):
             self.message = error.message
 
 
-@poobrains.helpers.render('full')
-def errorpage(error):
+@poobrains.helpers.themed
+def errorpage(cls, mode=None, id_or_name=None):
 
     app.logger.error(str(error))
 

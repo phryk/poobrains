@@ -49,7 +49,7 @@ def admin_menu():
 
 
 @poobrains.app.admin.route('/')
-@poobrains.helpers.render()
+@poobrains.helpers.themed
 def admin_index():
     return admin_menu()
 
@@ -246,7 +246,7 @@ class RelatedForm(poobrains.form.Form):
             # Fieldset to edit an existing related instance of this instance
 
             #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
-            key = related_instance.id_string
+            key = related_instance.pk_string
             #f.fields[key] = poobrains.form.EditFieldset(related_instance)
             #f.fields[key] = related_instance.fieldset_edit()
             setattr(f, key, related_instance.fieldset_edit())
@@ -261,7 +261,7 @@ class RelatedForm(poobrains.form.Form):
         related_instance = related_model()
         setattr(related_instance, related_field.name, instance) 
         #key = '%s-add' % related_model.__name__
-        key = related_instance.id_string
+        key = related_instance.pk_string
 
         #f.fields[key] = poobrains.form.AddFieldset(related_instance)
         setattr(f, key, related_instance.fieldset_add())
@@ -456,7 +456,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     
     __metaclass__ = BaseAdministerable
 
-    form_add = poobrains.form.AddForm
+    form_add = poobrains.form.AddForm # TODO: move form_ into class Meta?
     form_edit = poobrains.form.EditForm
     form_delete = poobrains.form.DeleteForm
 
@@ -480,24 +480,24 @@ class Administerable(poobrains.storage.Storable, Protected):
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
             return poobrains.rendering.RenderString('No actions')
 
-        actions = poobrains.rendering.Menu('%s.actions' % self.id_string)
+        actions = poobrains.rendering.Menu('%s.actions' % self.pk_string)
 #        try:
 #            actions.append(self.url('full'), 'View')
 #
 #        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create view link for %s" % self.id_string)
+#            poobrains.app.logger.debug("Couldn't create view link for %s" % self.pk_string)
 #
 #        try:
 #            actions.append(self.url('edit'), 'Edit')
 #
 #        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.id_string)
+#            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.pk_string)
 #
 #        try:
 #            actions.append(self.url('delete'), 'Delete')
 #
 #        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.id_string)
+#            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.pk_string)
 
         for mode in self.__class__._meta.modes:
 
@@ -505,7 +505,7 @@ class Administerable(poobrains.storage.Storable, Protected):
                 actions.append(self.url(mode), mode)
 
             except Exception:
-                poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.id_string))
+                poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.pk_string))
 
         return actions
 
@@ -547,7 +547,7 @@ class Named(Administerable, poobrains.storage.Named):
     
     @classmethod
     def load(cls, id_or_name):
-        if type(id_or_name) is int or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
+        if type(id_or_name) is int: #or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
             return super(Administerable, cls).load(id_or_name)
 
         else:
@@ -617,12 +617,12 @@ class UserPermission(Administerable):
             poobrains.app.debugger.set_trace()
             pass#raise
 
-    @classmethod
-    def load(cls, id_perm_string):
-
-        (user_id, permission) = id_perm_string.split(',')
-        user = User.load(user_id)
-        return cls.get(cls.user == user, cls.permission == permission)
+#    @classmethod
+#    def load(cls, id_perm_string):
+#
+#        (user_id, permission) = id_perm_string.split(',')
+#        user = User.load(user_id)
+#        return cls.get(cls.user == user, cls.permission == permission)
 
 
     def save(self, *args, **kwargs):

@@ -402,7 +402,7 @@ class AddForm(BoundForm):
     def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
         
         if not name:
-            name = self.instance.id_string
+            name = self.instance.pk_string
     
         super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
@@ -457,7 +457,7 @@ class AddForm(BoundForm):
                 saved = self.instance.save()
 
             if saved:
-                flask.flash("Saved %s %s." % (self.model.__name__, self.instance.id_string))
+                flask.flash("Saved %s %s." % (self.model.__name__, self.instance.pk_string))
                 try:
                     return flask.redirect(self.instance.url('edit'))
                 except LookupError:
