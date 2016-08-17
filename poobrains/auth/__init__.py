@@ -136,23 +136,23 @@ def access(permission):
 def protected(func):
 
     @functools.wraps(func)
-    #def substitute(instance, *args, **kwargs):
-    def substitute(instance, mode):
+    #def substitute(cls_or_instance, *args, **kwargs):
+    def substitute(cls_or_instance, mode, *args, **kwargs):
 
+        poobrains.app.debugger.set_trace()
         user = flask.g.user # FIXME: How do I get rid of the smell?
 
-        if not isinstance(instance, Protected):
-            raise ValueError("@protected used with non-protected class '%s'." % instance.__class__.__name__)
+        if not (issubclass(cls_or_instance, Protected) or isinstance(cls_or_instance, Protected)):
+            raise ValueError("@protected used with non-protected class '%s'." % cls_or_instance.__class__.__name__)
 
-        if not instance.permissions.has_key(mode):
-            print "######################", instance.permissions
-            raise NotImplementedError("Did not find permission for mode '%s' in instance of class '%s'." % (mode, instance.__class__.__name__))
+        if not cls_or_instance.permissions.has_key(mode):
+            raise NotImplementedError("Did not find permission for mode '%s' in cls_or_instance of class '%s'." % (mode, cls_or_instance.__class__.__name__))
         
 
-        instance.permissions[mode].check(user)
+        cls_or_instance.permissions[mode].check(user)
 
-        #return func(instance, *args, **kwargs)
-        return func(instance, mode)
+        #return func(cls_or_instance, *args, **kwargs)
+        return func(cls_or_instance, mode, *args, **kwargs)
 
     return substitute
 
@@ -447,7 +447,7 @@ class Protected(poobrains.rendering.Renderable):
 
 
 
-    @protected
+    #@protected
     def render(self, *args, **kwargs):
         return super(Protected, self).render(*args, **kwargs)
 
@@ -520,22 +520,30 @@ class Administerable(poobrains.storage.Storable, Protected):
         return form_class(mode=mode)#, name=None, title=None, method=None, action=None)
     
 
-    @protected
-    def view(self, mode=None):
+    @classmethod
+    #@protected
+    @poobrains.helpers.themed
+    def view(cls, mode, *args, **kwargs):
 
         """
         view function to be called in a flask request context
         """
+        poobrains.app.debugger.set_trace()
+
+        if mode == 'add':
+            instance = cls()
+        else:
+            instance = cls.load(*args, **kwargs)
 
         if mode in ('add', 'edit', 'delete'):
 
-            f = self.form(mode)
-            return f.view(mode)
+            f = instance.form(mode)
+            return f#.view(mode)
 
-        return self
+        return instance
 
 
-    @protected
+    #@protected
     def render(self, *args, **kwargs):
         return super(Administerable, self).render(*args, **kwargs)
 

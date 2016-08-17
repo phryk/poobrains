@@ -157,6 +157,12 @@ class Storable(Model, rendering.Renderable):
 
     def instance_templates(self, mode='edit'):
         return self.__class__.templates(mode)
+    
+    
+    @classmethod
+    @poobrains.helpers.themed
+    def view(cls, mode, *args, **kwargs):
+        return cls.load(*args, **kwargs)
 
 
 class Named(Storable):
@@ -250,7 +256,3 @@ class Listing(rendering.Renderable):
         except werkzeug.routing.BuildError as e:
             app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
-
-    def view(self, mode):
-
-        return super(Listing, self).view(mode)

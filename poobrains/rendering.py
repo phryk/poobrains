@@ -79,9 +79,8 @@ class Renderable(helpers.ChildAware):
 
     @classmethod
     @poobrains.helpers.themed
-    def view(cls, mode=None, id_or_name=None):
-
-        return cls.load(id_or_name)
+    def view(cls, mode, *args, **kwargs):
+        return cls(*args, **kwargs)
 
 
 

@@ -32,11 +32,14 @@ def choose_primary(d):
 def themed(f):
 
     @functools.wraps(f)
-    #def real(*args, **kwargs):
-    def real(cls, mode=None, id_or_name=None):
+    def real(*args, **kwargs):
 
-        #rv = f(*args, **kwargs)
-        rv = f(cls, mode=mode, id_or_name=id_or_name)
+        rv = f(*args, **kwargs)
+
+        if kwargs.has_key('mode'):
+            mode = kwargs['mode']
+        else:
+            mode= None
 
         if isinstance(rv, tuple):
             content = rv[0]

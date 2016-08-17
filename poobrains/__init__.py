@@ -392,7 +392,7 @@ class Pooprint(flask.Blueprint):
         #    instance = cls.load(cls.string_pk(id_or_name))
         #    return instance.view(mode)
 
-        view_func = functools.partial(cls.view, cls, mode)
+        view_func = functools.partial(cls.view, mode)
 
 
 #        if force_secure:
@@ -533,7 +533,7 @@ class Pooprint(flask.Blueprint):
             mode = 'teaser'
         
         if id_or_name is not None:
-            self.app.debugger.set_trace()
+            
             instance = cls.load(id_or_name)
 
             clauses = []
@@ -637,7 +637,7 @@ class ErrorPage(poobrains.rendering.Renderable):
 
 
 @poobrains.helpers.themed
-def errorpage(cls, mode=None, id_or_name=None):
+def errorpage(error):
 
     app.logger.error(str(error))
 
