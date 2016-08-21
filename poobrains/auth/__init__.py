@@ -538,7 +538,8 @@ class Administerable(poobrains.storage.Storable, Protected):
         if mode in ('add', 'edit', 'delete'):
 
             f = instance.form(mode)
-            return f#.view(mode)
+            return f
+            #return werkzeug.wrappers.Response(f.view(mode))
 
         return instance
 
