@@ -160,9 +160,10 @@ class Storable(Model, rendering.Renderable):
     
     
     @classmethod
-    @poobrains.helpers.themed
-    def view(cls, mode, *args, **kwargs):
-        return cls.load(*args, **kwargs)
+    def class_view(cls, mode, *args, **kwargs):
+
+        instance = cls.load(*args, **kwargs)
+        return instance.view(mode, *args, **kwargs)
 
 
 class Named(Storable):

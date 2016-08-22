@@ -299,38 +299,48 @@ class Form(BaseForm):
 
 
     @classmethod
+    def class_view(cls, mode, *args, **kwargs):
+
+        instance = cls(*args, **kwargs)
+        return instance.view(mode)
+
+
     @poobrains.helpers.themed
-    def view(cls, mode, *args, **kwargs):
+    def view(self, mode, *args, **kwargs):
 
         """
         view function to be called in a flask request context
         """
 
-        instance = cls(*args, **kwargs)
-
-        if flask.request.method == instance.method:
+        if flask.request.method == self.method:
 
             validation_error = None
             binding_error = None
-            values = flask.request.form[instance.name]
+            values = flask.request.form[self.name]
             
             try:
-                instance.bind(values)
+                self.bind(values)
 
             except errors.CompoundError as binding_error:
                 for error in binding_error.errors:
                     flask.flash(error.message, 'error')
 
             try:
-                instance.validate(values)
-                return instance.handle()
+                self.validate(values)
+
+                try:
+                    return self.handle()
+
+                except errors.CompoundError as handling_error:
+                    for error in handling_error.errors:
+                        flask.flash(error.message, 'error')
 
             except errors.CompoundError as validation_error:
                 for error in validation_error.errors:
                     flask.flash(error.message, 'error')
 
 
-        return instance
+        return self
 
 
 class BoundForm(Form):

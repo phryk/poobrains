@@ -139,10 +139,9 @@ def protected(func):
     #def substitute(cls_or_instance, *args, **kwargs):
     def substitute(cls_or_instance, mode, *args, **kwargs):
 
-        poobrains.app.debugger.set_trace()
         user = flask.g.user # FIXME: How do I get rid of the smell?
 
-        if not (issubclass(cls_or_instance, Protected) or isinstance(cls_or_instance, Protected)):
+        if not ((isinstance(cls_or_instance, type) and issubclass(cls_or_instance, Protected)) or isinstance(cls_or_instance, Protected)):
             raise ValueError("@protected used with non-protected class '%s'." % cls_or_instance.__class__.__name__)
 
         if not cls_or_instance.permissions.has_key(mode):
@@ -447,9 +446,9 @@ class Protected(poobrains.rendering.Renderable):
 
 
 
-    #@protected
-    def render(self, *args, **kwargs):
-        return super(Protected, self).render(*args, **kwargs)
+    @protected
+    def render(self, mode):
+        return super(Protected, self).render(mode)
 
 
 class Administerable(poobrains.storage.Storable, Protected):
@@ -521,32 +520,30 @@ class Administerable(poobrains.storage.Storable, Protected):
     
 
     @classmethod
-    #@protected
-    @poobrains.helpers.themed
-    def view(cls, mode, *args, **kwargs):
-
-        """
-        view function to be called in a flask request context
-        """
-        poobrains.app.debugger.set_trace()
+    def class_view(cls, mode, *args, **kwargs):
 
         if mode == 'add':
             instance = cls()
         else:
             instance = cls.load(*args, **kwargs)
 
+        return instance.view(mode, *args, **kwargs)
+
+
+    @protected
+    @poobrains.helpers.themed
+    def view(self, mode, *args, **kwargs):
+
+        """
+        view function to be called in a flask request context
+        """
+
         if mode in ('add', 'edit', 'delete'):
 
-            f = instance.form(mode)
-            return f
-            #return werkzeug.wrappers.Response(f.view(mode))
+            f = self.form(mode)
+            return poobrains.helpers.ThemedPassthrough(f.view('full'))
 
-        return instance
-
-
-    #@protected
-    def render(self, *args, **kwargs):
-        return super(Administerable, self).render(*args, **kwargs)
+        return self
 
 
 class Named(Administerable, poobrains.storage.Named):
@@ -620,11 +617,7 @@ class UserPermission(Administerable):
     
     def prepared(self):
 
-        try:
-            self.permission_class = poobrains.permission.Permission.children_keyed()[self.permission]
-        except Exception as e:
-            poobrains.app.debugger.set_trace()
-            pass#raise
+        self.permission_class = poobrains.permission.Permission.children_keyed()[self.permission]
 
 #    @classmethod
 #    def load(cls, id_perm_string):

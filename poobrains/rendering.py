@@ -1,5 +1,4 @@
 from os.path import join, exists, dirname
-from functools import wraps
 from flask import abort, render_template, g
 from werkzeug.wrappers import Response
 from werkzeug.exceptions import HTTPException
@@ -78,10 +77,15 @@ class Renderable(helpers.ChildAware):
 #        return self
 
     @classmethod
-    @poobrains.helpers.themed
-    def view(cls, mode, *args, **kwargs):
-        return cls(*args, **kwargs)
+    def class_view(cls, mode, *args, **kwargs):
 
+        instance = cls(*args, **kwargs)
+        return instance.view(mode, *args, **kwargs)
+
+
+    @poobrains.helpers.themed
+    def view(self, mode, *args, **kwargs):
+        return self
 
 
     def render(self, mode=None):

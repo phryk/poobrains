@@ -52,6 +52,9 @@ def themed(f):
         if isinstance(content, werkzeug.wrappers.Response):
             return rv # pass Responses (i.e. redirects) upwards
 
+        elif isinstance(content, ThemedPassthrough):
+            return rv.themed
+
         if hasattr(content, 'title') and content.title:
             flask.g.title = content.title
 
@@ -122,6 +125,14 @@ def access(permission):
                 abort(403, 'Permission denied!') # TODO: Find out if this actually stops further execution of this function
 
             return func(*args, **kwargs)
+
+
+class ThemedPassthrough(object):
+
+    themed = None
+
+    def __init__(self, themed):
+        self.themed = themed
 
 
 class ClassOrInstanceBound(type): # probably the worst name I ever picked, but hey it's descriptive! ¯\_(ツ)_/¯
