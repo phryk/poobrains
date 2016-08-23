@@ -67,55 +67,41 @@ class Model(peewee.Model, helpers.ChildAware):
 
 
     @classmethod
-    def load(cls, pk_value):
-        #return cls.get(cls.id == id) # FIXME: Won't work with `CompositeKey`s
-        return cls.get(cls._meta.primary_key == pk_value)
+    def load(cls, handle):
+        return cls.get(cls._meta.primary_key == handle)
 
 
     @property
-    def pk_string(self):
+    def handle_string(self):
         
-#        segments = [self.__class__.__name__]
-#        try:
-#            pk = self._get_pk_value()
-#        except peewee.DoesNotExist:
-#            pk = None
+#        pk = self._get_pk_value()
 #
-#        if not isinstance(pk, collections.Iterable):
-#            pk = [pk]
+#        if not isinstance(pk, tuple):
+#            pk = (pk,)
 #
-#        for pk_value in pk:
-#            if isinstance(pk_value, Named):
-#                segments.append(pk_value.name)
-#            elif isinstance(pk_value, Model):
-#                segments.append(pk_value.id)
-#            elif pk_value == None:
-#                return '%s-add' % self.__class__.__name__
+#        
+#        segments = []
+#        for segment in pk:
+#
+#            if isinstance(segment, Model):
+#                # NOTE: This will probably fuck shit up if the primary key contains a foreignkey pointing to another table with a primary key containing a foreign key field
+#                segments.append(segment.handle_string)
 #            else:
-#                segments.append(pk_value)
+#                segments.append(str(segment))
 #
-#        return '-'.join(str(x) for x in segments)
+#        return ':'.join(segments)
 
-        pk = self._get_pk_value()
+        pkfields = self._meta.get_primary_key_fields()
+        if len(pkfields) > 1: # CompositeKey as pk. TODO: Find out if this is the ONLY case when this happens
+            return ':'.join([str(x._get_pk_value()) if isinstance(x, peewee.Model) else str(x) for x in self._get_pk_value()])
 
-        if not isinstance(pk, tuple):
-            pk = (pk,)
+        return str(self._get_pk_value())
 
-        segments = []
-        for segment in pk:
-
-            if isinstance(segment, Model):
-                # NOTE: This will probably fuck shit up if the primary key contains a foreignkey pointing to another table with a primary key containing a foreign key field
-                segments.append(segment.pk_string)
-            else:
-                segments.append(str(segment))
-
-        return ':'.join(segments)
 
     
     @classmethod
-    def string_pk(cls, string):
-
+    def string_handle(cls, string):
+        
         if string.find(':'):
             return tuple(string.split(':'))
 
@@ -147,7 +133,7 @@ class Storable(Model, rendering.Renderable):
 
     def instance_url(self, mode='full'):
 
-        return app.get_url(self.__class__, id_or_name=self.pk_string, mode=mode)
+        return app.get_url(self.__class__, handle=self.handle_string, mode=mode)
 
 
     @classmethod
@@ -160,10 +146,10 @@ class Storable(Model, rendering.Renderable):
     
     
     @classmethod
-    def class_view(cls, mode, *args, **kwargs):
+    def class_view(cls, mode, handle):
 
-        instance = cls.load(*args, **kwargs)
-        return instance.view(mode, *args, **kwargs)
+        instance = cls.load(cls.string_handle(handle))
+        return instance.view(mode, handle)
 
 
 class Named(Storable):
@@ -176,7 +162,7 @@ class Named(Storable):
 
 
     def instance_url(self, mode='full'):
-        return app.get_url(self.__class__, id_or_name=self.name, mode=mode)
+        return app.get_url(self.__class__, handle=self.name, mode=mode)
 
 
 class Listing(rendering.Renderable):

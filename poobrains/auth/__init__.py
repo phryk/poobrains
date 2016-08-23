@@ -245,7 +245,7 @@ class RelatedForm(poobrains.form.Form):
             # Fieldset to edit an existing related instance of this instance
 
             #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
-            key = related_instance.pk_string
+            key = related_instance.handle_string
             #f.fields[key] = poobrains.form.EditFieldset(related_instance)
             #f.fields[key] = related_instance.fieldset_edit()
             setattr(f, key, related_instance.fieldset_edit())
@@ -260,7 +260,7 @@ class RelatedForm(poobrains.form.Form):
         related_instance = related_model()
         setattr(related_instance, related_field.name, instance) 
         #key = '%s-add' % related_model.__name__
-        key = related_instance.pk_string
+        key = related_instance.handle_string
 
         #f.fields[key] = poobrains.form.AddFieldset(related_instance)
         setattr(f, key, related_instance.fieldset_add())
@@ -278,15 +278,16 @@ class RelatedForm(poobrains.form.Form):
         return f
 
     
-    def __init__(self, related_model, related_field, instance, id_or_name=None, prefix=None, name=None, title=None, method=None, action=None):
+    def __init__(self, related_model, related_field, instance, handle=None, prefix=None, name=None, title=None, method=None, action=None):
         super(RelatedForm, self).__init__(prefix=None, name=None, title=None, method=None, action=None)
 
         self.instance = instance
         self.related_model = related_model
         self.related_field = related_field
 
-    
-    def view(self, mode=None):
+   
+    @poobrains.helpers.themed
+    def view(self, mode='teaser'):
 
         """
         view function to be called in a flask request context
@@ -353,6 +354,8 @@ class UserPermissionEditFieldset(UserPermissionAddFieldset):
  
 
 class UserPermissionRelatedForm(RelatedForm):
+
+    #FIXME: causes a zillion fucking SELECT queries
 
     def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
 
@@ -479,24 +482,24 @@ class Administerable(poobrains.storage.Storable, Protected):
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
             return poobrains.rendering.RenderString('No actions')
 
-        actions = poobrains.rendering.Menu('%s.actions' % self.pk_string)
+        actions = poobrains.rendering.Menu('%s.actions' % self.handle_string)
 #        try:
 #            actions.append(self.url('full'), 'View')
 #
 #        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create view link for %s" % self.pk_string)
+#            poobrains.app.logger.debug("Couldn't create view link for %s" % self.handle_string)
 #
 #        try:
 #            actions.append(self.url('edit'), 'Edit')
 #
 #        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.pk_string)
+#            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.handle_string)
 #
 #        try:
 #            actions.append(self.url('delete'), 'Delete')
 #
 #        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.pk_string)
+#            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.handle_string)
 
         for mode in self.__class__._meta.modes:
 
@@ -504,13 +507,13 @@ class Administerable(poobrains.storage.Storable, Protected):
                 actions.append(self.url(mode), mode)
 
             except Exception:
-                poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.pk_string))
+                poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.handle_string))
 
         return actions
 
 
     def form(self, mode=None):
-
+        
         n = 'form_%s' % mode
         if not hasattr(self, n):
             raise NotImplementedError("Form class %s.%s missing." % (self.__class__.__name__, n))
@@ -520,19 +523,19 @@ class Administerable(poobrains.storage.Storable, Protected):
     
 
     @classmethod
-    def class_view(cls, mode, *args, **kwargs):
-
+    def class_view(cls, mode, handle=None):
+       
         if mode == 'add':
             instance = cls()
         else:
-            instance = cls.load(*args, **kwargs)
+            instance = cls.load(cls.string_handle(handle))
 
-        return instance.view(mode, *args, **kwargs)
+        return instance.view(mode, handle)
 
 
     @protected
     @poobrains.helpers.themed
-    def view(self, mode, *args, **kwargs):
+    def view(self, mode, handle):
 
         """
         view function to be called in a flask request context
@@ -550,14 +553,24 @@ class Named(Administerable, poobrains.storage.Named):
 
     class Meta:
         abstract = True
-    
+
+    @property
+    def handle_string(self):
+        return self.name
+
+
     @classmethod
-    def load(cls, id_or_name):
-        if type(id_or_name) is int: #or (isinstance(id_or_name, basestring) and id_or_name.isdigit()):
-            return super(Administerable, cls).load(id_or_name)
+    def string_handle(self, string):
+        return string
+
+
+    @classmethod
+    def load(cls, handle):
+        if type(handle) is int: #or (isinstance(handle, basestring) and handle.isdigit()):
+            return super(Administerable, cls).load(handle)
 
         else:
-            return cls.get(cls.name == id_or_name)
+            return cls.get(cls.name == handle)
 
 
 class User(Named):

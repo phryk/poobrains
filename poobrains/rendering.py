@@ -44,7 +44,7 @@ class Renderable(helpers.ChildAware):
 
 
     def instance_url(self, mode=None):
-        return poobrains.app.get_url(self.__class__, id_or_name=self.name, mode=mode) # FIXME/TODO: at least the naming doesn't fit. Ponder instantiated Renderables which are not Storables.
+        return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode) # FIXME/TODO: at least the naming doesn't fit. Ponder instantiated Renderables which are not Storables.
 
 
     @classmethod
@@ -77,18 +77,18 @@ class Renderable(helpers.ChildAware):
 #        return self
 
     @classmethod
-    def class_view(cls, mode, *args, **kwargs):
+    def class_view(cls, mode='full', *args, **kwargs):
 
         instance = cls(*args, **kwargs)
         return instance.view(mode, *args, **kwargs)
 
 
     @poobrains.helpers.themed
-    def view(self, mode, *args, **kwargs):
+    def view(self, mode='full', *args, **kwargs):
         return self
 
 
-    def render(self, mode=None):
+    def render(self, mode='full'):
         
         tpls = self.templates(mode)
         return jinja2.Markup(flask.render_template(tpls, content=self, mode=mode))
@@ -104,7 +104,7 @@ class RenderString(Renderable):
         self.value = value
 
 
-    def render(self, mode=None):
+    def render(self, mode='full'):
         return self.value # TODO: cast to jinja2.Markup or sth?
 
 

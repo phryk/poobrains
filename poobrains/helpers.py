@@ -33,13 +33,7 @@ def themed(f):
 
     @functools.wraps(f)
     def real(*args, **kwargs):
-
         rv = f(*args, **kwargs)
-
-        if kwargs.has_key('mode'):
-            mode = kwargs['mode']
-        else:
-            mode= None
 
         if isinstance(rv, tuple):
             content = rv[0]
@@ -69,6 +63,12 @@ def themed(f):
             user = flask.g.user
         else:
             user = None
+
+        if kwargs.has_key('mode'):
+            mode = kwargs['mode']
+        else:
+            mode = content._meta.modes[0] 
+
         return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
 
     return real
@@ -91,25 +91,6 @@ def is_secure(f):
             flask.abort(403, "You are trying to do naughty things without protection.")
 
     return substitute
-
-
-def load_storable(cls):
-
-    def decorator(func):
-
-        @functools.wraps(func)
-        def substitute(id_or_name=None, *args, **kwargs):
-            if id_or_name:
-                instance = cls.load(id_or_name)
-
-            else: # should only happen for 'add' mode for storables, or any for forms
-                instance = cls()
-
-            return func(instance, *args, **kwargs)
-
-        return substitute
-
-    return decorator
 
 
 def access(permission):
@@ -194,6 +175,10 @@ class MetaCompatibility(type):
                         setattr(cls._meta, option_name, defaults[option_name])
 
                 delattr(cls, 'Meta')
+
+            else:
+                for option_name, default in defaults.iteritems():
+                    setattr(cls._meta, option_name, default)
 
         else:
             cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky

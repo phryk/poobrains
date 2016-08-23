@@ -194,15 +194,10 @@ class Poobrain(flask.Flask):
                         #print "view_func:", view_func
 
 
-                        @poobrains.helpers.themed
-                        def view_func(cls, field, id_or_name=None):
+                        def view_func(cls, field, handle):
 
                             related_model = field.model_class
-                            if id_or_name:
-                                instance = cls.load(cls.pk_string(id_or_name))
-
-                            else: # should only happen for 'add' mode for storables, or any for forms
-                                instance = cls()
+                            instance = cls.load(cls.string_handle(handle))
 
                             if hasattr(related_model, 'related_form'):
                                 form_class = related_model.related_form
@@ -211,10 +206,10 @@ class Poobrain(flask.Flask):
 
                             f = form_class(field, instance)
                             
-                            return f.view()
+                            return f.view('full')
 
 
-                        self.admin.add_url_rule("%s<id_or_name>/%s/" % (rule, related_model.__name__.lower()), endpoint, functools.partial(view_func, cls=cls, field=field), methods=['GET', 'POST'])
+                        self.admin.add_url_rule("%s<handle>/%s/" % (rule, related_model.__name__.lower()), endpoint, functools.partial(view_func, cls=cls, field=field), methods=['GET', 'POST'])
 
             self.register_blueprint(self.site)
             self.register_blueprint(self.admin, url_prefix='/admin/')
@@ -313,19 +308,19 @@ class Poobrain(flask.Flask):
         return decorator
 
     
-    def get_url(self, cls, id_or_name=None, mode=None):
+    def get_url(self, cls, handle=None, mode=None):
 
         try:
             #TODO: Is it wise to just prefer self.site?
-            return self.site.get_url(cls, id_or_name=id_or_name, mode=mode)
+            return self.site.get_url(cls, handle=handle, mode=mode)
 
         except LookupError:
 
             try: 
-                return self.admin.get_url(cls, id_or_name=id_or_name, mode=mode)
+                return self.admin.get_url(cls, handle=handle, mode=mode)
             except LookupError:
-                #self.logger.error("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, id_or_name, mode))
-                raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, id_or_name, mode))
+                #self.logger.error("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
+                raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
 
 
     def run(self, *args, **kw):
@@ -377,7 +372,7 @@ class Pooprint(flask.Blueprint):
             self.views[cls][mode] = collections.OrderedDict()
 
         if mode != 'add' and issubclass(cls, poobrains.storage.Storable): # excludes adding and non-Storable Renderables like Forms
-            rule = os.path.join(rule, '<id_or_name>/')
+            rule = os.path.join(rule, '<handle>/')
 
         # Why the fuck does HTML not support DELETE!?
         options['methods'] = ['GET', 'POST']
@@ -387,9 +382,9 @@ class Pooprint(flask.Blueprint):
 
         #@poobrains.helpers.themed(mode)
         #@poobrains.helpers.access(getattr(cls, perm_names[mode]))
-        #def view_func(id_or_name=None):
+        #def view_func(handle=None):
         #    
-        #    instance = cls.load(cls.string_pk(id_or_name))
+        #    instance = cls.load(cls.string_handle(handle))
         #    return instance.view(mode)
 
         view_func = functools.partial(cls.class_view, mode)
@@ -473,21 +468,21 @@ class Pooprint(flask.Blueprint):
         return decorator
 
 
-    def view(self, cls, rule, mode=None, primary=False, **options):
-        # TODO: Why am I not using this in here? Change that - if it makes any sense.
-        def decorator(f):
-
-            @functools.wraps(f)
-            @poobrains.helpers.themed
-            def real(id_or_name):
-
-                instance = cls.load(cls.string_pk(id_or_name))
-                return f(instance)
-
-            self.add_view(cls, rule, view_func=real, mode=mode, primary=primary, **options)
-            return real
-
-        return decorator
+#    def view(self, cls, rule, mode=None, primary=False, **options):
+#        # TODO: Why am I not using this in here? Change that - if it makes any sense.
+#        def decorator(f):
+#
+#            @functools.wraps(f)
+#            @poobrains.helpers.themed
+#            def real(handle):
+#
+#                instance = cls.load(cls.string_handle(handle))
+#                return f(instance)
+#
+#            self.add_view(cls, rule, view_func=real, mode=mode, primary=primary, **options)
+#            return real
+#
+#        return decorator
 
     
     def box(self, name):
@@ -499,15 +494,15 @@ class Pooprint(flask.Blueprint):
         return decorator
 
 
-    def get_url(self, cls, id_or_name=None, mode=None):
+    def get_url(self, cls, handle=None, mode=None):
 
-        if mode == 'add' or (id_or_name and (mode is None or not mode.startswith('teaser'))):
-            return self.get_view_url(cls, id_or_name, mode=mode)
+        if mode == 'add' or (handle and (mode is None or not mode.startswith('teaser'))):
+            return self.get_view_url(cls, handle, mode=mode)
 
-        return self.get_listing_url(cls, mode=mode, id_or_name=id_or_name)
+        return self.get_listing_url(cls, mode=mode, handle=handle)
 
 
-    def get_view_url(self, cls, id_or_name, mode=None):
+    def get_view_url(self, cls, handle, mode=None):
 
         if mode == None:
             mode = 'full'
@@ -524,17 +519,17 @@ class Pooprint(flask.Blueprint):
         endpoint = helpers.choose_primary(endpoints)['endpoint']
         endpoint = '%s.%s' % (self.name, endpoint)
 
-        return flask.url_for(endpoint, id_or_name=id_or_name)
+        return flask.url_for(endpoint, handle=handle)
 
 
-    def get_listing_url(self, cls, mode=None, offset=0, id_or_name=None):
+    def get_listing_url(self, cls, mode=None, offset=0, handle=None):
 
         if mode == None:
             mode = 'teaser'
         
-        if id_or_name is not None:
+        if handle is not None:
             
-            instance = cls.load(id_or_name)
+            instance = cls.load(handle)
 
             clauses = []
             for order_field in cls._meta.order_by:
@@ -639,10 +634,11 @@ class ErrorPage(poobrains.rendering.Renderable):
 @poobrains.helpers.themed
 def errorpage(error):
 
-    app.logger.error(str(error))
-
     if hasattr(error, 'code'):
+        app.logger.error('Error %s when accessing %s: %s' % (error.code, flask.request.path, error.message))
         return (ErrorPage(error), error.code)
+
+    app.logger.error('%s when accessing %s: %s' % (error.__class__.__name__, flask.request.path, error.message))
     return ErrorPage(error)
 
 app.register_error_handler(400, errorpage)

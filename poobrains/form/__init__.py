@@ -299,14 +299,14 @@ class Form(BaseForm):
 
 
     @classmethod
-    def class_view(cls, mode, *args, **kwargs):
+    def class_view(cls, mode='full', *args, **kwargs):
 
         instance = cls(*args, **kwargs)
         return instance.view(mode)
 
 
     @poobrains.helpers.themed
-    def view(self, mode, *args, **kwargs):
+    def view(self, mode='full', *args, **kwargs):
 
         """
         view function to be called in a flask request context
@@ -348,7 +348,10 @@ class BoundForm(Form):
     mode = None
     model = None
     instance = None
-    
+
+    class Meta:
+        abstract = True
+
     def __new__(cls, model_or_instance, mode=None, prefix=None, name=None, title=None, method=None, action=None):
 
         f = super(BoundForm, cls).__new__(cls, prefix=prefix, name=name, title=title, method=method, action=action)
@@ -416,7 +419,7 @@ class AddForm(BoundForm):
     def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
         
         if not name:
-            name = self.instance.pk_string
+            name = '%s-%s' % (self.model.__name__, mode) if mode == 'add' else '%s-%s-%s' % (self.model.__name__, self.instance._get_pk_value(), mode)
     
         super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
@@ -437,8 +440,6 @@ class AddForm(BoundForm):
                         self.title = "%s %s" % (self.mode, self.model.__name__)
 
                 except Exception as e:
-                    if poobrains.app.debug:
-                        poobrains.app.debugger.set_trace()
                     self.title = "%s %s" % (self.mode, self.model.__name__)
 
         for name, field in self.fields.iteritems():
@@ -471,7 +472,7 @@ class AddForm(BoundForm):
                 saved = self.instance.save()
 
             if saved:
-                flask.flash("Saved %s %s." % (self.model.__name__, self.instance.pk_string))
+                flask.flash("Saved %s %s." % (self.model.__name__, self.instance.handle_string))
                 try:
                     return flask.redirect(self.instance.url('edit'))
                 except LookupError:
