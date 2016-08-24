@@ -240,6 +240,7 @@ class RelatedForm(poobrains.form.Form):
 
         f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
 
+        poobrains.app.debugger.set_trace()
         for related_instance in getattr(instance, related_field.related_name):
 
             # Fieldset to edit an existing related instance of this instance
@@ -366,7 +367,7 @@ class UserPermissionRelatedForm(RelatedForm):
         for name, perm in poobrains.permission.Permission.children_keyed().iteritems():
 
             try:
-                perm_info = UserPermission.get(UserPermission.user == instance and UserPermission.permission == name)
+                perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
                 perm_mode = 'edit'
 
                 #f.fields[name] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=name)
