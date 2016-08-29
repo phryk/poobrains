@@ -2,5 +2,5 @@ DATABASE = 'sqlite:///poobrains.db' # database url, containing password, if any.
 LOGFILE = False # examples: 'poobrains.log', '/var/log/poobrains.log'
 THEME = 'default'
 PAGINATION_COUNT = 10
-TOKEN_VALIDTY=60
-CERT_LIFETIME=60000
+TOKEN_VALIDTY=600
+CERT_LIFETIME= 60 * 60 * 24 * 7

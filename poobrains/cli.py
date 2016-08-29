@@ -3,6 +3,7 @@
 from sys import exit, stdout
 from playhouse.db_url import connect
 from collections import OrderedDict
+import collections
 import peewee
 import helpers
 
@@ -10,6 +11,8 @@ import helpers
 import permission
 import storage
 import auth
+
+import poobrains
 
 class ShellException(Exception):
     pass
@@ -384,15 +387,17 @@ class StorableParam(StringParam):
 
     def parse(self, value):
 
-        storables = self.cls.children_keyed()
+        accepted_storables = collections.OrderedDict([(k.lower(), v) for k, v in self.cls.children_keyed().iteritems()])
 
         if self.optional and value is None:
             return None
 
-        if not value in [k.lower() for k in storables.keys()]:
-            raise InvalidValue("Not a known storable: %s. Take one of these: %s" % (value, ', '.join(storables.keys())))
+        if not isinstance(value, basestring):
+            raise InvalidValue("No storable supplied. Take one of these: %s" % (', '.join(accepted_storables.keys())))
+        elif not (value.lower() in accepted_storables.keys()):
+            raise InvalidValue("Not a known storable: %s. Take one of these: %s" % (value, ', '.join(accepted_storables.keys())))
 
-        return storables[value]
+        return accepted_storables[value]
 
 
 class List(Command):

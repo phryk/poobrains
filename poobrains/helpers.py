@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 def random_string(length=42):
 
-    rand = random.SystemRandom()
+    rand = random.SystemRandom() # uses os.urandom, which is supposed to be cryptographically secure
     string = u''
     for i in range(0, length):
         string += chr(rand.randint(33, 126)) # printable ascii chars are chars 33 - 126 #TODO: Should I even bother finding out whether unicode is an option?
@@ -128,6 +128,7 @@ class ClassOrInstanceBound(type): # probably the worst name I ever picked, but h
 
 class FakeMetaOptions(object):
 
+    primary_key = None # This is a very ugly hack, to make this play nice with peewee Metaclass' __new__
     abstract = None
     modes = None
     permission_class = None

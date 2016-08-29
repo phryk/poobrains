@@ -305,10 +305,11 @@ class Checkbox(RangedInteger):
 
     def empty(self, value=None):
 
-        if value is None:
-            value = self.value
+        #if value is None:
+        #    value = self.value
 
-        return value != ''
+        #return value == ''
+        return False
 
 
 class Float(RenderableField):

@@ -201,7 +201,9 @@ class ClientCertForm(poobrains.form.Form):
             not_before = int(time.time())
             not_after = not_before + poobrains.app.config['CERT_LIFETIME']
 
-            client_cert = spkac.gen_crt(ca_key, ca_cert, 44, not_before, not_after, hash_algo='sha512')
+            serial = int(time.time())
+
+            client_cert = spkac.gen_crt(ca_key, ca_cert, serial, not_before, not_after, hash_algo='sha512')
 
         except Exception as e:
 
@@ -216,6 +218,7 @@ class ClientCertForm(poobrains.form.Form):
             cert_info.user = token.user
             #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
             cert_info.subject_name = unicode(client_cert.get_subject())
+
             cert_info.save()
 
         except Exception as e:
@@ -225,9 +228,58 @@ class ClientCertForm(poobrains.form.Form):
 
             return poobrains.rendering.RenderString("Failed to write info into database. Disregard this certificate.")
 
+        token.redeemed = True
+        token.save()
+
         r = werkzeug.wrappers.Response(client_cert.as_pem())
         r.mimetype = 'application/x-x509-user-cert'
         return r
+
+    @poobrains.helpers.is_secure
+    def view(self, *args, **kwargs):
+        return super(ClientCertForm, self).view(*args, **kwargs)
+
+
+class OwnedPermission(poobrains.permission.Permission):
+    choices = [('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
+    
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def check(cls, user):
+        # TODO: get Owned instance in here to check for 'own' access.
+        if not (user.own_permissions.has_key(cls.__name__) and user.own_permissions[cls.__name__] == 'all'):
+            poobrains.app.logger.warning("Access denied to user '%s'. Inadequate access for permission '%s'." % (user.name, cls.__name__))
+            raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+
+
+    def instance_check(self, user):
+        
+        if user.own_permissions.has_key(self.__class__.__name__):
+
+            perm_mode = user.own_permissions[self.__class__.__name__]
+
+            if perm_mode == 'deny':
+                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+
+            elif perm_mode == 'all' or (perm_mode == 'own' and self.instance.owner == user):
+                return True
+
+
+        try:
+            mode = self.instance.permissions.keys()[self.instance.permissions.values().index(self)]
+            authorized_modes = self.instance.group_mode.split(':') # TODO: I'd like to MOVE IT, MOVE IT!
+            if mode in authorized_modes and self.instance.group in user.groups.itervalues():
+                return True
+
+        except Exception:
+            if poobrains.app.debug:
+                poobrains.app.debugger.set_trace()
+            raise
+
+
+        raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
 
 class RelatedForm(poobrains.form.Form):
@@ -240,7 +292,6 @@ class RelatedForm(poobrains.form.Form):
 
         f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
 
-        poobrains.app.debugger.set_trace()
         for related_instance in getattr(instance, related_field.related_name):
 
             # Fieldset to edit an existing related instance of this instance
@@ -336,6 +387,18 @@ class RelatedForm(poobrains.form.Form):
             if isinstance(field, poobrains.form.Fieldset):
                 field.handle()
         return flask.redirect(flask.request.url)
+
+
+class UserPermissionAddForm(poobrains.form.BoundForm):
+
+    
+    def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
+
+        f = super(UserPermissionAddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
+
+        setattr(f, 'user', poobrains.form.fields.ForeignKeyChoice(UserPermission.user))
+
+        return f
 
 
 class UserPermissionAddFieldset(poobrains.form.AddFieldset):
@@ -443,7 +506,7 @@ class Protected(poobrains.rendering.Renderable):
     def __new__(instance, *args, **kwargs):
 
         instance = super(Protected, instance).__new__(instance, *args, **kwargs)
-        #poobrains.app.debugger.set_trace()
+        
         for mode, perm_class in instance.__class__.permissions.iteritems():
             instance.permissions[mode] = perm_class(instance)
         return instance
@@ -587,12 +650,16 @@ class User(Named):
 
         super(User, self).__init__(*args, **kwargs)
         self.own_permissions = collections.OrderedDict()
+        self.groups = collections.OrderedDict()
 
 
     def prepared(self):
 
         for up in self._permissions:
             self.own_permissions[up.permission] = up.access
+
+        for ug in self._groups:
+            self.groups[ug.group.name] = ug.group
 
     
     def save(self, *args, **kwargs):
@@ -610,10 +677,10 @@ class User(Named):
         return rv
 
 
-@poobrains.app.expose('/userperm', mode='full')
 class UserPermission(Administerable):
 
     permission_class = None
+    form_add = UserPermissionAddForm
     fieldset_add = UserPermissionAddFieldset
     fieldset_edit = UserPermissionEditFieldset
 
@@ -631,7 +698,13 @@ class UserPermission(Administerable):
     
     def prepared(self):
 
-        self.permission_class = poobrains.permission.Permission.children_keyed()[self.permission]
+        try:
+            self.permission_class = poobrains.permission.Permission.children_keyed()[self.permission]
+
+        except KeyError:
+            poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
+            #TODO: Do we want to do more, like define a permission_class that always denies access?
+
 
 #    @classmethod
 #    def load(cls, id_perm_string):
@@ -668,7 +741,11 @@ class Group(Named):
     pass
 
 
-class UserGroup(poobrains.storage.Storable):
+class UserGroup(Administerable):
+
+    class Meta:
+        primary_key = peewee.CompositeKey('user', 'group')
+        order_by = ('user', 'group')
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_groups')
     group = poobrains.storage.fields.ForeignKeyField(Group, related_name='_users')
@@ -694,13 +771,17 @@ class ClientCertToken(Administerable):
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     token = poobrains.storage.fields.CharField(unique=True)
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
-    redeemed = poobrains.storage.fields.BooleanField(default=False)
+    redeemed = poobrains.storage.fields.BooleanField(default=0, null=False)
 
 
     def __init__(self, *args, **kw):
 
         self.validity = poobrains.app.config['TOKEN_VALIDITY']
         super(ClientCertToken, self).__init__(*args, **kw)
+
+    @property
+    def redeemable(self):
+        return (not self.redeemed) and ((self.created + datetime.timedelta(seconds=self.validity)) < datetime.datetime.now())
 
 
 class ClientCert(Administerable):
@@ -716,12 +797,15 @@ class Owned(Administerable):
 
     class Meta:
         abstract = True
-        permission_class = poobrains.permission.OwnedPermission
+        permission_class = OwnedPermission
 
 
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False)
     group_mode = poobrains.storage.fields.CharField(null=False, default='')
 
+
 class NamedOwned(Owned, Named):
-    pass
+    
+    class Meta:
+        abstract = True

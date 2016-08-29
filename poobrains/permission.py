@@ -13,7 +13,7 @@ class Permission(poobrains.helpers.ChildAware):
    
     instance = None
     label = None
-    choices = [('grant', 'For all instances'), ('deny', 'Explicitly deny')]
+    choices = [('grant', 'Grant'), ('deny', 'Explicitly deny')]
 
     class Meta:
         abstract = True
@@ -32,24 +32,6 @@ class Permission(poobrains.helpers.ChildAware):
 
     def instance_check(self, user):
         return self.__class__.check(user)
-
-
-class OwnedPermission(Permission):
-    choices = [('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
-    
-    class Meta:
-        abstract = True
-
-    @classmethod
-    def check(cls, user):
-        # TODO: get Owned instance in here to check for 'own' access.
-        if not (user.own_permissions.has_key(cls.__name__) and user.own_permissions[cls.__name__] == 'all'):
-            poobrains.app.logger.warning("Access denied to user '%s'. Inadequate access for permission '%s'." % (user.name, cls.__name__))
-            raise PermissionDenied("YOU SHALL NOT PASS!")
-
-
-#    def instance_check(self, user):
-#        raise NotImplementedError('yoink')
 
 
 class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably not going to use this after all; if so, get rid of it
