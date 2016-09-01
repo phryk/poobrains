@@ -139,6 +139,8 @@ def protected(func):
     #def substitute(cls_or_instance, *args, **kwargs):
     def substitute(cls_or_instance, mode, *args, **kwargs):
 
+        poobrains.app.logger.debug('protected call cls_or_instance: %s, %s', cls_or_instance, dir(cls_or_instance))
+
         user = flask.g.user # FIXME: How do I get rid of the smell?
 
         if not ((isinstance(cls_or_instance, type) and issubclass(cls_or_instance, Protected)) or isinstance(cls_or_instance, Protected)):

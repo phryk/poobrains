@@ -205,18 +205,19 @@ class Listing(rendering.Renderable):
         self.pagecount = int(math.ceil(self.count/float(self.limit)))
         self.current_page = int(math.floor(self.offset / float(self.limit))) + 1
 
-        self.items = []
-        items = select.offset(self.offset).limit(self.limit)
+        #self.items = []
+        #items = select.offset(self.offset).limit(self.limit)
+        self.items = select.offset(self.offset).limit(self.limit)
 
-        iteration_done = False
-        iterator = items.__iter__()
-        while not iteration_done:
-            try:
-                item = next(iterator)
-                self.items.append(item)
+        #iteration_done = False
+        #iterator = items.__iter__()
+        #while not iteration_done:
+        #    try:
+        #        item = next(iterator)
+        #        self.items.append(item)
 
-            except StopIteration:
-                iteration_done = True
+        #    except StopIteration:
+        #        iteration_done = True
 
         # Build pagination if matching endpoint and enough rows exist
         endpoint = flask.request.endpoint
