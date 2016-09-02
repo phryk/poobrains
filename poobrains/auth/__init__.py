@@ -250,38 +250,66 @@ class OwnedPermission(poobrains.permission.Permission):
 
     @classmethod
     def check(cls, user):
-        # TODO: get Owned instance in here to check for 'own' access.
-        if not (user.own_permissions.has_key(cls.__name__) and user.own_permissions[cls.__name__] == 'all'):
-            poobrains.app.logger.warning("Access denied to user '%s'. Inadequate access for permission '%s'." % (user.name, cls.__name__))
-            raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+
+        if user.own_permissions.has_key(cls.__name__):
+            access = user.own_permissions[cls.__name__]
+
+            if access == 'deny':
+                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+
+            elif access == 'own':
+                return True
+
+            elif access == 'grant':
+                return True
+
+            else:
+                poobrains.app.logger.warning("Unknown access mode '%s' for User %d with Permission %s" % (access, user.id, cls.__name__))
+                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
 
     def instance_check(self, user):
         
         if user.own_permissions.has_key(self.__class__.__name__):
 
-            perm_mode = user.own_permissions[self.__class__.__name__]
+            access = user.own_permissions[self.__class__.__name__]
 
-            if perm_mode == 'deny':
+            if access == 'deny':
                 raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
-            elif perm_mode == 'all' or (perm_mode == 'own' and self.instance.owner == user):
+            elif access == 'own':
+                if self.instance.owner == user and self.mode in self.instance.owner_mode.split(':'):
+                    return True
+                else:
+                    raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+
+            elif access == 'all':
                 return True
 
+            else:
+                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
-        try:
-            mode = self.instance.permissions.keys()[self.instance.permissions.values().index(self)]
-            authorized_modes = self.instance.group_mode.split(':') # TODO: I'd like to MOVE IT, MOVE IT!
-            if mode in authorized_modes and self.instance.group in user.groups.itervalues():
+
+        group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+
+        if group_deny:
+            raise PermissionDenied("YOU SHALL NOT PASS!")
+
+        group_own = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'own').count()
+
+        if group_own:
+            if self.mode in self.instance.group_mode.split(':'):
                 return True
-
-        except Exception:
-            if poobrains.app.debug:
-                poobrains.app.debugger.set_trace()
-            raise
+            else:
+                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
 
-        raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+        group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'all').count()
+
+        if group_grant:
+            return True
+
+        raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!") # Implicit denial
 
 
 class RelatedForm(poobrains.form.Form):
@@ -803,6 +831,7 @@ class Owned(Administerable):
 
 
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
+    owner_mode = poobrains.storage.fields.CharField(null=False, default='')
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False)
     group_mode = poobrains.storage.fields.CharField(null=False, default='')
 

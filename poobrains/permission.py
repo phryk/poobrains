@@ -12,6 +12,7 @@ class PermissionDenied(werkzeug.exceptions.HTTPException):
 class Permission(poobrains.helpers.ChildAware):
    
     instance = None
+    mode = None
     label = None
     choices = [('grant', 'Grant'), ('deny', 'Explicitly deny')]
 
@@ -25,16 +26,36 @@ class Permission(poobrains.helpers.ChildAware):
     @classmethod
     def check(cls, user):
 
-        if not (user.own_permissions.has_key(cls.__name__) and user.own_permissions[cls.__name__] == 'grant'):
-            poobrains.app.logger.warning("Access denied to user '%s'. Inadequate access for permission '%s'." % (user.name, cls.__name__))
+        # check user-assigned permission state
+        if user.own_permissions.has_key(cls.__name__):
+            access = user.own_permissions[cls.__name__]
+
+            if access == 'deny':
+                raise PermissionDenied("YOU SHALL NOT PASS!")
+
+            elif access == 'grant':
+                return True
+
+        # check if user is member of any groups with 'deny' for this permission
+        group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+
+        if group_deny:
             raise PermissionDenied("YOU SHALL NOT PASS!")
+
+        group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
+
+        if group_grant:
+            return True
+
+        raise PermissionDenied("YOU SHALL NOT PASS!")
+
 
 
     def instance_check(self, user):
         return self.__class__.check(user)
 
 
-class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably not going to use this after all; if so, get rid of it
+class PermissionInjection(poobrains.helpers.MetaCompatibility):
 
     def __new__(cls, name, bases, attrs):
         
@@ -56,6 +77,7 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility): # TODO: probably
                 meta = poobrains.helpers.FakeMetaOptions()
                 meta.abstract = True
                 perm_attrs['_meta'] = meta
+                perm_attrs['mode'] = mode
 
                 class Meta:
                     abstract = True
