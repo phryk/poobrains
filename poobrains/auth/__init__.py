@@ -260,7 +260,7 @@ class OwnedPermission(poobrains.permission.Permission):
             elif access == 'own':
                 return True
 
-            elif access == 'grant':
+            elif access == 'all':
                 return True
 
             else:
@@ -304,9 +304,9 @@ class OwnedPermission(poobrains.permission.Permission):
                 raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
 
-        group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'all').count()
+        group_all = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'all').count()
 
-        if group_grant:
+        if group_all:
             return True
 
         raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!") # Implicit denial
