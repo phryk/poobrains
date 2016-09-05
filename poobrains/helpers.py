@@ -132,7 +132,7 @@ class FakeMetaOptions(object):
     abstract = None
     modes = None
     permission_class = None
-    _additional_keys = None
+    _additional_keys = None # Why did I put this in, again?
 
     def __init__(self):
 

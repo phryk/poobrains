@@ -264,16 +264,14 @@ class Install(Command):
             self.shell.db.create_tables(storage.Model.children())
             stdout.write("Database tables created!\n")
 
-            anon = auth.User()
-            anon.name = 'Anonymous'
-            anon.id = 1 # Should theoretically always happen, but let's make sure anyways
-            anon.save(force_insert=True)
-            stdout.write("Anonymous user created.\n")
-            stdout.write(str(anon))
 
-            stdout.write("Creating administrator account…\n")
-            admin = auth.User()
-            admin.name = 'Administrator'
+            anons = auth.Group()
+            anons.name = 'AnonsAnonymous'
+            anons.save(force_insert=True)
+
+            admins = auth.Group()
+            admins.name = 'Administrators'
+            
             for cls in permission.Permission.children():
                 choice_values = [x[0] for x in cls.choices]
                 if 'all' in choice_values:
@@ -285,24 +283,39 @@ class Install(Command):
                     break
 
                 stdout.write("Adding permission %s: %s\n" % (cls.__name__, access))
-                admin.own_permissions[cls.__name__] = access
+                admins.own_permissions[cls.__name__] = access
+            
+            if not admins.save(force_insert=True):
+                raise ShellException("Oh snap, failed creating admin group.")
 
-            if admin.save():
-
-                stdout.write("Successfully saved administrator account.\n")
-                stdout.write("Please type in a token for client certificate generation: ")
-                token = raw_input()
-
-                t = auth.ClientCertToken()
-                t.user = admin
-                t.token = token
-                t.save()
-                stdout.write("Installation complete!")
-
-            else:
-                stdout.write("Couldn't save administrator, please try again or fix according bugs.")
+            stdout.write("Successfully saved Administrators group.\n")
 
 
+            anon = auth.User()
+            anon.name = 'Anonymous'
+            anon.id = 1 # Should theoretically always happen, but let's make sure anyways
+            anon.save(force_insert=True)
+            stdout.write("Anonymous user created.\n")
+            stdout.write(str(anon))
+
+            stdout.write("Creating administrator account…\n")
+            admin = auth.User()
+            admin.name = 'Administrator'
+            admin.groups.append(admins) # Put 'Administrator' into group 'Administrators'
+
+            if not admin.save():
+                
+                raise ShellException("Couldn't save administrator, please try again or fix according bugs.")
+
+            stdout.write("Successfully saved administrator account.\n")
+            stdout.write("Please type in a token for client certificate generation: ")
+            token = raw_input()
+
+            t = auth.ClientCertToken()
+            t.user = admin
+            t.token = token
+            t.save()
+            stdout.write("Installation complete!\n")
 
 
 class Exit(Command):

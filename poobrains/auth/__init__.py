@@ -680,7 +680,7 @@ class User(Named):
 
         super(User, self).__init__(*args, **kwargs)
         self.own_permissions = collections.OrderedDict()
-        self.groups = collections.OrderedDict()
+        self.groups = []
 
 
     def prepared(self):
@@ -689,7 +689,7 @@ class User(Named):
             self.own_permissions[up.permission] = up.access
 
         for ug in self._groups:
-            self.groups[ug.group.name] = ug.group
+            self.groups.append(ug.group)
 
     
     def save(self, *args, **kwargs):
@@ -703,6 +703,13 @@ class User(Named):
             up.permission = perm_name
             up.access = access
             up.save(force_insert=True)
+
+        UserGroup.delete().where(UserGroup.user == self)
+        for group in self.groups:
+            ug = UserGroup()
+            ug.user = self
+            ug.group = group
+            ug.save(force_insert=True)
 
         return rv
 
@@ -768,7 +775,37 @@ class UserPermission(Administerable):
 
 
 class Group(Named):
-    pass
+
+    # TODO: Almost identical to User. DRY.
+
+    own_permissions = None
+
+    def __init__(self, *args, **kwargs):
+
+        super(Group, self).__init__(*args, **kwargs)
+        self.own_permissions = collections.OrderedDict()
+        self.groups = collections.OrderedDict()
+
+
+    def prepared(self):
+
+        for gp in self._permissions:
+            self.own_permissions[gp.permission] = gp.access
+
+    
+    def save(self, *args, **kwargs):
+
+        rv = super(Group, self).save(*args, **kwargs)
+
+        GroupPermission.delete().where(GroupPermission.group == self)
+        for perm_name, access in self.own_permissions.iteritems():
+            gp = GroupPermission()
+            gp.group = self
+            gp.permission = perm_name
+            gp.access = access
+            gp.save(force_insert=True)
+
+        return rv
 
 
 class UserGroup(Administerable):
@@ -787,7 +824,7 @@ class GroupPermission(Administerable):
         primary_key = peewee.CompositeKey('group', 'permission')
         order_by = ('group', 'permission')
 
-    group = poobrains.storage.fields.ForeignKeyField(Group, null=False)
+    group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
     access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
     access.form_class = poobrains.form.fields.TextChoice
