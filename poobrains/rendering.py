@@ -16,19 +16,10 @@ import helpers
 class Renderable(helpers.ChildAware):
 
     name = None
-    permissions = None
 
 
     class Meta:
         modes = ['full'] 
-
-
-    def __new__(cls, *args, **kwargs):
-
-        cls = super(Renderable, cls).__new__(cls, *args, **kwargs)
-        cls.permissions = collections.OrderedDict()
-
-        return cls
 
 
     def __init__(self, name=None):

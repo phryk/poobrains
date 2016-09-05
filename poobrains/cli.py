@@ -265,10 +265,16 @@ class Install(Command):
             stdout.write("Database tables created!\n")
 
 
+            stdout.write("Creating Group 'AnonsAnonymous'…\n")
             anons = auth.Group()
             anons.name = 'AnonsAnonymous'
-            anons.save(force_insert=True)
+            
+            if not anons.save(force_insert=True):
+                raise ShellException("Failed creating Group 'AnonsAnonymous'!")
+            stdout.write("Successfully created Group 'AnonsAnonymous'.\n")
 
+
+            stdout.write("Creating Group 'Administrators' with all permissions granted…\n")
             admins = auth.Group()
             admins.name = 'Administrators'
             
@@ -286,16 +292,18 @@ class Install(Command):
                 admins.own_permissions[cls.__name__] = access
             
             if not admins.save(force_insert=True):
-                raise ShellException("Oh snap, failed creating admin group.")
+                raise ShellException("Failed creating Group 'Administrators'!")
 
-            stdout.write("Successfully saved Administrators group.\n")
+            stdout.write("Successfully saved Group 'Administrators'.\n")
 
 
             anon = auth.User()
             anon.name = 'Anonymous'
             anon.id = 1 # Should theoretically always happen, but let's make sure anyways
-            anon.save(force_insert=True)
-            stdout.write("Anonymous user created.\n")
+            anon.groups.append(anons)
+            if not anon.save(force_insert=True):
+                raise ShellException("Failed creating User 'Anonymous'!")
+            stdout.write("Successfully created User 'Anonymous'.\n")
             stdout.write(str(anon))
 
             stdout.write("Creating administrator account…\n")

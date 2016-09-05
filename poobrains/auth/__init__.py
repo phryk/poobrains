@@ -536,6 +536,7 @@ class Protected(poobrains.rendering.Renderable):
     def __new__(instance, *args, **kwargs):
 
         instance = super(Protected, instance).__new__(instance, *args, **kwargs)
+        instance.permissions = collections.OrderedDict()
         
         for mode, perm_class in instance.__class__.permissions.iteritems():
             instance.permissions[mode] = perm_class(instance)

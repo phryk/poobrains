@@ -462,7 +462,8 @@ class AddForm(BoundForm):
                         flask.flash(field.rel_model)
                         flask.flash(self.fields[field.name].value)
                 else:
-                    setattr(self.instance, field.name, self.fields[field.name].value)
+                    if self.fields[field.name].value is not None: # TODO: not needed if https://github.com/coleifer/peewee/issues/107 is re-fixed
+                        setattr(self.instance, field.name, self.fields[field.name].value)
 
         try:
 

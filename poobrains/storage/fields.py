@@ -14,7 +14,7 @@ class Field(helpers.ChildAware):
     form_class = form.fields.Text
 
     def form(self, value):
-        return form_class(self.name, label=self.name, value=value)
+        return self.form_class(self.name, label=self.name, value=value)
 
 
 class CharField(peewee.CharField, Field):
