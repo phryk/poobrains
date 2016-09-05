@@ -15,6 +15,90 @@ import peewee
 # local imports
 import poobrains
 
+
+class PermissionDenied(werkzeug.exceptions.HTTPException):
+    code = 403
+
+
+class Permission(poobrains.helpers.ChildAware):
+   
+    instance = None
+    mode = None
+    label = None
+    choices = [('grant', 'Grant'), ('deny', 'Explicitly deny')]
+
+    class Meta:
+        abstract = True
+
+    def __init__(self, instance):
+        self.instance = instance
+        self.check = self.instance_check
+
+    @classmethod
+    def check(cls, user):
+
+        # check user-assigned permission state
+        if user.own_permissions.has_key(cls.__name__):
+            access = user.own_permissions[cls.__name__]
+
+            if access == 'deny':
+                raise PermissionDenied("YOU SHALL NOT PASS!")
+
+            elif access == 'grant':
+                return True
+
+        # check if user is member of any groups with 'deny' for this permission
+        group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+
+        if group_deny:
+            raise PermissionDenied("YOU SHALL NOT PASS!")
+
+        group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
+
+        if group_grant:
+            return True
+
+        raise PermissionDenied("YOU SHALL NOT PASS!")
+
+
+
+    def instance_check(self, user):
+        return self.__class__.check(user)
+
+
+class PermissionInjection(poobrains.helpers.MetaCompatibility):
+
+    def __new__(cls, name, bases, attrs):
+        
+        cls = super(PermissionInjection, cls).__new__(cls, name, bases, attrs)
+        #cls._meta.permissions = collections.OrderedDict()
+        cls.permissions = collections.OrderedDict()
+
+        for mode in cls._meta.modes:
+            perm_name = "%s_%s" % (cls.__name__, mode)
+            perm_label = "%s %s" % (mode.capitalize(), cls.__name__)
+            #cls._meta.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
+            perm_attrs = dict()
+
+            if hasattr(cls._meta, 'abstract') and cls._meta.abstract:
+
+                # Make permissions belonging to abstract Renderables abstract as well
+                #FIXME: I have no clue why both _meta and Meta are needed, grok it, simplify if sensible
+
+                meta = poobrains.helpers.FakeMetaOptions()
+                meta.abstract = True
+                perm_attrs['_meta'] = meta
+                perm_attrs['mode'] = mode
+
+                class Meta:
+                    abstract = True
+
+                perm_attrs['Meta'] = Meta
+            
+            cls.permissions[mode] = type(perm_name, (cls._meta.permission_class,), perm_attrs)
+
+        return cls
+
 #def get_permission(permission_name):
 #
 #    for perm in Permission.children():
@@ -242,7 +326,7 @@ class ClientCertForm(poobrains.form.Form):
         return super(ClientCertForm, self).view(*args, **kwargs)
 
 
-class OwnedPermission(poobrains.permission.Permission):
+class OwnedPermission(Permission):
     choices = [('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
     
     class Meta:
@@ -255,7 +339,7 @@ class OwnedPermission(poobrains.permission.Permission):
             access = user.own_permissions[cls.__name__]
 
             if access == 'deny':
-                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+                raise PermissionDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own':
                 return True
@@ -265,7 +349,7 @@ class OwnedPermission(poobrains.permission.Permission):
 
             else:
                 poobrains.app.logger.warning("Unknown access mode '%s' for User %d with Permission %s" % (access, user.id, cls.__name__))
-                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+                raise PermissionDenied("YOU SHALL NOT PASS!")
 
 
     def instance_check(self, user):
@@ -275,19 +359,19 @@ class OwnedPermission(poobrains.permission.Permission):
             access = user.own_permissions[self.__class__.__name__]
 
             if access == 'deny':
-                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+                raise PermissionDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own':
                 if self.instance.owner == user and self.mode in self.instance.owner_mode.split(':'):
                     return True
                 else:
-                    raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+                    raise PermissionDenied("YOU SHALL NOT PASS!")
 
             elif access == 'all':
                 return True
 
             else:
-                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+                raise PermissionDenied("YOU SHALL NOT PASS!")
 
 
         group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == self.__class__.__name__, GroupPermission.access == 'deny').count()
@@ -301,7 +385,7 @@ class OwnedPermission(poobrains.permission.Permission):
             if self.mode in self.instance.group_mode.split(':'):
                 return True
             else:
-                raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
+                raise PermissionDenied("YOU SHALL NOT PASS!")
 
 
         group_all = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == self.__class__.__name__, GroupPermission.access == 'all').count()
@@ -309,7 +393,7 @@ class OwnedPermission(poobrains.permission.Permission):
         if group_all:
             return True
 
-        raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!") # Implicit denial
+        raise PermissionDenied("YOU SHALL NOT PASS!") # Implicit denial
 
 
 class RelatedForm(poobrains.form.Form):
@@ -457,7 +541,7 @@ class UserPermissionRelatedForm(RelatedForm):
 
         f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
 
-        for name, perm in poobrains.permission.Permission.children_keyed().iteritems():
+        for name, perm in Permission.children_keyed().iteritems():
 
             try:
                 perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
@@ -497,8 +581,8 @@ class UserPermissionRelatedForm(RelatedForm):
 #        return flask.redirect(flask.request.url)
 
 
-#class BaseAdministerable(poobrains.storage.BaseModel, poobrains.permission.PermissionInjection):
-class BaseAdministerable(poobrains.permission.PermissionInjection, poobrains.storage.BaseModel):
+#class BaseAdministerable(poobrains.storage.BaseModel, PermissionInjection):
+class BaseAdministerable(PermissionInjection, poobrains.storage.BaseModel):
 
     """
     Metaclass for `Administerable`s.
@@ -526,11 +610,11 @@ class BaseAdministerable(poobrains.permission.PermissionInjection, poobrains.sto
 
 class Protected(poobrains.rendering.Renderable):
 
-    __metaclass__ = poobrains.permission.PermissionInjection
+    __metaclass__ = PermissionInjection
 
     class Meta:
         abstract = True
-        permission_class = poobrains.permission.Permission
+        permission_class = Permission
 
 
     def __new__(instance, *args, **kwargs):
@@ -565,7 +649,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     class Meta:
         abstract = True
-        permission_class = poobrains.permission.Permission 
+        permission_class = Permission 
         modes = ['full', 'teaser', 'add', 'edit', 'delete']
     
     @property
@@ -737,7 +821,7 @@ class UserPermission(Administerable):
     def prepared(self):
 
         try:
-            self.permission_class = poobrains.permission.Permission.children_keyed()[self.permission]
+            self.permission_class = Permission.children_keyed()[self.permission]
 
         except KeyError:
             poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
@@ -755,7 +839,7 @@ class UserPermission(Administerable):
     def save(self, *args, **kwargs):
 
         valid_permission_names = []
-        for cls in poobrains.permission.Permission.children():
+        for cls in Permission.children():
             valid_permission_names.append(cls.__name__)
 
         if self.permission not in valid_permission_names:
