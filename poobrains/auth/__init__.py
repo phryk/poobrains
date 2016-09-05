@@ -290,12 +290,12 @@ class OwnedPermission(poobrains.permission.Permission):
                 raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
 
-        group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+        group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == self.__class__.__name__, GroupPermission.access == 'deny').count()
 
         if group_deny:
             raise PermissionDenied("YOU SHALL NOT PASS!")
 
-        group_own = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'own').count()
+        group_own = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == self.__class__.__name__, GroupPermission.access == 'own').count()
 
         if group_own:
             if self.mode in self.instance.group_mode.split(':'):
@@ -304,7 +304,7 @@ class OwnedPermission(poobrains.permission.Permission):
                 raise poobrains.permission.PermissionDenied("YOU SHALL NOT PASS!")
 
 
-        group_all = GroupPermission.select().join(Group).join(UserGroup).join(User).where(Group.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'all').count()
+        group_all = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == self.__class__.__name__, GroupPermission.access == 'all').count()
 
         if group_all:
             return True
