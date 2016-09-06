@@ -108,6 +108,20 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
 #    raise LookupError("Unknown permission: %s" % str(permission_name))
 
 
+class FormPermissionField(poobrains.form.fields.Choice):
+
+    def __init__(self, *args, **kwargs):
+
+        super(FormPermissionField, self).__init__(*args, **kwargs)
+
+        self.choices = []
+        for perm_name, perm in Permission.children_keyed().iteritems():
+            self.choices.append(([('%s.%s' % (perm_name, value), label) for (value, label) in perm.choices], perm_name))
+
+
+class StoragePermissionField(poobrains.storage.fields.CharField):
+    form_class = FormPermissionField
+
 def admin_listing_actions(cls):
 
     m = poobrains.rendering.Menu('admin-listing-actions')
@@ -811,7 +825,8 @@ class UserPermission(Administerable):
         order_by = ('user', 'permission')
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
-    permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
+    #permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
+    permission = StoragePermissionField(max_length=50)
     access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
     access.form_class = poobrains.form.fields.TextChoice
 
@@ -910,7 +925,8 @@ class GroupPermission(Administerable):
         order_by = ('group', 'permission')
 
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
-    permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
+    #permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
+    permission = StoragePermissionField(max_length=50)
     access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
     access.form_class = poobrains.form.fields.TextChoice
 
