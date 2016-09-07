@@ -8,7 +8,6 @@ import peewee
 import helpers
 
 # local imports
-import permission
 import storage
 import auth
 
@@ -278,7 +277,7 @@ class Install(Command):
             admins = auth.Group()
             admins.name = 'Administrators'
             
-            for cls in permission.Permission.children():
+            for cls in poobrains.auth.Permission.children():
                 choice_values = [x[0] for x in cls.choices]
                 if 'all' in choice_values:
                     access = 'all'
