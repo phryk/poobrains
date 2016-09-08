@@ -4,7 +4,7 @@
     {% if value is iterable %}
       <optgroup label="{{ label }}">
         {% for subvalue, sublabel in value %}
-          <option value="{{ value }}" {% if value == content.value %}selected{% endif %}>{{ sublabel }}</option>
+          <option value="{{ subvalue }}" {% if subvalue == content.value %}selected{% endif %}>{{ sublabel }}</option>
         {% endfor %}
       </optgroup>
     {% else %}

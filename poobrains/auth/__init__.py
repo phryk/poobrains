@@ -119,6 +119,53 @@ class FormPermissionField(poobrains.form.fields.Choice):
             self.choices.append(([('%s.%s' % (perm_name, value), label) for (value, label) in perm.choices], perm_name))
 
 
+    def validate(self, value=None):
+        super(FormPermissionField, self).validate(value=value)
+
+        value = value if value else self.value
+
+        try:
+            permission, mode = value.split('.')
+        except Exception as e:
+            raise poobrains.form.errors.ValidationError('Could not split value to permission and access: %s' % value)
+
+        if not permission in Permission.children_keyed().keys():
+            raise poobrains.form.errors.ValidationError('Unknown permission: %s' % permission)
+
+        perm_class = Permission.children_keyed()[permission]
+        if not access in perm_class.choices:
+            raise poobrains.form.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
+
+    
+    def bind(self, value):
+
+        #if value == self.missing_value:
+        if isinstance(value, poobrains.form.errors.MissingValue):
+            self.value = self.missing_value
+
+        elif self.empty(value):
+            self.value = self.empty_default
+
+        else:
+            try:
+                cleaned_string = self.coercer(value)
+                self.value = cleaned_string.split('.')
+            except ValueError as e:
+                raise errors.CoercionError("%s failed with value '%s'." % (self.coercer.__name__, str(value)))
+
+
+    def coercer(self, value):
+
+        cleaned_string = poobrains.form.coercers.coerce_string(value)
+
+        try:
+            rv = cleaned_string.split('.')
+        except Exception as e:
+            raise poobrains.form.errors.CoercionError('Could not split value to permission and access: %s' % cleaned_string)
+
+        return rv
+
+
 class StoragePermissionField(poobrains.storage.fields.CharField):
     form_class = FormPermissionField
 
@@ -517,17 +564,20 @@ class RelatedForm(poobrains.form.Form):
         return flask.redirect(flask.request.url)
 
 
-class UserPermissionAddForm(poobrains.form.BoundForm):
+class UserPermissionAddForm(poobrains.form.AddForm):
 
     
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
 
         f = super(UserPermissionAddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
-
-        setattr(f, 'user', poobrains.form.fields.ForeignKeyChoice(UserPermission.user))
+        del(f.fields['access'])
 
         return f
 
+
+    def handle(self):
+        poobrains.app.debugger.set_trace()
+        return self
 
 class UserPermissionAddFieldset(poobrains.form.AddFieldset):
 
