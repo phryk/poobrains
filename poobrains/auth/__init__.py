@@ -99,6 +99,7 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
 
         return cls
 
+
 #def get_permission(permission_name):
 #
 #    for perm in Permission.children():
@@ -137,6 +138,18 @@ class FormPermissionField(poobrains.form.fields.Choice):
             raise poobrains.form.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
 
     
+    def coercer(self, value):
+
+        cleaned_string = poobrains.form.coercers.coerce_string(value)
+
+        try:
+            rv = cleaned_string.split('.')
+        except Exception as e:
+            raise poobrains.form.errors.CoercionError('Could not split value to permission and access: %s' % cleaned_string)
+
+        return rv
+    
+
     def bind(self, value):
 
         #if value == self.missing_value:
@@ -152,18 +165,6 @@ class FormPermissionField(poobrains.form.fields.Choice):
                 self.value = cleaned_string.split('.')
             except ValueError as e:
                 raise errors.CoercionError("%s failed with value '%s'." % (self.coercer.__name__, str(value)))
-
-
-    def coercer(self, value):
-
-        cleaned_string = poobrains.form.coercers.coerce_string(value)
-
-        try:
-            rv = cleaned_string.split('.')
-        except Exception as e:
-            raise poobrains.form.errors.CoercionError('Could not split value to permission and access: %s' % cleaned_string)
-
-        return rv
 
 
 class StoragePermissionField(poobrains.storage.fields.CharField):
