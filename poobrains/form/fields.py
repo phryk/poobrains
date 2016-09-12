@@ -18,6 +18,8 @@ class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.Clas
 
 class Field(object):
 
+    __metaclass__ = poobrains.helpers.MetaCompatibility
+
     _empty = None # hint if value of this field was set to empty_value
     errors = None
     prefix = None
@@ -31,6 +33,9 @@ class Field(object):
     required = None
     validator = validators.is_string
     coercer = coercers.coerce_string
+
+    class Meta:
+        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator']
 
 
     def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
@@ -91,6 +96,9 @@ class Field(object):
 
     
     def validate(self):
+
+        poobrains.app.debugger.set_trace()
+
         if not self.empty():
             self.validator(self.value)
 
@@ -209,7 +217,7 @@ class MultiChoice(Choice):
     def validate(self):
         
         for value in values:
-            super(MultiChoice, self).validate()
+            super(MultiChoice, self).validate() # FIXME: This is nonsense.
 
 
     def bind(self, values):
@@ -270,7 +278,7 @@ class ForeignKeyChoice(IntegerChoice):
         super(ForeignKeyChoice, self).__setattr__(name, value)
 
 
-class Checkbox(Field):
+class Checkbox(RenderableField):
 
     empty_value = False
     missing_default = False

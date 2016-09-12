@@ -150,7 +150,7 @@ class MetaCompatibility(type):
 
     def __new__(cls, name, bases, attrs):
 
-        recognized_options = ['abstract', 'modes', 'permission_class']
+        recognized_options = ['abstract', 'modes', 'permission_class', 'clone_props'] # FIXME: Make this shit generic, like peewee ModelOptions
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
  

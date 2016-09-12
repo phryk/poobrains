@@ -13,18 +13,6 @@ def front():
     return redirect(News.url())
 
 
-@app.site.route('/form', methods=['GET', 'POST'])
-@poobrains.helpers.themed
-def form_test():
-
-    form = TestForm()
-
-    if flask.request.method == 'POST':
-        #form.handle(flask.request.form)
-        return poobrains.rendering.RenderString("ZOMGPOST")
-
-    return form 
-
 class TestSubForm(poobrains.form.Fieldset):
 
     oink = poobrains.form.fields.Text(label="OMGWTF")
@@ -32,11 +20,17 @@ class TestSubForm(poobrains.form.Fieldset):
     submit = poobrains.form.Button('submit', label="SUBSUBMIT") 
 
 
+@app.expose('/form')
 class TestForm(poobrains.form.Form):
 
     foo = poobrains.form.fields.Text()
     bar = TestSubForm()
+    optin = poobrains.form.fields.Checkbox(label="Opt-in", required=True)
     trigger = poobrains.form.Button('submit', label='Hit me!')
+
+    def handle(self):
+        flask.flash('TestForm.handle called!')
+        return self
 
 
 @app.expose('/news', mode='full')

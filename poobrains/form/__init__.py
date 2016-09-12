@@ -41,24 +41,34 @@ class BaseForm(poobrains.rendering.Renderable):
         
         for attr_name in dir(instance):
 
-            label_default = attr_name.capitalize()
+#            label_default = attr_name.capitalize()
+#            attr = getattr(instance, attr_name)
+#
+#            if isinstance(attr, fields.Field):
+#                label = attr.label if attr.label else label_default
+#                clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validator=attr.validator)
+#                #instance.fields[attr_name] = clone
+#                setattr(instance, attr_name, clone)
+#
+#            elif isinstance(attr, Fieldset):
+#                clone = attr.__class__(name=attr_name, title=attr.title)
+#                #instance.fields[attr_name] = clone
+#                setattr(instance, attr_name, clone)
+#
+#            elif isinstance(attr, Button):
+#                label = attr.label if attr.label else label_default
+#                clone = attr.__class__(attr.type, name=attr_name, value=attr.value, label=label)
+#                instance.controls[attr_name] = clone
+
             attr = getattr(instance, attr_name)
+            if isinstance(attr, fields.Field) or isinstance(attr, Fieldset) or isinstance(attr, Button): # FIXME: This should be doable with just one check
 
-            if isinstance(attr, fields.Field):
-                label = attr.label if attr.label else label_default
-                clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validator=attr.validator)
-                #instance.fields[attr_name] = clone
+                kw = {}
+                for propname in attr._meta.clone_props:
+                    kw[propname] = getattr(attr, propname)
+                
+                clone = attr.__class__(**kw)
                 setattr(instance, attr_name, clone)
-
-            elif isinstance(attr, Fieldset):
-                clone = attr.__class__(name=attr_name, title=attr.title)
-                #instance.fields[attr_name] = clone
-                setattr(instance, attr_name, clone)
-
-            elif isinstance(attr, Button):
-                label = attr.label if attr.label else label_default
-                clone = attr.__class__(attr.type, name=attr_name, value=attr.value, label=label)
-                instance.controls[attr_name] = clone
 
         return instance
     
@@ -127,17 +137,6 @@ class BaseForm(poobrains.rendering.Renderable):
     def renderable_fields(self):
 
         return [field for field in self] 
-
-
-    @property
-    def validatable_fields(self):
-
-        fields = []
-        for field in self.fields.itervalues():
-            if not field.validator == None:
-                fields.append(field)
-
-        return fields
 
 
     def empty(self):
@@ -504,6 +503,7 @@ class Fieldset(BaseForm):
 
     class Meta:
         abstract = True
+        clone_props = ['name', 'title']
 
 
     def __init__(self, *args, **kw):
@@ -566,6 +566,8 @@ class Button(poobrains.rendering.Renderable):
     value = None
     label = None
 
+    class Meta:
+        clone_props = ['type', 'name', 'value', 'label']
     
     def __init__(self, type, name=None, value=None, label=None):
 
