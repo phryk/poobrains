@@ -24,8 +24,7 @@ class Field(object):
     name = None
     value = None
     empty_value = '' # value which is considered to be "empty"
-    empty_default = None # used instead of client input when the field has been determined to be "empty"
-    missing_value = None # used when client sends no value for this field
+    missing_default = None # used when client sends no value for this field
     label = None
     placeholder = None
     readonly = None
@@ -61,17 +60,6 @@ class Field(object):
             return real_value
 
 
-    def __setattr__(self, name, value):
-
-        if name == 'value' and self.empty(value):
-            super(Field, self).__setattr__(name, self.empty_default)
-            self._empty = True
-        else:
-            if name == 'value':
-                self._empty = False
-            super(Field, self).__setattr__(name, value)
-
-
     @classmethod
     def templates(cls, mode=None):
 
@@ -98,16 +86,13 @@ class Field(object):
         return tpls
 
     
-    def empty(self, value=None):
-        if value is None:
-            #value = self.value
-            return self._empty
-        return value == self.empty_value
+    def empty(self):
+        return self.value == self.empty_value
 
     
-    def validate(self, value):
-        if not self.empty(value) and not isinstance(value, errors.MissingValue):
-            self.validator(value)
+    def validate(self):
+        if not self.empty():
+            self.validator(self.value)
 
         elif self.required:
             raise errors.ValidationError("Required field '%s' was left empty." % self.name)
@@ -115,24 +100,23 @@ class Field(object):
     
     def bind(self, value):
 
-        #if value == self.missing_value:
         if isinstance(value, errors.MissingValue):
-            self.value = self.missing_value
-
-        elif self.empty(value):
-            self.value = self.empty_default
+            self.value = self.missing_default
 
         else:
             try:
                 self.value = self.coercer(value)
+
             except ValueError as e:
-                raise errors.CoercionError("%s failed with value '%s'." % (self.coercer.__name__, str(value)))
+                raise errors.ValidationError("%s failed with value '%s'." % (self.coercer.__name__, value))
+
+        self.validate() # escalates any ValidationErrors (or others) to caller
 
 
 class Value(Field):
     """ To put a static value into the form. """
 
-    def validate(self, value):
+    def validate(self):
         pass
 
 
@@ -157,7 +141,7 @@ class Message(RenderableField):
         return "<%s: %s>" % (self.__class__.__name__, self.value)
 
     
-    def validate(self, value):
+    def validate(self):
         pass
 
 
@@ -187,15 +171,14 @@ class RangedInteger(Integer):
     max = None
 
 
-    def validate(self, value):
+    def validate(self):
 
-        super(RangedInteger, self).validate(value)
+        super(RangedInteger, self).validate()
 
-        if not self.empty(value) and not isinstance(value, errors.MissingValue):
+        if not self.empty():
 
-            x = int(value)
-            if x <self. min or x > self.max:
-                raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, value, self.min, self.max))
+            if self.value < self.min or self.value > self.max:
+                raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, self.value, self.min, self.max))
 
 
 class Choice(RenderableField):
@@ -213,27 +196,20 @@ class Choice(RenderableField):
         self.choices = choices
 
 
-    def validate(self, value):
+    def validate(self):
 
-        super(Choice, self).validate(value)
-
-        try:
-            self.coercer(value)
-        except Exception as e:
-            raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (value, self.prefix, self.name))
-
-        if not self.coercer(value) in dict(self.choices).keys():
-            raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (value, self.prefix, self.name))
+        if not self.value in dict(self.choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
+            raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
 class MultiChoice(Choice):
 
     multi = True
 
-    def validate(self, values):
+    def validate(self):
         
         for value in values:
-            super(MultiChoice, self).validate(value)
+            super(MultiChoice, self).validate()
 
 
     def bind(self, values):
@@ -294,22 +270,13 @@ class ForeignKeyChoice(IntegerChoice):
         super(ForeignKeyChoice, self).__setattr__(name, value)
 
 
-class Checkbox(RangedInteger):
+class Checkbox(Field):
 
     empty_value = False
-    missing_value = False
-    min = 0
-    max = 1
-
+    missing_default = False
     coercer = coercers.coerce_bool
+    validator = validators.is_bool
 
-    def empty(self, value=None):
-
-        #if value is None:
-        #    value = self.value
-
-        #return value == ''
-        return False
 
 
 class Float(RenderableField):
@@ -318,8 +285,6 @@ class Float(RenderableField):
 
 class RangedFloat(RangedInteger):
     validator = validators.is_float
-
-
 
 
 class Keygen(RenderableField):

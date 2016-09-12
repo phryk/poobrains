@@ -1,6 +1,7 @@
 <input
     type="text"
     name="{{content.prefix}}.{{ content.name }}"
+    {% if content.readonly %}readonly{% endif %}
 
     {% if content.placeholder %}
         placeholder="{{ content.placeholder }}"

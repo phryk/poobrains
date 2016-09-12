@@ -26,7 +26,6 @@ class BaseForm(poobrains.rendering.Renderable):
     class Meta:
         abstract = True
 
-    errors = None
     fields = None
     controls = None
     
@@ -67,7 +66,6 @@ class BaseForm(poobrains.rendering.Renderable):
     def __init__(self, prefix=None, name=None, title=None):
         
         super(BaseForm, self).__init__()
-        self.errors = []
         self.name = name if name else self.__class__.__name__
 
         if title:
@@ -149,40 +147,13 @@ class BaseForm(poobrains.rendering.Renderable):
         return True
     
     
-    def validate(self, values):
-
-        compound_error = errors.CompoundError()
-
-        for field in self.validatable_fields:
-
-            if values.has_key(field.name):
-                field_values = values[field.name]
-
-                try:
-                    field.validate(field_values)
-                except errors.ValidationError as e:
-                    compound_error.append(e)
-                    field.errors.append(e)
-
-            else:
-
-                try:
-                    field.validate(errors.MissingValue())
-
-                except errors.ValidationError as e:
-                    compound_error.append(e)
-                    field.errors.append(e)
-
-        if len(compound_error):
-            raise compound_error
-
 
     def bind(self, values):
 
         compound_error = errors.CompoundError()
 
         for field in self: # magic iteration yielding only renderable fields
-           
+
             if values.has_key(field.name):
                 field_values = values[field.name]
             else:
@@ -190,7 +161,7 @@ class BaseForm(poobrains.rendering.Renderable):
             
             try:
                 field.bind(field_values)
-            except errors.BindingError as e:
+            except errors.ValidationError as e:
                 compound_error.append(e)
 
         if len(compound_error):
@@ -311,7 +282,6 @@ class Form(BaseForm):
         """
         view function to be called in a flask request context
         """
-
         if flask.request.method == self.method:
 
             validation_error = None
@@ -320,13 +290,6 @@ class Form(BaseForm):
             
             try:
                 self.bind(values)
-
-            except errors.CompoundError as binding_error:
-                for error in binding_error.errors:
-                    flask.flash(error.message, 'error')
-
-            try:
-                self.validate(values)
 
                 try:
                     return self.handle()
@@ -534,7 +497,9 @@ class DeleteForm(BoundForm):
 
 class Fieldset(BaseForm):
 
-    missing_value = werkzeug.datastructures.MultiDict()
+    errors = None
+    readonly = None
+    missing_default = werkzeug.datastructures.MultiDict()
     rendered = None
 
     class Meta:
@@ -544,6 +509,8 @@ class Fieldset(BaseForm):
     def __init__(self, *args, **kw):
 
         self.rendered = False
+        self.readonly = False
+        self.errors = []
         super(Fieldset, self).__init__(*args, **kw)
     
 
@@ -556,7 +523,6 @@ class Fieldset(BaseForm):
     def __setattr__(self, name, value):
 
         if name == 'value':
-            print "FIELDSET VALUE"
             for field in self.fields.itervalues():
                 if hasattr(value, field.name):
                     field.value = getattr(value, field.name)

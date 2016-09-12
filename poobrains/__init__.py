@@ -209,6 +209,9 @@ class Poobrain(flask.Flask):
                             return f.view('full')
 
 
+                        print "YOINKS: ", rule, related_model.__name__.lower(), endpoint
+                        if not hasattr(related_model._meta, 'abstract'):
+                            print "somethings fucky with %s" % related_model.__name__
                         self.admin.add_url_rule("%s<handle>/%s/" % (rule, related_model.__name__.lower()), endpoint, functools.partial(view_func, cls=cls, field=field), methods=['GET', 'POST'])
 
             self.register_blueprint(self.site)

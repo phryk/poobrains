@@ -39,9 +39,8 @@ def is_float(field, value):
 
 def is_bool(field, value):
 
-    print "############# is bool? ", type(value), value
-    if value not in ('1', '0', 1, 0, True, False):
-        raise errors.ValidationError("%s can't be interpreted as a boolean." % value)
+    if not isinstance(value, bool):
+        raise errors.ValidationError("%s is not a boolean." % value)
 
 
 # functions to generate validators

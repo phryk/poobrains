@@ -1,7 +1,7 @@
 <select name={{ content.prefix }}.{{ content.name }} {% if content.multi %}multiple{% endif %} class="{% if content.errors %}invalid{% endif %}">
   <option value=''>{{ content.empty_label }}</option>
   {% for value, label in content.choices %}
-    {% if value is iterable %}
+    {% if not value is string and value is iterable  %}
       <optgroup label="{{ label }}">
         {% for subvalue, sublabel in value %}
           <option value="{{ subvalue }}" {% if subvalue == content.value %}selected{% endif %}>{{ sublabel }}</option>

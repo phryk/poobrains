@@ -120,15 +120,9 @@ class FormPermissionField(poobrains.form.fields.Choice):
             self.choices.append(([('%s.%s' % (perm_name, value), label) for (value, label) in perm.choices], perm_name))
 
 
-    def validate(self, value=None):
-        super(FormPermissionField, self).validate(value=value)
+    def validate(self):
 
-        value = value if value else self.value
-
-        try:
-            permission, mode = value.split('.')
-        except Exception as e:
-            raise poobrains.form.errors.ValidationError('Could not split value to permission and access: %s' % value)
+        permission, mode = self.value
 
         if not permission in Permission.children_keyed().keys():
             raise poobrains.form.errors.ValidationError('Unknown permission: %s' % permission)
@@ -145,30 +139,10 @@ class FormPermissionField(poobrains.form.fields.Choice):
         try:
             rv = cleaned_string.split('.')
         except Exception as e:
-            raise poobrains.form.errors.CoercionError('Could not split value to permission and access: %s' % cleaned_string)
+            raise poobrains.form.errors.ValidationError('Could not split value to permission and access: %s' % cleaned_string)
 
         return rv
     
-
-    def bind(self, value):
-
-        #if value == self.missing_value:
-        if isinstance(value, poobrains.form.errors.MissingValue):
-            self.value = self.missing_value
-
-        elif self.empty(value):
-            self.value = self.empty_default
-
-        else:
-            try:
-                cleaned_string = self.coercer(value)
-                self.value = cleaned_string.split('.')
-            except ValueError as e:
-                raise errors.CoercionError("%s failed with value '%s'." % (self.coercer.__name__, str(value)))
-
-
-class StoragePermissionField(poobrains.storage.fields.CharField):
-    form_class = FormPermissionField
 
 def admin_listing_actions(cls):
 
@@ -514,47 +488,47 @@ class RelatedForm(poobrains.form.Form):
         self.related_field = related_field
 
    
-    @poobrains.helpers.themed
-    def view(self, mode='teaser'):
-
-        """
-        view function to be called in a flask request context
-        """
-        if flask.request.method == self.method:
-
-            values = flask.request.form[self.name]
-
-            for field in self:
-
-                if not field.empty():
-                    try:
-                        field.validate(values[field.name])
-
-                        try:
-
-                            field.bind(values[field.name])
-
-                            if isinstance(field, poobrains.form.Fieldset) and not field.errors:
-                                field.handle()
-                                flask.flash("Handled %s.%s" % (field.prefix, field.name))
-                            else:
-                                flask.flash("Not handled:")
-                                flask.flash(field.empty())
-
-
-                        except poobrains.form.errors.BindingError as e:
-                            flask.flash(e.message)
-
-                    except (poobrains.form.errors.ValidationError, poobrains.form.errors.CompoundError) as e:
-                        flask.flash(e.message)
-
-                try:
-                    field.bind(values[field.name]) # bind to show erroneous values to user
-                except poobrains.form.errors.BindingError as e:
-                    flask.flash(e.message)
-
-
-        return self
+#    @poobrains.helpers.themed
+#    def view(self, mode='teaser'):
+#
+#        """
+#        view function to be called in a flask request context
+#        """
+#        if flask.request.method == self.method:
+#
+#            values = flask.request.form[self.name]
+#
+#            for field in self:
+#
+#                if not field.empty():
+#                    try:
+#                        field.validate(values[field.name])
+#
+#                        try:
+#
+#                            field.bind(values[field.name])
+#
+#                            if isinstance(field, poobrains.form.Fieldset) and not field.errors:
+#                                field.handle()
+#                                flask.flash("Handled %s.%s" % (field.prefix, field.name))
+#                            else:
+#                                flask.flash("Not handled:")
+#                                flask.flash(field.empty())
+#
+#
+#                        except poobrains.form.errors.BindingError as e:
+#                            flask.flash(e.message)
+#
+#                    except (poobrains.form.errors.ValidationError, poobrains.form.errors.CompoundError) as e:
+#                        flask.flash(e.message)
+#
+#                try:
+#                    field.bind(values[field.name]) # bind to show erroneous values to user
+#                except poobrains.form.errors.BindingError as e:
+#                    flask.flash(e.message)
+#
+#
+#        return self
    
 
     def handle(self):
@@ -577,7 +551,6 @@ class UserPermissionAddForm(poobrains.form.AddForm):
 
 
     def handle(self):
-        poobrains.app.debugger.set_trace()
         return self
 
 class UserPermissionAddFieldset(poobrains.form.AddFieldset):
@@ -605,7 +578,6 @@ class UserPermissionRelatedForm(RelatedForm):
         f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
 
         f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
-
         for name, perm in Permission.children_keyed().iteritems():
 
             try:
@@ -615,8 +587,9 @@ class UserPermissionRelatedForm(RelatedForm):
                 #f.fields[name] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=name)
                 #f.fields[name] = perm_info.fieldset_edit(mode=perm_mode)
                 fieldset = perm_info.fieldset_edit(mode=perm_mode)
+                fieldset.fields['permission'].readonly = True
                 fieldset.fields['access'].choices = perm.choices
-                setattr(f, name, fieldset) 
+                fieldset.fields['access'].value = perm_info.access
 
             except:
                 perm_info = UserPermission()
@@ -629,7 +602,10 @@ class UserPermissionRelatedForm(RelatedForm):
                 #f.fields[name] = perm_info.fieldset_add(mode=perm_mode)
                 fieldset = perm_info.fieldset_add(mode=perm_mode)
                 fieldset.fields['access'].choices = perm.choices
-                setattr(f, name, fieldset)
+
+            fieldset.fields.user = poobrains.form.fields.Value(instance)
+            fieldset.fields.permission = poobrains.form.fields.Text(value=name, readonly=True)
+            setattr(f, name, fieldset)
 
         return f
 
@@ -876,8 +852,7 @@ class UserPermission(Administerable):
         order_by = ('user', 'permission')
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
-    #permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
-    permission = StoragePermissionField(max_length=50)
+    permission = poobrains.storage.fields.CharField(max_length=50)
     access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
     access.form_class = poobrains.form.fields.TextChoice
 
@@ -976,8 +951,7 @@ class GroupPermission(Administerable):
         order_by = ('group', 'permission')
 
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
-    #permission = poobrains.storage.fields.CharField(max_length=50) # deal with it. (⌐■_■)
-    permission = StoragePermissionField(max_length=50)
+    permission = poobrains.storage.fields.CharField(max_length=50)
     access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
     access.form_class = poobrains.form.fields.TextChoice
 
