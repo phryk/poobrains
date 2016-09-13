@@ -115,10 +115,16 @@ class Field(object):
             try:
                 self.value = self.coercer(value)
 
-            except ValueError as e:
-                raise errors.ValidationError("%s failed with value '%s'." % (self.coercer.__name__, value))
+            except ValueError:
+                e = errors.ValidationError("%s failed with value '%s'." % (self.coercer.__name__, value))
+                self.errors.append(re)
+                raise e
 
-        self.validate() # escalates any ValidationErrors (or others) to caller
+        try:
+            self.validate() # escalates any ValidationErrors (or others) to caller
+        except errors.ValidationError as e:
+            self.errors.append(e)
+            raise
 
 
 class Value(Field):

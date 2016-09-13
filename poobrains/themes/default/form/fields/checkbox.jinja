@@ -1,14 +1,23 @@
-<input
-    type="checkbox"
-    name="{{content.prefix}}.{{ content.name }}"
-
-    {% if content.placeholder %}
-        placeholder="{{ content.placeholder }}"
-    {% endif %}
-
-        value="1"
-
-    {% if content.value %}
-        checked
-    {% endif %}
+<label
+    for="{{ content.prefix }}.{{ content.name }}"
+    {% if content.errors %}class="invalid"{% endif %}
 >
+
+    {{ content.label }} 
+
+    <input
+        type="checkbox"
+        name="{{content.prefix}}.{{ content.name }}"
+        {% if content.errors %}class="invalid"{% endif %}
+
+        {% if content.placeholder %}
+            placeholder="{{ content.placeholder }}"
+        {% endif %}
+
+            value="1"
+
+        {% if content.value %}
+            checked
+        {% endif %}
+    >
+</label>

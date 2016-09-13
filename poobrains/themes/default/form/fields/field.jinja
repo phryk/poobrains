@@ -1,13 +1,15 @@
-<input
-    type="text"
-    name="{{content.prefix}}.{{ content.name }}"
-    {% if content.readonly %}readonly{% endif %}
+<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}
+    <input
+        type="text"
+        name="{{content.prefix}}.{{ content.name }}"
+        {% if content.readonly %}readonly{% endif %}
 
-    {% if content.placeholder %}
-        placeholder="{{ content.placeholder }}"
-    {% endif %}
+        {% if content.placeholder %}
+            placeholder="{{ content.placeholder }}"
+        {% endif %}
 
-    {% if content.value %}
-        value="{{ content.value }}"
-    {% endif %}
->
+        {% if content.value %}
+            value="{{ content.value }}"
+        {% endif %}
+    >
+</label>
