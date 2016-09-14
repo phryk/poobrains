@@ -26,7 +26,7 @@ class Field(object):
     name = None
     value = None
     empty_value = '' # value which is considered to be "empty"
-    missing_default = None # used when client sends no value for this field
+    default = None # used when client sends no value for this field
     label = None
     placeholder = None
     readonly = None
@@ -35,10 +35,10 @@ class Field(object):
     coercer = coercers.coerce_string
 
     class Meta:
-        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator']
+        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default']
 
 
-    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
+    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None):
 
         self.errors = []
         self.name = name
@@ -48,6 +48,7 @@ class Field(object):
         self.readonly = readonly
         self.required = required
         self.rendered = False
+        self.default = default
         
         if validator:
             self.validator = validator
@@ -109,11 +110,15 @@ class Field(object):
     def bind(self, value):
 
         if isinstance(value, errors.MissingValue):
-            self.value = self.missing_default
+            self.value = self.default() if callable(self.default) else self.default
 
         else:
             try:
                 self.value = self.coercer(value)
+
+                if self.required and self.empty():
+                    self.value = self.default() if callable(self.default) else self.default
+
 
             except ValueError:
                 e = errors.ValidationError("%s failed with value '%s'." % (self.coercer.__name__, value))
@@ -201,12 +206,14 @@ class Choice(RenderableField):
     choices = None
     empty_label = 'Please choose'
     
-    def __init__(self, name=None, choices=None,  value=None, label=None, placeholder=None, readonly=False, required=False, validator=None):
+    def __init__(self, *args, **kwargs):
 
-        if choices is None:
+        if kwargs.has_key('choices'):
+            choices = kwargs.pop('choices')
+        else:
             choices = []
 
-        super(Choice, self).__init__(name=name, value=value, label=label, placeholder=placeholder, readonly=readonly, required=required, validator=validator)
+        super(Choice, self).__init__(*args, **kwargs)
         self.choices = choices
 
 
@@ -287,7 +294,7 @@ class ForeignKeyChoice(IntegerChoice):
 class Checkbox(RenderableField):
 
     empty_value = False
-    missing_default = False
+    default = False
     coercer = coercers.coerce_bool
     validator = validators.is_bool
 

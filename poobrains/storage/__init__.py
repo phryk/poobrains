@@ -95,7 +95,6 @@ class Model(peewee.Model, helpers.ChildAware):
         return str(self._get_pk_value())
 
 
-    
     @classmethod
     def string_handle(cls, string):
         
@@ -103,7 +102,6 @@ class Model(peewee.Model, helpers.ChildAware):
             return tuple(string.split(':'))
 
         return string
-
 
 
     def __repr__(self):

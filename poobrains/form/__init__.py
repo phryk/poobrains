@@ -347,30 +347,27 @@ class AddForm(BoundForm):
 
             if field.name not in f.model.form_blacklist:
 
+                kw = {}
+                kw['name'] = field.name
+                kw['default'] = field.default
+                
+                if field.null == False:
+                    kw['required'] = True
+
                 if isinstance(field, poobrains.storage.fields.ForeignKeyField):
                     #TODO: is this the place to do permission checking for the field?
 
-                    choices = []
+                    kw['choices'] = []
                     for choice in field.rel_model.select():
                         if hasattr(choice, 'name') and choice.name:
                             choice_name = choice.name
                         else:
                             choice_name = "%s #%d" % (choice.__class__.__name__, choice.id)
-                        choices.append((choice.id, choice_name))
+                        kw['choices'].append((choice.id, choice_name))
 
-                    form_field = field.form_class(field.name, choices=choices)
-                    #f.fields[field.name] = form_field
-                    setattr(f, field.name, form_field)
 
-                elif isinstance(field, poobrains.storage.fields.Field):
-
-                    if issubclass(field.form_class, fields.Choice):
-                        form_field = field.form_class(field.name, choices=field.choices)
-                    else:
-                        form_field = field.form_class(field.name)
-
-                    #f.fields[field.name] = form_field
-                    setattr(f, field.name, form_field)
+                form_field = field.form_class(**kw)
+                setattr(f, field.name, form_field)
 
             f.controls['reset'] = Button('reset', label='Reset')
             f.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
@@ -498,7 +495,6 @@ class Fieldset(BaseForm):
 
     errors = None
     readonly = None
-    missing_default = werkzeug.datastructures.MultiDict()
     rendered = None
 
     class Meta:
