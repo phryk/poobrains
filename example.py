@@ -25,7 +25,7 @@ class TestForm(poobrains.form.Form):
 
     foo = poobrains.form.fields.Text()
     bar = TestSubForm()
-    optin = poobrains.form.fields.Checkbox(label="Opt-in", required=True)
+    optin = poobrains.form.fields.Checkbox(label="Opt-in", default=None, required=True)
     trigger = poobrains.form.Button('submit', label='Hit me!')
 
     def handle(self):

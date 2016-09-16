@@ -1,4 +1,12 @@
-<select name={{ content.prefix }}.{{ content.name }} {% if content.multi %}multiple{% endif %} class="{% if content.errors %}invalid{% endif %}">
+<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
+<select
+    id="{{ content.prefix }}.{{ content.name }}"
+    name="{{ content.prefix }}.{{ content.name }}"
+    {% if content.readonly %}disabled{% endif %}
+    class="{% if content.errors %}invalid{% endif %}"
+    {% if content.multi %}multiple{% endif %}
+>
+
   <option value=''>{{ content.empty_label }}</option>
   {% for value, label in content.choices %}
     {% if not value is string and value is iterable  %}
@@ -11,4 +19,5 @@
       <option value="{% if value %}{{ value }}{% endif %}" {% if value == content.value %}selected{% endif %}>{{ label }}</option>
     {% endif %}
   {% endfor %}
+
 </select>

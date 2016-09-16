@@ -70,7 +70,25 @@ class Model(peewee.Model, helpers.ChildAware):
 
     @property
     def handle_string(self):
-        
+
+        segments = []
+        pkfields = self._meta.get_primary_key_fields()
+
+        for pkfield in pkfields:
+            try:
+                segment = getattr(self, pkfield.name)
+            except peewee.DoesNotExist: # Means we have a ForeignKey without assigned/valid value.
+                segment = None
+
+            if isinstance(segment, poobrains.storage.Model):
+                segment = segment.handle_string
+            else:
+                segment = str(segment)
+
+            segments.append(segment)
+
+        return ':'.join(segments)
+
 #        pk = self._get_pk_value()
 #
 #        if not isinstance(pk, tuple):
@@ -88,11 +106,11 @@ class Model(peewee.Model, helpers.ChildAware):
 #
 #        return ':'.join(segments)
 
-        pkfields = self._meta.get_primary_key_fields()
-        if len(pkfields) > 1: # CompositeKey as pk. TODO: Find out if this is the ONLY case when this happens
-            return ':'.join([str(x._get_pk_value()) if isinstance(x, peewee.Model) else str(x) for x in self._get_pk_value()])
-
-        return str(self._get_pk_value())
+#        pkfields = self._meta.get_primary_key_fields()
+#        if len(pkfields) > 1: # CompositeKey as pk. TODO: Find out if this is the ONLY case when this happens
+#            return ':'.join([str(x._get_pk_value()) if isinstance(x, peewee.Model) else str(x) for x in self._get_pk_value()])
+#
+#        return str(self._get_pk_value())
 
 
     @classmethod

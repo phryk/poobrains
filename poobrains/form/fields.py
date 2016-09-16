@@ -98,8 +98,6 @@ class Field(object):
     
     def validate(self):
 
-        poobrains.app.debugger.set_trace()
-
         if not self.empty():
             self.validator(self.value)
 
@@ -110,19 +108,19 @@ class Field(object):
     def bind(self, value):
 
         if isinstance(value, errors.MissingValue):
-            self.value = self.default() if callable(self.default) else self.default
+            self.value = self._default()
 
         else:
             try:
                 self.value = self.coercer(value)
 
                 if self.required and self.empty():
-                    self.value = self.default() if callable(self.default) else self.default
+                    self.value = self._default()
 
 
             except ValueError:
                 e = errors.ValidationError("%s failed with value '%s'." % (self.coercer.__name__, value))
-                self.errors.append(re)
+                self.errors.append(e)
                 raise e
 
         try:
@@ -130,6 +128,10 @@ class Field(object):
         except errors.ValidationError as e:
             self.errors.append(e)
             raise
+
+    def _default(self):
+        return self.coercer(self.default() if callable(self.default) else self.default)
+
 
 
 class Value(Field):
@@ -293,7 +295,7 @@ class ForeignKeyChoice(IntegerChoice):
 
 class Checkbox(RenderableField):
 
-    empty_value = False
+    empty_value = None
     default = False
     coercer = coercers.coerce_bool
     validator = validators.is_bool

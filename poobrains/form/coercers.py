@@ -11,4 +11,6 @@ def coerce_float(field, value):
     return float(value)
 
 def coerce_bool(field, value):
-    return bool(int(value))
+    if isinstance(value, basestring) and value.isdigit():
+        return bool(int(value))
+    return bool(value)

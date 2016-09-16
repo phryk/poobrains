@@ -111,6 +111,8 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
 
 class FormPermissionField(poobrains.form.fields.Choice):
 
+    default = (None, None)
+
     def __init__(self, *args, **kwargs):
 
         super(FormPermissionField, self).__init__(*args, **kwargs)
@@ -121,27 +123,28 @@ class FormPermissionField(poobrains.form.fields.Choice):
 
 
     def validate(self):
-
-        permission, mode = self.value
+        poobrains.app.debugger.set_trace()
+        permission, access = self.value
 
         if not permission in Permission.children_keyed().keys():
             raise poobrains.form.errors.ValidationError('Unknown permission: %s' % permission)
 
         perm_class = Permission.children_keyed()[permission]
-        if not access in perm_class.choices:
+        choice_values = [t[0] for t in perm_class.choices]
+        if not access in choice_values:
             raise poobrains.form.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
 
     
     def coercer(self, value):
 
-        cleaned_string = poobrains.form.coercers.coerce_string(value)
+        cleaned_string = poobrains.form.coercers.coerce_string(self, value)
 
         try:
-            rv = cleaned_string.split('.')
+            permission, access = cleaned_string.split('.')
         except Exception as e:
             raise poobrains.form.errors.ValidationError('Could not split value to permission and access: %s' % cleaned_string)
 
-        return rv
+        return (permission, access)
     
 
 def admin_listing_actions(cls):
@@ -293,7 +296,7 @@ class ClientCertForm(poobrains.form.Form):
 
 
     def handle(self):
-
+        poobrains.app.debugger.set_trace()
         try:
             token = ClientCertToken.get(ClientCertToken.token == self.fields['token'].value)
 
@@ -461,8 +464,7 @@ class RelatedForm(poobrains.form.Form):
         # Fieldset to add a new related instance to this instance
         related_instance = related_model()
         setattr(related_instance, related_field.name, instance) 
-        #key = '%s-add' % related_model.__name__
-        key = related_instance.handle_string
+        key = '%s-add' % related_model.__name__
 
         #f.fields[key] = poobrains.form.AddFieldset(related_instance)
         setattr(f, key, related_instance.fieldset_add())
@@ -546,11 +548,22 @@ class UserPermissionAddForm(poobrains.form.AddForm):
 
         f = super(UserPermissionAddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
         del(f.fields['access'])
+        del(f.fields['permission'])
+        f.permission = FormPermissionField()
 
         return f
 
 
     def handle(self):
+
+        self.instance.user = self.fields['user'].value
+        self.instance.permission = self.fields['permission'].value[0]
+        self.instance.access = self.fields['permission'].value[1]
+        if self.mode == 'add':
+            self.instance.save(force_insert=True)
+            return flask.redirect(self.instance.url('edit'))
+        else:
+            self.instance.save()
         return self
 
 class UserPermissionAddFieldset(poobrains.form.AddFieldset):
@@ -978,6 +991,8 @@ class ClientCertToken(Administerable):
 
 
 class ClientCert(Administerable):
+
+    # TODO: This doesn't let you administer anything. Do we want this exposed? What about certificate revokation?
 
     form_blacklist = ['id', 'user', 'subject_name']
 

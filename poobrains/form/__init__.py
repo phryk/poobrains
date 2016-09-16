@@ -378,7 +378,8 @@ class AddForm(BoundForm):
     def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
         
         if not name:
-            name = '%s-%s' % (self.model.__name__, mode) if mode == 'add' else '%s-%s-%s' % (self.model.__name__, self.instance._get_pk_value(), mode)
+            #name = '%s-%s' % (self.model.__name__, mode) if mode == 'add' else '%s-%s-%s' % (self.model.__name__, self.instance._get_pk_value(), mode)
+            name = '%s-%s' % (self.model.__name__, self.instance.handle_string)
     
         super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
@@ -449,7 +450,13 @@ class AddForm(BoundForm):
 class EditForm(AddForm):
     
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        return super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+        f = super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+        for pkfield in f.model._meta.get_primary_key_fields():
+            if f.fields.has_key(pkfield.name):
+                f.fields[pkfield.name].readonly = True # Make any primary key fields read-only
+
+        return f
+
    
 
     def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
