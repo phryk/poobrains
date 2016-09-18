@@ -48,7 +48,8 @@ class Field(object):
         self.readonly = readonly
         self.required = required
         self.rendered = False
-        self.default = default
+        if not default is None:
+            self.default = default
         
         if validator:
             self.validator = validator
@@ -104,9 +105,13 @@ class Field(object):
         elif self.required:
             raise errors.ValidationError("Required field '%s' was left empty." % self.name)
 
+
+    def coerce(self, value):
+        pass # CONTINUE HERE
+
     
     def bind(self, value):
-
+        poobrains.app.debugger.set_trace()
         if isinstance(value, errors.MissingValue):
             self.value = self._default()
 
@@ -183,6 +188,7 @@ class TextArea(Text):
 
 
 class Integer(RenderableField):
+    default = 0
     validator = validators.is_integer 
 
 
