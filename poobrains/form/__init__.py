@@ -144,27 +144,42 @@ class BaseForm(poobrains.rendering.Renderable):
             if not field.empty():
                 return False
         return True
+
+    @property
+    def readonly(self):
+
+        for field in self:
+            if not field.readonly:
+                return False
+
+        return True
     
     
 
     def bind(self, values):
+        
+        poobrains.app.debugger.set_trace()
 
-        compound_error = errors.CompoundError()
+        if not values is None:
+            compound_error = errors.CompoundError()
 
-        for field in self: # magic iteration yielding only renderable fields
+            for field in self: # magic iteration yielding only renderable fields
 
-            if values.has_key(field.name):
-                field_values = values[field.name]
-            else:
-                field_values = errors.MissingValue()
-            
-            try:
-                field.bind(field_values)
-            except errors.ValidationError as e:
-                compound_error.append(e)
+                if not field.readonly:
 
-        if len(compound_error):
-            raise compound_error
+                    if values.has_key(field.name):
+                        field_values = values[field.name]
+                    else:
+                        #field_values = errors.MissingValue()
+                        field_values = field._default
+                    
+                    try:
+                        field.bind(field_values)
+                    except errors.ValidationError as e:
+                        compound_error.append(e)
+
+            if len(compound_error):
+                raise compound_error
 
 
     def render_fields(self):
@@ -340,7 +355,6 @@ class BoundForm(Form):
 class AddForm(BoundForm):
 
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
-        
         f = super(AddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
 
         for field in f.model._meta.sorted_fields:
@@ -363,7 +377,7 @@ class AddForm(BoundForm):
                             choice_name = choice.name
                         else:
                             choice_name = "%s #%d" % (choice.__class__.__name__, choice.id)
-                        kw['choices'].append((choice.id, choice_name))
+                        kw['choices'].append((choice.handle_string, choice_name))
 
 
                 form_field = field.form_class(**kw)
@@ -411,38 +425,35 @@ class AddForm(BoundForm):
  
 
     def handle(self):
+        if not self.readonly:
 
-        for field in self.model._meta.sorted_fields:
-            if not field.name in self.model.form_blacklist:
-                if isinstance(getattr(self.model, field.name), poobrains.storage.fields.ForeignKeyField):
-                    try:
-                        setattr(self.instance, field.name, field.rel_model.load(self.fields[field.name].value))
-                    except field.rel_model.DoesNotExist:
-                        flask.flash("%s instance %s does not exist anymore." % (field.rel_model.__name__, self.fields[field.name].value))
-                        flask.flash(field.rel_model)
-                        flask.flash(self.fields[field.name].value)
-                else:
-                    if self.fields[field.name].value is not None: # TODO: not needed if https://github.com/coleifer/peewee/issues/107 is re-fixed
+            for field in self.model._meta.sorted_fields:
+                if not field.name in self.model.form_blacklist:
+                    #if self.fields[field.name].value is not None: # see https://github.com/coleifer/peewee/issues/107
+                    if not self.fields[field.name].empty():
                         setattr(self.instance, field.name, self.fields[field.name].value)
 
-        try:
+            try:
 
-            if self.mode == 'add':
-                saved = self.instance.save(force_insert=True) # To make sure Administerables with CompositeKey as primary get inserted properly
-            else:
-                saved = self.instance.save()
+                if self.mode == 'add':
+                    saved = self.instance.save(force_insert=True) # To make sure Administerables with CompositeKey as primary get inserted properly
+                else:
+                    saved = self.instance.save()
 
-            if saved:
-                flask.flash("Saved %s %s." % (self.model.__name__, self.instance.handle_string))
-                try:
-                    return flask.redirect(self.instance.url('edit'))
-                except LookupError:
-                    return self
-            else:
-                flask.flash("Couldn't save %s." % self.model.__name__)
+                if saved:
+                    flask.flash("Saved %s %s." % (self.model.__name__, self.instance.handle_string))
+                    try:
+                        return flask.redirect(self.instance.url('edit'))
+                    except LookupError:
+                        return self
+                else:
+                    flask.flash("Couldn't save %s." % self.model.__name__)
 
-        except peewee.IntegrityError as e:
-            flask.flash('Integrity error: %s' % e.message, 'error')
+            except peewee.IntegrityError as e:
+                flask.flash('Integrity error: %s' % e.message, 'error')
+
+        else:
+            flask.flash("Not handling readonly form '%s'." % self.name)
 
         return self
 
@@ -503,6 +514,7 @@ class Fieldset(BaseForm):
     errors = None
     readonly = None
     rendered = None
+    _default = werkzeug.MultiDict()
 
     class Meta:
         abstract = True

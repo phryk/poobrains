@@ -123,7 +123,6 @@ class FormPermissionField(poobrains.form.fields.Choice):
 
 
     def validate(self):
-        poobrains.app.debugger.set_trace()
         permission, access = self.value
 
         if not permission in Permission.children_keyed().keys():
@@ -534,11 +533,12 @@ class RelatedForm(poobrains.form.Form):
    
 
     def handle(self):
-
-        for field in self.fields.itervalues():
-            if isinstance(field, poobrains.form.Fieldset):
-                field.handle()
-        return flask.redirect(flask.request.url)
+        if not self.readonly:
+            for field in self.fields.itervalues():
+                if isinstance(field, poobrains.form.Fieldset):
+                    field.handle()
+            #return flask.redirect(flask.request.url)
+        return self
 
 
 class UserPermissionAddForm(poobrains.form.AddForm):

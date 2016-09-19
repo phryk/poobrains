@@ -107,35 +107,38 @@ class Field(object):
 
 
     def coerce(self, value):
-        pass # CONTINUE HERE
+        if not value is None:
+            return self.coercer(value)
+        return None
 
     
     def bind(self, value):
-        poobrains.app.debugger.set_trace()
         if isinstance(value, errors.MissingValue):
-            self.value = self._default()
+            self.value = self._default
 
         else:
             try:
-                self.value = self.coercer(value)
+                self.value = self.coerce(value)
 
-                if self.required and self.empty():
-                    self.value = self._default()
+                #if self.required and self.empty():
+                if self.empty():
+                    self.value = self._default
 
 
             except ValueError:
-                e = errors.ValidationError("%s failed with value '%s'." % (self.coercer.__name__, value))
+                e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
                 self.errors.append(e)
                 raise e
 
         try:
-            self.validate() # escalates any ValidationErrors (or others) to caller
+            self.validate()
         except errors.ValidationError as e:
             self.errors.append(e)
             raise
 
+    @property
     def _default(self):
-        return self.coercer(self.default() if callable(self.default) else self.default)
+        return self.coerce(self.default() if callable(self.default) else self.default)
 
 
 
@@ -234,6 +237,8 @@ class Choice(RenderableField):
 class MultiChoice(Choice):
 
     multi = True
+    default = []
+    empty_value = []
 
     def validate(self):
         
@@ -242,11 +247,35 @@ class MultiChoice(Choice):
 
 
     def bind(self, values):
-        
-        self.value = []
 
-        for value in values:
-            self.value.append(self.coercer(value))
+        error = errors.CompoundError()
+        if isinstance(value, errors.MissingValue):
+            self.value = self._default()
+
+        else:
+
+            self.value = []
+
+            for value in values:
+                try:
+                    self.value.append(self.coerce(value))
+
+                except ValueError:
+                    e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
+                    self.errors.append(e)
+                    error.append(e)
+            
+            if len(error):
+                raise error
+
+            if self.empty():
+                self.value = self._default()
+
+        try:
+            self.validate()
+        except errors.ValidationError as e:
+            self.errors.append(e)
+            raise
 
 
 class TextChoice(Choice):
@@ -269,7 +298,7 @@ class MultiIntegerChoice(MultiChoice):
     coercer = coercers.coerce_int
 
 
-class ForeignKeyChoice(IntegerChoice):
+class ForeignKeyChoice(TextChoice):
 
     """
     Warning: this field expects to be bound to a ForeignKeyField.
@@ -287,16 +316,32 @@ class ForeignKeyChoice(IntegerChoice):
 
         self.storable = fkfield.rel_model
         # TODO build default choices if not passed
-        #poobrains.app.debugger.set_trace()
         super(ForeignKeyChoice, self).__init__(*args, **kwargs)
 
 
-    def __setattr__(self, name, value):
+    #def __setattr__(self, name, value):
 
-        if name == 'value' and isinstance(value, poobrains.storage.Storable):
-            return super(ForeignKeyChoice, self).__setattr__(name, value._get_pk_value())
+    #    if name == 'value' and isinstance(value, poobrains.storage.Storable):
+    #        return super(ForeignKeyChoice, self).__setattr__(name, value.handle_string)
 
-        super(ForeignKeyChoice, self).__setattr__(name, value)
+    #    super(ForeignKeyChoice, self).__setattr__(name, value)
+
+    def validate(self):
+
+        if not self.value is None:
+            if not isinstance(self.value, self.storable):
+                raise errors.ValidationError("Unknown %s handle '%s'." % (self.storable.__name__, self.value))
+        elif self.required:
+            raise errors.ValidationError("Field %s is required." % self.name)
+
+    
+    def coerce(self, value):
+        if not value is None:
+            try:
+                return self.storable.load(self.coercer(value))
+            except self.storable.DoesNotExist as e:
+                self.errors.append(e)
+        return None
 
 
 class Checkbox(RenderableField):

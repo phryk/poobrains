@@ -81,36 +81,13 @@ class Model(peewee.Model, helpers.ChildAware):
                 segment = None
 
             if isinstance(segment, poobrains.storage.Model):
-                segment = segment.handle_string
+                segment = str(segment._get_pk_value())
             else:
                 segment = str(segment)
 
             segments.append(segment)
 
         return ':'.join(segments)
-
-#        pk = self._get_pk_value()
-#
-#        if not isinstance(pk, tuple):
-#            pk = (pk,)
-#
-#        
-#        segments = []
-#        for segment in pk:
-#
-#            if isinstance(segment, Model):
-#                # NOTE: This will probably fuck shit up if the primary key contains a foreignkey pointing to another table with a primary key containing a foreign key field
-#                segments.append(segment.handle_string)
-#            else:
-#                segments.append(str(segment))
-#
-#        return ':'.join(segments)
-
-#        pkfields = self._meta.get_primary_key_fields()
-#        if len(pkfields) > 1: # CompositeKey as pk. TODO: Find out if this is the ONLY case when this happens
-#            return ':'.join([str(x._get_pk_value()) if isinstance(x, peewee.Model) else str(x) for x in self._get_pk_value()])
-#
-#        return str(self._get_pk_value())
 
 
     @classmethod
