@@ -782,6 +782,14 @@ class Administerable(poobrains.storage.Storable, Protected):
         return self
 
 
+    @classmethod
+    def list(cls, mode, user):
+        cls.permissions[mode].check(user)
+
+
+        return cls.select()
+
+
 class Named(Administerable, poobrains.storage.Named):
 
     class Meta:
@@ -1009,9 +1017,9 @@ class Owned(Administerable):
 
 
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
-    owner_mode = poobrains.storage.fields.CharField(null=False, default='')
-    group = poobrains.storage.fields.ForeignKeyField(Group, null=False)
-    group_mode = poobrains.storage.fields.CharField(null=False, default='')
+    owner_mode = poobrains.storage.fields.CharField(null=True)
+    group = poobrains.storage.fields.ForeignKeyField(Group, null=True)
+    group_mode = poobrains.storage.fields.CharField(null=True)
 
 
 class NamedOwned(Owned, Named):

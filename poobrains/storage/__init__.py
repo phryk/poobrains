@@ -140,6 +140,11 @@ class Storable(Model, rendering.Renderable):
         return instance.view(mode, handle)
 
 
+    @classmethod
+    def list(cls, mode, user):
+        return cls.select()
+
+
 class Named(Storable):
 
     name = fields.CharField(index=True, unique=True, null=False, constraints=[RegexpConstraint('name', '^[@a-z0-9_\-]+$')])
@@ -187,7 +192,8 @@ class Listing(rendering.Renderable):
         else:
             self.limit = limit
 
-        select = cls.select()
+        #select = cls.select()
+        select = cls.list(mode, flask.g.user)
         self.count = select.count()
 
         self.pagecount = int(math.ceil(self.count/float(self.limit)))
