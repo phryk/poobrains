@@ -279,9 +279,7 @@ class Install(Command):
             
             for cls in poobrains.auth.Permission.children():
                 choice_values = [x[0] for x in cls.choices]
-                if 'all' in choice_values:
-                    access = 'all'
-                elif 'grant' in choice_values:
+                if 'grant' in choice_values:
                     access = 'grant'
                 else:
                     stdout.write("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)

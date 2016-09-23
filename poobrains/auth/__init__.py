@@ -61,9 +61,35 @@ class Permission(poobrains.helpers.ChildAware):
         raise PermissionDenied("YOU SHALL NOT PASS!")
 
 
-
     def instance_check(self, user):
         return self.__class__.check(user)
+    
+    
+    @classmethod
+    def list(cls, protected, mode, user):
+
+        q = protected.select()
+
+        if user.own_permissions.has_key(cls.__name__):
+            access = user.own_permissions[cls.__name__]
+
+            if access == 'deny':
+                raise PermissionDenied("YOU SHALL NOT PASS!")
+            elif access == 'grant':
+                return q
+        
+        # check if user is member of any groups with 'deny' for this permission
+        group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+
+        if group_deny:
+            raise PermissionDenied("YOU SHALL NOT PASS!")
+
+        group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
+
+        if group_grant:
+            return q
+
+        raise PermissionDenied("YOU SHALL NOT PASS!")
 
 
 class PermissionInjection(poobrains.helpers.MetaCompatibility):
@@ -365,7 +391,7 @@ class ClientCertForm(poobrains.form.Form):
 
 
 class OwnedPermission(Permission):
-    choices = [('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
+    choices = [('grant', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')]
     
     class Meta:
         abstract = True
@@ -382,7 +408,7 @@ class OwnedPermission(Permission):
             elif access == 'own':
                 return True
 
-            elif access == 'all':
+            elif access == 'grant':
                 return True
 
             else:
@@ -405,7 +431,7 @@ class OwnedPermission(Permission):
                 else:
                     raise PermissionDenied("YOU SHALL NOT PASS!")
 
-            elif access == 'all':
+            elif access == 'grant':
                 return True
 
             else:
@@ -426,12 +452,50 @@ class OwnedPermission(Permission):
                 raise PermissionDenied("YOU SHALL NOT PASS!")
 
 
-        group_all = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == self.__class__.__name__, GroupPermission.access == 'all').count()
+        group_all = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == self.__class__.__name__, GroupPermission.access == 'grant').count()
 
         if group_all:
             return True
 
         raise PermissionDenied("YOU SHALL NOT PASS!") # Implicit denial
+
+    
+    @classmethod
+    def list(cls, protected, mode, user): # FIXME: mode should be implied, not directly passed?
+        poobrains.app.debugger.set_trace()
+        cls.check(user) # make sure the user is permitted to get a listing
+        q = protected.select()
+
+        if user.own_permissions.has_key(cls.__name__):
+
+            access = user.own_permissions[cls.__name__]
+
+            if access == 'own':
+                # CONTAINS will break if we have modes that are substrings of other modes (ex:  teaser, teaser-edit)
+                q = q.where(protected.owner == user, protected.owner_mode.contains(mode))
+            elif access == 'grant':
+                return q
+            elif access == 'deny':
+                raise PermissionDenied("YOU SHALL NOT PASS!")
+        
+        else:
+            # check if user is member of any groups with 'deny' for this permission
+            group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+
+            if group_deny:
+                raise PermissionDenied("YOU SHALL NOT PASS!")
+
+        #q = q.join(GroupPermission, on=GroupPermission.group)
+        q = q.join(GroupPermission, on=protected.group == GroupPermission.group)
+        q = q.orwhere(
+            protected.group_mode.contains(mode),
+            protected.group.in_(user.groups),
+            GroupPermission.permission == cls.__name__,
+            GroupPermission.access == 'own',
+            protected.owner != user
+        )
+
+        return q
 
 
 class RelatedForm(poobrains.form.Form):
@@ -784,10 +848,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @classmethod
     def list(cls, mode, user):
-        cls.permissions[mode].check(user)
-
-
-        return cls.select()
+        return cls.permissions[mode].list(cls, mode, user)
 
 
 class Named(Administerable, poobrains.storage.Named):
@@ -874,7 +935,7 @@ class UserPermission(Administerable):
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
+    access = poobrains.storage.fields.CharField(max_length=4, null=False)
     access.form_class = poobrains.form.fields.TextChoice
 
     related_form = UserPermissionRelatedForm
@@ -973,7 +1034,7 @@ class GroupPermission(Administerable):
 
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(max_length=4, null=False) #, choices=[(None, 'Ignore'), ('all', 'For all instances'), ('own', 'For own instances'), ('deny', 'Explicitly deny')])
+    access = poobrains.storage.fields.CharField(max_length=4, null=False)
     access.form_class = poobrains.form.fields.TextChoice
 
 
