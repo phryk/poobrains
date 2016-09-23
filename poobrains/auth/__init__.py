@@ -33,6 +33,7 @@ class Permission(poobrains.helpers.ChildAware):
     def __init__(self, instance):
         self.instance = instance
         self.check = self.instance_check
+        self.mode = self.__class__.__name__.split('_')[-1] # TODO: Will this explode in my face? Are non-bound permissions going to be a thing?
 
     @classmethod
     def check(cls, user):
