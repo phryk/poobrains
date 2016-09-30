@@ -67,7 +67,7 @@ def themed(f):
         if kwargs.has_key('mode'):
             mode = kwargs['mode']
         else:
-            mode = content._meta.modes[0] 
+            mode = content._meta.modes.keys()[0] # TODO: Default mode option in _meta?
 
         return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
 
@@ -131,6 +131,7 @@ class FakeMetaOptions(object):
     primary_key = None # This is a very ugly hack, to make this play nice with peewee Metaclass' __new__
     abstract = None
     modes = None
+    ops = None
     permission_class = None
     _additional_keys = None # Why did I put this in, again?
 
@@ -150,7 +151,7 @@ class MetaCompatibility(type):
 
     def __new__(cls, name, bases, attrs):
 
-        recognized_options = ['abstract', 'modes', 'permission_class', 'clone_props'] # FIXME: Make this shit generic, like peewee ModelOptions
+        recognized_options = ['abstract', 'ops', 'modes', 'permission_class', 'clone_props'] # FIXME: Make this shit generic, like peewee ModelOptions
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
  

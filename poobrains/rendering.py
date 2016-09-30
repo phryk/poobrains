@@ -19,7 +19,8 @@ class Renderable(helpers.ChildAware):
 
 
     class Meta:
-        modes = ['full'] 
+        ops = collections.OrderedDict([('r', 'read')])
+        modes = collections.OrderedDict([('full', 'r')])
 
 
     def __init__(self, name=None):

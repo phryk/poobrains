@@ -158,8 +158,6 @@ class BaseForm(poobrains.rendering.Renderable):
 
     def bind(self, values):
         
-        poobrains.app.debugger.set_trace()
-
         if not values is None:
             compound_error = errors.CompoundError()
 

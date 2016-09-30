@@ -193,7 +193,8 @@ class Listing(rendering.Renderable):
             self.limit = limit
 
         #select = cls.select()
-        select = cls.list(mode, flask.g.user)
+        op = cls._meta.modes[mode]
+        select = cls.list(op, flask.g.user)
         self.count = select.count()
 
         self.pagecount = int(math.ceil(self.count/float(self.limit)))
