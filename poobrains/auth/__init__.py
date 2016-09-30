@@ -691,6 +691,7 @@ class UserPermissionAddForm(poobrains.form.AddForm):
             self.instance.save()
         return self
 
+
 class UserPermissionAddFieldset(UserPermissionAddForm, poobrains.form.Fieldset):
 
     def empty(self):
@@ -786,6 +787,17 @@ class GroupPermissionAddForm(poobrains.form.AddForm):
             self.instance.save()
         return self
 
+
+class GroupPermissionEditForm(poobrains.form.EditForm):
+
+    def __new__(cls, model_or_instance, *args, **kwargs):
+
+        f = super(GroupPermissionEditForm, cls).__new__(cls, model_or_instance, *args, **kwargs)
+        f.fields['permission'].choices = f.instance.permission_class.choices
+
+        return f
+
+
 class GroupPermissionAddFieldset(GroupPermissionAddForm, poobrains.form.Fieldset):
 
     def empty(self):
@@ -793,7 +805,7 @@ class GroupPermissionAddFieldset(GroupPermissionAddForm, poobrains.form.Fieldset
         return rv
 
 
-class GroupPermissionEditFieldset(poobrains.form.EditFieldset):
+class GroupPermissionEditFieldset(poobrains.form.EditForm, poobrains.form.Fieldset):
 
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         return super(GroupPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
@@ -1147,8 +1159,10 @@ class UserGroup(Administerable):
 class GroupPermission(Administerable):
 
     form_add = GroupPermissionAddForm
+    form_edit = GroupPermissionEditForm
     fieldset_add = GroupPermissionAddFieldset
     fieldset_edit = GroupPermissionEditFieldset
+    permission_class = None
 
     class Meta:
         primary_key = peewee.CompositeKey('group', 'permission')
@@ -1158,6 +1172,26 @@ class GroupPermission(Administerable):
     permission = poobrains.storage.fields.CharField(max_length=50)
     access = poobrains.storage.fields.CharField(max_length=4, null=False)
     access.form_class = poobrains.form.fields.TextChoice
+
+    
+    def prepared(self):
+
+        try:
+            self.permission_class = Permission.children_keyed()[self.permission]
+
+        except KeyError:
+            poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
+            #TODO: Do we want to do more, like define a permission_class that always denies access?
+
+
+    def form(self, mode=None):
+
+        f = super(GroupPermission, self).form(mode=mode)
+
+        if mode == 'edit':
+            f.fields['access'].choices = self.permission_class.choices 
+
+        return f
 
 
 class ClientCertToken(Administerable):
