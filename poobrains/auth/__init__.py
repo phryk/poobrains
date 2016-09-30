@@ -108,6 +108,7 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
             perm_label = "%s %s" % (op_name.capitalize(), cls.__name__)
             #cls._meta.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
             perm_attrs = dict()
+            perm_attrs['op'] = op
 
             if hasattr(cls._meta, 'abstract') and cls._meta.abstract:
 
@@ -117,13 +118,12 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
                 meta = poobrains.helpers.FakeMetaOptions()
                 meta.abstract = True
                 perm_attrs['_meta'] = meta
-                perm_attrs['op'] = op
 
                 class Meta:
                     abstract = True
 
                 perm_attrs['Meta'] = Meta
-            
+
             cls.permissions[op_name] = type(perm_name, (cls._meta.permission_class,), perm_attrs)
 
         return cls
@@ -486,6 +486,7 @@ class OwnedPermission(Permission):
                 raise PermissionDenied("YOU SHALL NOT PASS!")
 
             elif 'own_instance' in group_access.keys():
+                poobrains.app.debugger.set_trace()
                 allowed_groups = group_access['own_instance']
                 if self.instance.group in allowed_groups and self.op in self.instance.access:
                     return True
