@@ -390,7 +390,7 @@ class Pooprint(flask.Blueprint):
         #    instance = cls.load(cls.string_handle(handle))
         #    return instance.view(mode)
 
-        view_func = functools.partial(cls.class_view, mode)
+        view_func = functools.partial(cls.class_view, mode=mode)
 
 
 #        if force_secure:

@@ -287,10 +287,16 @@ def access(permission):
 def protected(func):
 
     @functools.wraps(func)
-    #def substitute(cls_or_instance, *args, **kwargs):
-    def substitute(cls_or_instance, mode, *args, **kwargs):
+    def substitute(cls_or_instance, mode=None, *args, **kwargs):
+    #def substitute(cls_or_instance, mode, *args, **kwargs):
 
         poobrains.app.logger.debug('protected call cls_or_instance: %s, %s', cls_or_instance, dir(cls_or_instance))
+
+        #if not kwargs.has_key('mode'):
+        #    raise Exception('Need explicit mode in @protected.')
+        #mode = kwargs['mode']
+        if not mode:
+            raise Exception('Need explicit mode in @protected.')
 
         user = flask.g.user # FIXME: How do I get rid of the smell?
         if isinstance(cls_or_instance, object):
@@ -315,7 +321,7 @@ def protected(func):
         cls_or_instance.permissions[op_name].check(user)
 
         #return func(cls_or_instance, *args, **kwargs)
-        return func(cls_or_instance, mode, *args, **kwargs)
+        return func(cls_or_instance, mode=mode, *args, **kwargs)
 
     return substitute
 
@@ -425,10 +431,7 @@ class OwnedPermission(Permission):
             if access == 'deny':
                 raise PermissionDenied("YOU SHALL NOT PASS!")
 
-            elif access == 'own':
-                return True
-
-            elif access == 'grant':
+            elif access in ('own_instance', 'instance', 'own', 'grant'):
                 return True
 
             else:
@@ -458,7 +461,7 @@ class OwnedPermission(Permission):
                     raise PermissionDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own':
-                if self.instance.owner == user and self.mode in self.instance.owner_mode.split(':'):
+                if self.instance.owner == user and self.op in self.instance.access:
                     return True
                 else:
                     raise PermissionDenied("YOU SHALL NOT PASS!")
@@ -473,8 +476,8 @@ class OwnedPermission(Permission):
 
             group_access = collections.OrderedDict()
             for group in user.groups:
-                if group.own_permissions.has_key(cls.__name__):
-                    access == group.own_permissions[cls.__name__]
+                if group.own_permissions.has_key(self.__class__.__name__):
+                    access = group.own_permissions[self.__class__.__name__]
                     if not group_access.has_key(access):
                         group_access[access] = []
                     group_access[access].append(group)
@@ -688,13 +691,14 @@ class UserPermissionAddForm(poobrains.form.AddForm):
             self.instance.save()
         return self
 
-class UserPermissionAddFieldset(poobrains.form.AddFieldset):
+class UserPermissionAddFieldset(UserPermissionAddForm, poobrains.form.Fieldset):
 
     def empty(self):
         rv = self.fields['permission'].empty()
         return rv
 
-class UserPermissionEditFieldset(UserPermissionAddFieldset):
+
+class UserPermissionEditFieldset(poobrains.form.EditFieldset):
 
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         return super(UserPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
@@ -757,6 +761,49 @@ class UserPermissionRelatedForm(RelatedForm):
 #        return flask.redirect(flask.request.url)
 
 
+class GroupPermissionAddForm(poobrains.form.AddForm):
+
+    
+    def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
+
+        f = super(GroupPermissionAddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
+        del(f.fields['access'])
+        del(f.fields['permission'])
+        f.permission = FormPermissionField()
+
+        return f
+
+
+    def handle(self):
+
+        self.instance.group = self.fields['group'].value
+        self.instance.permission = self.fields['permission'].value[0]
+        self.instance.access = self.fields['permission'].value[1]
+        if self.mode == 'add':
+            self.instance.save(force_insert=True)
+            return flask.redirect(self.instance.url('edit'))
+        else:
+            self.instance.save()
+        return self
+
+class GroupPermissionAddFieldset(GroupPermissionAddForm, poobrains.form.Fieldset):
+
+    def empty(self):
+        rv = self.fields['permission'].empty()
+        return rv
+
+
+class GroupPermissionEditFieldset(poobrains.form.EditFieldset):
+
+    def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+        return super(GroupPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+   
+
+    def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+        super(GroupPermissionEditFieldset, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+
+
+
 #class BaseAdministerable(poobrains.storage.BaseModel, PermissionInjection):
 class BaseAdministerable(PermissionInjection, poobrains.storage.BaseModel):
 
@@ -805,7 +852,7 @@ class Protected(poobrains.rendering.Renderable):
 
 
     @protected
-    def render(self, mode):
+    def render(self, mode='full'):
         return super(Protected, self).render(mode)
 
 
@@ -892,24 +939,23 @@ class Administerable(poobrains.storage.Storable, Protected):
     
 
     @classmethod
-    def class_view(cls, mode, handle=None):
+    def class_view(cls, mode=None, handle=None):
        
         if mode == 'add':
             instance = cls()
         else:
             instance = cls.load(cls.string_handle(handle))
 
-        return instance.view(mode, handle)
+        return instance.view(mode=mode, handle=handle)
 
 
     @protected
     @poobrains.helpers.themed
-    def view(self, mode, handle):
+    def view(self, mode=None, handle=None):
 
         """
         view function to be called in a flask request context
         """
-
         if mode in ('add', 'edit', 'delete'):
 
             f = self.form(mode)
@@ -920,6 +966,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @classmethod
     def list(cls, op, user):
+        op_name = cls._meta.ops[op]
         return cls.permissions[op_name].list(cls, op, user)
 
 
@@ -1053,7 +1100,6 @@ class UserPermission(Administerable):
         return f
 
 
-
 class Group(Named):
 
     # TODO: Almost identical to User. DRY.
@@ -1100,6 +1146,10 @@ class UserGroup(Administerable):
 
 class GroupPermission(Administerable):
 
+    form_add = GroupPermissionAddForm
+    fieldset_add = GroupPermissionAddFieldset
+    fieldset_edit = GroupPermissionEditFieldset
+
     class Meta:
         primary_key = peewee.CompositeKey('group', 'permission')
         order_by = ('group', 'permission')
@@ -1108,7 +1158,6 @@ class GroupPermission(Administerable):
     permission = poobrains.storage.fields.CharField(max_length=50)
     access = poobrains.storage.fields.CharField(max_length=4, null=False)
     access.form_class = poobrains.form.fields.TextChoice
-
 
 
 class ClientCertToken(Administerable):
@@ -1150,9 +1199,8 @@ class Owned(Administerable):
 
 
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
-    owner_mode = poobrains.storage.fields.CharField(null=True)
     group = poobrains.storage.fields.ForeignKeyField(Group, null=True)
-    group_mode = poobrains.storage.fields.CharField(null=True)
+    access = poobrains.storage.fields.CharField(null=True)
 
 
 class NamedOwned(Owned, Named):

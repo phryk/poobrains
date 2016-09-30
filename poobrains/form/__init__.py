@@ -299,7 +299,7 @@ class Form(BaseForm):
             validation_error = None
             binding_error = None
             values = flask.request.form[self.name]
-            
+            #FIXME: filter self.readonly in here instead of .bind and .handle?
             try:
                 self.bind(values)
 
