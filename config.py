@@ -5,7 +5,5 @@ DEBUG = True
 MAY_INSTALL = True
 SECRET_KEY = 'Fnord'
 THEME = 'default'
-PAGINATION_COUNT = 2
-TOKEN_VALIDITY=60
 CA_KEY = 'ssl/webca.key'
 CA_CERT = 'ssl/webca.crt'
