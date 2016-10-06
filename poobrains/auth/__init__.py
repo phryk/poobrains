@@ -1181,7 +1181,7 @@ class GroupPermission(Administerable):
             self.permission_class = Permission.children_keyed()[self.permission]
 
         except KeyError:
-            poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
+            poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.group_id)) # can't use self.group.name because dat recursion
             #TODO: Do we want to do more, like define a permission_class that always denies access?
 
 
