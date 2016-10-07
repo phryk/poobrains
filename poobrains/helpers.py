@@ -19,6 +19,19 @@ def random_string(length=42):
     return string
 
 
+def random_string_light(length=8):
+
+    ranges = ((65, 90), (97, 122)) # A-Z, a-z
+    rand = random.SystemRandom()
+    string = u''
+
+    for i in range(0, length):
+        r = ranges[rand.randint(0, len(ranges)-1)]
+        string += chr(rand.randint(r[0], r[1]))
+
+    return string
+
+
 def choose_primary(d):
     
     for k,v in d.iteritems():

@@ -343,9 +343,16 @@ class ClientCertForm(poobrains.form.Form):
     def handle(self):
         
         try:
-            token = ClientCertToken.get(ClientCertToken.token == self.fields['token'].value)
+            # creation time older than this means token is dead.
+            deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
 
-        except Exception as e:
+            token = ClientCertToken.get(
+                ClientCertToken.token == self.fields['token'].value,
+                ClientCertToken.created > deathwall,
+                ClientCertToken.redeemed == 0
+            )
+
+        except peewee.DoesNotExist as e:
             return poobrains.rendering.RenderString("No such token.")
 
 
@@ -362,7 +369,8 @@ class ClientCertForm(poobrains.form.Form):
 
 
         try:
-            spkac = pyspkac.SPKAC(self.fields['key'].value, flask.session['key_challenge'], CN=token.user.name, Email='fnord@fnord.fnord')
+            common_name = '%s:%s' % (token.user.name, token.cert_name)
+            spkac = pyspkac.SPKAC(self.fields['key'].value, flask.session['key_challenge'], CN=common_name) # TODO: Make sure CN is unique
             spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
             spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
 
@@ -374,6 +382,7 @@ class ClientCertForm(poobrains.form.Form):
             serial = int(time.time())
 
             client_cert = spkac.gen_crt(ca_key, ca_cert, serial, not_before, not_after, hash_algo='sha512')
+            del flask.session['key_challenge']
 
         except Exception as e:
 
@@ -386,6 +395,7 @@ class ClientCertForm(poobrains.form.Form):
             cert_info = ClientCert()
             cert_info.name = token.name
             cert_info.user = token.user
+            cert_info.name = token.cert_name
             #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
             cert_info.subject_name = unicode(client_cert.get_subject())
 
@@ -486,7 +496,6 @@ class OwnedPermission(Permission):
                 raise PermissionDenied("YOU SHALL NOT PASS!")
 
             elif 'own_instance' in group_access.keys():
-                poobrains.app.debugger.set_trace()
                 allowed_groups = group_access['own_instance']
                 if self.instance.group in allowed_groups and self.op in self.instance.access:
                     return True
@@ -599,7 +608,8 @@ class RelatedForm(poobrains.form.Form):
             #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
             setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
         else:
-            poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % self.related_model.__name__)
+            poobrains.app.debugger.set_trace()
+            poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
             
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
@@ -911,30 +921,21 @@ class Administerable(poobrains.storage.Storable, Protected):
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
             return poobrains.rendering.RenderString('No actions')
 
+        user = flask.g.user
         actions = poobrains.rendering.Menu('%s.actions' % self.handle_string)
-#        try:
-#            actions.append(self.url('full'), 'View')
-#
-#        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create view link for %s" % self.handle_string)
-#
-#        try:
-#            actions.append(self.url('edit'), 'Edit')
-#
-#        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create edit link for %s" % self.handle_string)
-#
-#        try:
-#            actions.append(self.url('delete'), 'Delete')
-#
-#        except LookupError:
-#            poobrains.app.logger.debug("Couldn't create delete link for %s" % self.handle_string)
 
         for mode in self.__class__._meta.modes:
 
             try:
+                op = self._meta.modes[mode]
+                op_name = self._meta.ops[op]
+
+                self.permissions[op_name].check(user)
+
                 actions.append(self.url(mode), mode)
 
+            except PermissionDenied:
+                poobrains.app.logger.debug("Not generating %s link for %s %s because this user is not authorized for it." % (mode, self.__class__.__name__, self.handle_string))
             except Exception:
                 poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.handle_string))
 
@@ -1200,7 +1201,9 @@ class ClientCertToken(Administerable):
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User)
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
-    token = poobrains.storage.fields.CharField(unique=True)
+    cert_name = poobrains.storage.fields.CharField(null=False, max_length=32)
+    token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
+    token.form_class = poobrains.form.fields.Value
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
     redeemed = poobrains.storage.fields.BooleanField(default=0, null=False)
 
@@ -1214,16 +1217,44 @@ class ClientCertToken(Administerable):
     def redeemable(self):
         return (not self.redeemed) and ((self.created + datetime.timedelta(seconds=self.validity)) < datetime.datetime.now())
 
+    def save(self, force_insert=False, only=None):
 
-class ClientCert(Administerable):
+        if not self.id or force_insert:
 
-    # TODO: This doesn't let you administer anything. Do we want this exposed? What about certificate revokation?
+            user_token_count = self.__class__.select().where(self.__class__.user == self.user).count()
 
-    form_blacklist = ['id', 'user', 'subject_name']
+            if user_token_count >= poobrains.app.config['MAX_TOKENS']:
+                raise ValueError( # TODO: Is ValueError really the most fitting exception there is?
+                    "User %s already has %d out of %d client certificate tokens." % (
+                        self.user.name,
+                        user_token_count,
+                        poobrains.app.config['MAX_TOKENS']
+                    )
+                )
+
+            if self.__class__.select().where(self.__class__.user == self.user, self.__class__.cert_name == self.cert_name).count():
+                raise ValueError("User %s already has a client certificate token for a certificate named '%s'." % (self.user.name, self.cert_name))
+
+            if ClientCert.select().where(ClientCert.user == self.user, ClientCert.name == self.cert_name).count():
+                raise ValueError("User %s already has a client certificate named '%s'." % (self.user.name, self.cert_name))
+
+        return super(ClientCertToken, self).save(force_insert=force_insert, only=only)
+
+
+class ClientCert(poobrains.storage.Storable):
 
     user = poobrains.storage.fields.ForeignKeyField(User)
+    name = poobrains.storage.fields.CharField(null=False, max_length=32)
     subject_name = poobrains.storage.fields.CharField()
+    
+    
+    def save(self, force_insert=False, only=None):
 
+        if not self.id or force_insert:
+            if self.__class__.select().where(self.__class__.user == self.user, self.__class__.name == self.name).count():
+                raise ValueError("User %s already has a client certificate named '%s'." % (self.user.name, self.name))
+
+        return super(ClientCert, self).save(force_insert=force_insert, only=only)
 
 
 class Owned(Administerable):

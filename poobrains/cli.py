@@ -313,14 +313,16 @@ class Install(Command):
                 raise ShellException("Couldn't save administrator, please try again or fix according bugs.")
 
             stdout.write("Successfully saved administrator account.\n")
-            stdout.write("Please type in a token for client certificate generation: ")
-            token = raw_input()
+            stdout.write("Please type in a name for an admin certificate: ")
+            cert_name = raw_input()
 
             t = auth.ClientCertToken()
             t.user = admin
-            t.token = token
-            t.save()
-            stdout.write("Installation complete!\n")
+            t.cert_name = cert_name
+
+            if t.save():
+                stdout.write("Admin certificate token is: %s\n" % t.token)
+                stdout.write("Installation complete!\n")
 
 
 class Exit(Command):
