@@ -147,7 +147,7 @@ class Storable(Model, rendering.Renderable):
 
 class Named(Storable):
 
-    name = fields.CharField(index=True, unique=True, null=False, constraints=[RegexpConstraint('name', '^[@a-z0-9_\-]+$')])
+    name = fields.CharField(index=True, unique=True, null=False, constraints=[RegexpConstraint('name', '^[@a-z0-9_\-\.]+$')])
 
     def __init__(self, *args, **kwargs):
 

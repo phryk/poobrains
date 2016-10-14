@@ -99,6 +99,9 @@ class Field(object):
     
     def validate(self):
 
+        if not self.validator:
+            return
+
         if not self.empty():
             self.validator(self.value)
 
@@ -107,6 +110,10 @@ class Field(object):
 
 
     def coerce(self, value):
+
+        if not self.coercer:
+            return value
+
         if not value is None:
             return self.coercer(value)
         return None
@@ -378,4 +385,6 @@ class Keygen(RenderableField):
 
 
 class File(RenderableField):
-    pass
+
+    validator = None
+    coercer = None

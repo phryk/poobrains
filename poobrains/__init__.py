@@ -33,45 +33,64 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
     def parse(self, *args, **kwargs):
 
         stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
-        form = werkzeug.datastructures.MultiDict()
+        
+        flat_data = {
+            'form': form_flat,
+            'files': files_flat
+        }
 
-        for key, values in form_flat.iteritems():
+        processed_data = {
+            'form': werkzeug.datastructures.MultiDict(),
+            'files': werkzeug.datastructures.MultiDict()
+        }
 
-            current = form
-            segments = key.split('.')
+        for subject, data in flat_data.iteritems():
 
-            for segment in segments[:-1]:
-                if not current.has_key(segment):
-                    current[segment] = werkzeug.datastructures.MultiDict()
+            for key, values in data.iteritems():
 
-                current = current[segment]
+                current = processed_data[subject]
+                segments = key.split('.')
 
-            current[segments[-1]] = values
+                for segment in segments[:-1]:
+                    if not current.has_key(segment):
+                        current[segment] = werkzeug.datastructures.MultiDict()
 
-        if form_flat.has_key('submit'):
-            current = form
-            segments = form_flat['submit'].split('.')
+                    current = current[segment]
 
-            for segment in segments[:-1]:
-                if not current.has_key(segment):
-                    current[segment] = werkzeug.datastructures.MultiDict()
+                current[segments[-1]] = values
 
-                current = current[segment]
+            #if form_flat.has_key('submit'):
+            if subject == 'form' and data.has_key('submit'):
+                current = processed_data[subject]
+                segments = form_flat['submit'].split('.')
 
-            current[segments[-1]] = True
+                for segment in segments[:-1]:
+                    if not current.has_key(segment):
+                        current[segment] = werkzeug.datastructures.MultiDict()
+
+                    current = current[segment]
+
+                current[segments[-1]] = True
 
         # TODO: Make form ImmutableDict again?
 
         #if app.debug:
         #    app.debugger.set_trace()
 
-        return (stream, form, files_flat)
+        #return (stream, form, files_flat)
+        return (stream, processed_data['form'], processed_data['files'])
 
 
 class Request(flask.Request):
 
     form_data_parser_class = FormDataParser
 
+    def close(self):
+        
+        files = self.__dict__.get('files')
+        if files:
+            for f in helpers.flatten_nested_multidict(files):
+                f.close()
 
 
 class Poobrain(flask.Flask):
@@ -144,7 +163,8 @@ class Poobrain(flask.Flask):
                     pdb.set_interrupt_handler(signal.SIGINFO)
 
 
-        self.poobrain_path = os.path.dirname(__file__)
+        self.poobrain_path = os.path.dirname(os.path.realpath(__file__))
+        self.site_path = os.getcwd()
         self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
 
         self.db = db_url.connect(self.config['DATABASE'])
@@ -602,6 +622,7 @@ import poobrains.form
 import poobrains.storage
 import poobrains.cli
 import poobrains.auth
+import poobrains.upload
 
 
 class ErrorPage(poobrains.rendering.Renderable):

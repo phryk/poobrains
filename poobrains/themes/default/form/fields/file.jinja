@@ -1,0 +1,6 @@
+{% if content.label %}
+    <label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
+{% endif %}
+<input
+    type="file"
+    name="{{ content.prefix }}.{{ content.name }}" >

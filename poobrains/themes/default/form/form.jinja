@@ -1,7 +1,12 @@
-<form name="{% if content.prefix%}{{content.prefix}}.{% endif %}{{ content.name }}" method="{{ content.method }}" {% if content.action %}action="{{ content.action }}"{% endif %}>
+<form
+    name="{% if content.prefix%}{{content.prefix}}.{% endif %}{{ content.name }}"
+    method="{{ content.method }}"
+    {% if content.action %}action="{{ content.action }}"{% endif %}
+    enctype="multipart/form-data" >
 
 {% for field in content %}
     {{ field.render() }}
 {% endfor %}
 {{ content.render_controls() }}
+
 </form>

@@ -608,11 +608,11 @@ class RelatedForm(poobrains.form.Form):
             #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
             setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
         else:
-            poobrains.app.debugger.set_trace()
             poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
             
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
+        poobrains.app.debugger.set_trace()
 
         return f
 

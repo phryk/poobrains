@@ -32,6 +32,19 @@ def random_string_light(length=8):
     return string
 
 
+def flatten_nested_multidict(v):
+
+    flat = []
+
+    if not isinstance(v, werkzeug.datastructures.MultiDict):
+        flat.append(v)
+    else:
+        for _, value in werkzeug.datastructures.iter_multi_items(v):
+            flat += flatten_nested_multidict(value)
+
+    return flat
+
+
 def choose_primary(d):
     
     for k,v in d.iteritems():
@@ -105,21 +118,6 @@ def is_secure(f):
             flask.abort(403, "You are trying to do naughty things without protection.")
 
     return substitute
-
-
-def access(permission):
-
-    def decorator(func):
-
-        @functools.wraps(func)
-        def substitute(*args, **kwargs):
-
-            try:
-                flask.g.user.access(permission)
-            except errors.PermissionDenied as e:
-                abort(403, 'Permission denied!') # TODO: Find out if this actually stops further execution of this function
-
-            return func(*args, **kwargs)
 
 
 class ThemedPassthrough(object):

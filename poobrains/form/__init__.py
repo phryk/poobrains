@@ -156,7 +156,7 @@ class BaseForm(poobrains.rendering.Renderable):
     
     
 
-    def bind(self, values):
+    def bind(self, values, files):
         
         if not values is None:
             compound_error = errors.CompoundError()
@@ -164,9 +164,10 @@ class BaseForm(poobrains.rendering.Renderable):
             for field in self: # magic iteration yielding only renderable fields
 
                 if not field.readonly:
-
-                    if values.has_key(field.name):
-                        field_values = values[field.name]
+                    
+                    source = files if isinstance(field, fields.File) else values
+                    if source.has_key(field.name):
+                        field_values = source[field.name]
                     else:
                         #field_values = errors.MissingValue()
                         field_values = field._default
@@ -299,9 +300,10 @@ class Form(BaseForm):
             validation_error = None
             binding_error = None
             values = flask.request.form[self.name]
+            files = flask.request.files[self.name] if flask.request.files.has_key(self.name) else werkzeug.datastructures.FileMultiDict()
             #FIXME: filter self.readonly in here instead of .bind and .handle?
             try:
-                self.bind(values)
+                self.bind(values, files)
 
                 try:
                     return self.handle()
@@ -357,7 +359,8 @@ class AddForm(BoundForm):
 
         for field in f.model._meta.sorted_fields:
 
-            if field.name not in f.model.form_blacklist:
+            if not field.name in f.model.form_blacklist and \
+                not f.fields.has_key(field.name): # means this field was already defined in the class definition for this form
 
                 kw = {}
                 kw['name'] = field.name
