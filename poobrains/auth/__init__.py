@@ -16,8 +16,8 @@ import peewee
 import poobrains
 
 
-class PermissionDenied(werkzeug.exceptions.HTTPException):
-    code = 403
+class PermissionDenied(werkzeug.exceptions.Forbidden):
+    status_code = 403
 
 
 class Permission(poobrains.helpers.ChildAware):
