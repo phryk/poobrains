@@ -17,6 +17,10 @@ class Field(helpers.ChildAware):
         return self.form_class(self.name, label=self.name, value=value)
 
 
+class IntegerField(peewee.IntegerField, Field):
+    pass
+
+
 class CharField(peewee.CharField, Field):
     pass
 

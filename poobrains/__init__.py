@@ -623,6 +623,7 @@ import poobrains.storage
 import poobrains.cli
 import poobrains.auth
 import poobrains.upload
+import poobrains.tagging
 
 
 class ErrorPage(poobrains.rendering.Renderable):
