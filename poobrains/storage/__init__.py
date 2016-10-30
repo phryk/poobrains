@@ -141,7 +141,7 @@ class Storable(Model, rendering.Renderable):
 
 
     @classmethod
-    def list(cls, mode, user):
+    def list(cls, op, user):
         return cls.select()
 
 
