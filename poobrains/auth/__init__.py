@@ -68,7 +68,7 @@ class Permission(poobrains.helpers.ChildAware):
     
     
     @classmethod
-    def list(cls, protected, op, user):
+    def list(cls, protected, op, user, handles=None):
 
         q = protected.select()
 
@@ -979,7 +979,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
 
     @classmethod
-    def list(cls, op, user):
+    def list(cls, op, user, handles=None):
         op_name = cls._meta.ops[op]
         return cls.permissions[op_name].list(cls, op, user)
 
@@ -988,24 +988,25 @@ class Named(Administerable, poobrains.storage.Named):
 
     class Meta:
         abstract = True
+        handle_fields = ['name']
 
-    @property
-    def handle_string(self):
-        return self.name
-
-
-    @classmethod
-    def string_handle(self, string):
-        return string
+    #@property
+    #def handle_string(self):
+    #    return self.name
 
 
-    @classmethod
-    def load(cls, handle):
-        if type(handle) is int: #or (isinstance(handle, basestring) and handle.isdigit()):
-            return super(Administerable, cls).load(handle)
+    #@classmethod
+    #def string_handle(self, string):
+    #    return string
 
-        else:
-            return cls.get(cls.name == handle)
+
+#    @classmethod
+#    def load(cls, handle):
+#        if type(handle) is int: #or (isinstance(handle, basestring) and handle.isdigit()):
+#            return super(Administerable, cls).load(handle)
+#
+#        else:
+#            return cls.get(cls.name == handle)
 
 
 class User(Named):

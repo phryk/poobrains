@@ -66,6 +66,24 @@ class NonExposedB(NonExposed):
     pass
 
 
+#class MultiPK(poobrains.auth.Administerable):
+#
+#    class Meta:
+#        primary_key = peewee.CompositeKey('pk_a', 'pk_b')
+#
+#    pk_a = poobrains.storage.fields.IntegerField()
+#    pk_b = poobrains.storage.fields.IntegerField()
+#
+#
+#class NestedHandle(poobrains.auth.Administerable):
+#
+#    class Meta:
+#        primary_key = peewee.CompositeKey('foreign', 'local')
+#
+#    foreign = poobrains.storage.fields.ForeignKeyField(MultiPK)
+#    local = poobrains.storage.fields.CharField()
+
+
 @app.site.listing(NonExposedB, '/custom', mode='full', title='Custom Listing')
 def list_nonexposed(listing):
 

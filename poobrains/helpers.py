@@ -142,10 +142,11 @@ class FakeMetaOptions(object):
 
     primary_key = None # This is a very ugly hack, to make this play nice with peewee Metaclass' __new__
     abstract = None
+    handle_fields = None
     modes = None
     ops = None
     permission_class = None
-    _additional_keys = None # Why did I put this in, again?
+    _additional_keys = None # Why did I put this in, again? something something peewee compatibility…
 
     def __init__(self):
 
@@ -163,7 +164,7 @@ class MetaCompatibility(type):
 
     def __new__(cls, name, bases, attrs):
 
-        recognized_options = ['abstract', 'ops', 'modes', 'permission_class', 'clone_props'] # FIXME: Make this shit generic, like peewee ModelOptions
+        recognized_options = ['abstract', 'ops', 'modes', 'permission_class', 'handle_fields', 'clone_props'] # FIXME: Make this shit generic, like peewee ModelOptions
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
  
@@ -196,6 +197,8 @@ class MetaCompatibility(type):
 
         else:
             cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky
+            if not hasattr(cls._meta, 'handle_fields'):
+                cls._meta.handle_fields = [field.name for field in cls._meta.get_primary_key_fields()]
 
         return cls
 

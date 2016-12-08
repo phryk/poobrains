@@ -34,7 +34,7 @@ class Tag(poobrains.auth.Named):
             for handle in handles:
                 pkvalues.append(model.string_handle(handle))
 
-            instances = model.select()
+            query = model.select()
 
 
 

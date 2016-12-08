@@ -61,6 +61,7 @@ class Model(peewee.Model, helpers.ChildAware):
     class Meta:
         database = app.db
         order_by = ['-id']
+        handle_fields = ['id']
 
 
     @classmethod
@@ -72,11 +73,12 @@ class Model(peewee.Model, helpers.ChildAware):
     def handle_string(self):
 
         segments = []
-        pkfields = self._meta.get_primary_key_fields()
+        #pkfields = self._meta.get_primary_key_fields()
+        handle_fields = [getattr(self, field_name) for field_name in self._meta.handle_fields]
 
-        for pkfield in pkfields:
+        for field in handle_fields:
             try:
-                segment = getattr(self, pkfield.name)
+                segment = getattr(self, field.name)
             except peewee.DoesNotExist: # Means we have a ForeignKey without assigned/valid value.
                 segment = None
 
@@ -141,8 +143,29 @@ class Storable(Model, rendering.Renderable):
 
 
     @classmethod
-    def list(cls, op, user):
-        return cls.select()
+    def list(cls, op, user, handles=None):
+
+        query = cls.select()
+
+        if handles:
+
+            keyed_handles = collections.OrderedDict()
+            for field_name in cls._meta.handle_fields:
+                keyed_handles[field_name] = []
+
+            for handle in handles:
+               
+                #handle = cls.string_handle(handle) # TODO: remove if we can be sure only raw handles are used, not their string representations
+                for field_name in cls._meta.handle_fields:
+                    idx = cls._meta.handle_fields.index(field_name) 
+                    keyed_handles[field_name].append(handle[idx])
+
+            #query = peewee.where(cls.id._in(processed_handles))
+            for field_name in cls._meta.handle_fields:
+                field = getattr(cls, field_name)
+                query = query.where(field._in(keyed_handles[field_name]))
+                
+        return query
 
 
 class Named(Storable):
