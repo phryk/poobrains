@@ -68,9 +68,7 @@ class Permission(poobrains.helpers.ChildAware):
     
     
     @classmethod
-    def list(cls, protected, op, user, handles=None):
-
-        q = protected.select()
+    def list(cls, protected, q, op, user): # FIXME: should op be implied, not directly passed?
 
         if user.own_permissions.has_key(cls.__name__):
             access = user.own_permissions[cls.__name__]
@@ -522,10 +520,9 @@ class OwnedPermission(Permission):
 
     
     @classmethod
-    def list(cls, protected, op, user): # FIXME: should op be implied, not directly passed?
+    def list(cls, protected, q, op, user): # FIXME: should op be implied, not directly passed?
 
         cls.check(user) # make sure the user is permitted to get a listing
-        q = protected.select()
 
         if user.own_permissions.has_key(cls.__name__):
 
@@ -914,7 +911,6 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @property
     def actions(self):
-
         try:
             self._get_pk_value()
         #except self.__class__.DoesNotExist:
@@ -981,7 +977,8 @@ class Administerable(poobrains.storage.Storable, Protected):
     @classmethod
     def list(cls, op, user, handles=None):
         op_name = cls._meta.ops[op]
-        return cls.permissions[op_name].list(cls, op, user)
+        q = super(Administerable, cls).list(op, user, handles=handles)
+        return cls.permissions[op_name].list(cls, q, op, user)
 
 
 class Named(Administerable, poobrains.storage.Named):

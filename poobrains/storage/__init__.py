@@ -61,12 +61,25 @@ class Model(peewee.Model, helpers.ChildAware):
     class Meta:
         database = app.db
         order_by = ['-id']
-        handle_fields = ['id']
 
 
     @classmethod
     def load(cls, handle):
-        return cls.get(cls._meta.primary_key == handle)
+
+        #return cls.get(cls._meta.primary_key == handle)
+        q = cls.select()
+
+        if type(handle) not in (tuple, list):
+            handle = [handle]
+
+        assert len(handle) == len(cls._meta.handle_fields)
+
+        for field_name in cls._meta.handle_fields:
+            field = getattr(cls, field_name)
+            idx = cls._meta.handle_fields.index(field_name)
+            q.where(field == handle[idx])
+
+        return q.get()
 
 
     @property
@@ -74,11 +87,10 @@ class Model(peewee.Model, helpers.ChildAware):
 
         segments = []
         #pkfields = self._meta.get_primary_key_fields()
-        handle_fields = [getattr(self, field_name) for field_name in self._meta.handle_fields]
 
-        for field in handle_fields:
+        for field_name in self._meta.handle_fields:
             try:
-                segment = getattr(self, field.name)
+                segment = getattr(self, field_name)
             except peewee.DoesNotExist: # Means we have a ForeignKey without assigned/valid value.
                 segment = None
 
