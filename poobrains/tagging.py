@@ -46,4 +46,19 @@ class TagBinding(poobrains.auth.Administerable):
     priority = poobrains.storage.fields.IntegerField()
 
 
+class TaggingField(poobrains.form.fields.Text)
+    
+    def __init__(self, prefix=None, name=None, title=None, method=None, action=None):
 
+
+class Taggable(poobrains.auth.NamedOwned):
+
+
+    def form(self, mode=None):
+
+        f = super(Taggable, self).form(mode=mode)
+
+        return f
+
+    def prepared(self):
+        print "PREP"

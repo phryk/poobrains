@@ -1024,6 +1024,7 @@ class User(Named):
 
     def prepared(self):
 
+        super(User, self).prepared()
         for up in self._permissions:
             self.own_permissions[up.permission] = up.access
 
@@ -1073,6 +1074,8 @@ class UserPermission(Administerable):
 
     
     def prepared(self):
+        
+        super(UserPermission, self).prepared()
 
         try:
             self.permission_class = Permission.children_keyed()[self.permission]
@@ -1126,6 +1129,8 @@ class Group(Named):
 
 
     def prepared(self):
+        
+        super(Group, self).prepared()
 
         for gp in self._permissions:
             self.own_permissions[gp.permission] = gp.access
