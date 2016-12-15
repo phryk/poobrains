@@ -197,6 +197,10 @@ class MetaCompatibility(type):
 
         else:
             cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable. FIXME: too hacky
+
+            if not hasattr(cls._meta, 'abstract'):
+                cls._meta.abstract = False
+
             if not hasattr(cls._meta, 'handle_fields'):
                 cls._meta.handle_fields = [field.name for field in cls._meta.get_primary_key_fields()]
 

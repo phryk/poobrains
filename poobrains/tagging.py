@@ -10,6 +10,18 @@ class Tag(poobrains.auth.Named):
     description = poobrains.storage.fields.TextField()
     parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')])
 
+    @classmethod
+    def tree(cls, root=None):
+        
+        tree = collections.OrderedDict()
+        
+        tags = cls.select().where(cls.parent == root)
+        for tag in tags:
+            child_tags[tag.name] = cls.tree(tag)
+
+        return tree
+
+
     def list_tagged(self):
 
         poobrains.app.debugger.set_trace()
@@ -46,9 +58,14 @@ class TagBinding(poobrains.auth.Administerable):
     priority = poobrains.storage.fields.IntegerField()
 
 
-class TaggingField(poobrains.form.fields.Text)
+class TaggingField(poobrains.form.fields.MultiChoice):
     
-    def __init__(self, prefix=None, name=None, title=None, method=None, action=None):
+    def __init__(self, *args, **kwargs):
+
+        super(TaggingField, self).__init__(*args, **kwargs)
+
+        if not len(self.choices):
+            tags = Tag.select()
 
 
 class Taggable(poobrains.auth.NamedOwned):

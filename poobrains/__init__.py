@@ -281,7 +281,7 @@ class Poobrain(flask.Flask):
 
 
     def request_setup(self):
-
+        
         flask.g.boxes = {}
         flask.g.forms = {}
         self.db.connect()
@@ -299,7 +299,7 @@ class Poobrain(flask.Flask):
 
         if flask.g.user == None:
             try:
-                flask.g.user = auth.User.load(1) # loads "Anonymous".
+                flask.g.user = auth.User.get(auth.User.id == 1) # loads "Anonymous".
             except:
                 pass
 
