@@ -5,10 +5,23 @@ import peewee
 
 import poobrains
 
+@poobrains.app.expose('/tag/', mode='full')
 class Tag(poobrains.auth.Named):
 
     description = poobrains.storage.fields.TextField()
     parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')])
+
+
+    class Meta:
+
+        modes = collections.OrderedDict([
+            ('add', 'c'),
+            ('teaser', 'r'),
+            ('full', 'r'),
+            ('edit', 'u'),
+            ('delete', 'd')
+        ])
+
 
     @classmethod
     def tree(cls, root=None):
@@ -17,7 +30,7 @@ class Tag(poobrains.auth.Named):
         
         tags = cls.select().where(cls.parent == root)
         for tag in tags:
-            child_tags[tag.name] = cls.tree(tag)
+            tree[tag.name] = cls.tree(tag)
 
         return tree
 
@@ -35,7 +48,7 @@ class Tag(poobrains.auth.Named):
 
             bindings_by_model[binding.model].append(binding)
 
-        bindings_by_model = sort(bindings_by_model) # re-order by model name
+        #bindings_by_model = sorted(bindings_by_model) # re-order by model name
 
         for model_name, handles in bindings_by_model.iteritems():
 
@@ -47,6 +60,8 @@ class Tag(poobrains.auth.Named):
                 pkvalues.append(model.string_handle(handle))
 
             query = model.select()
+
+        return []
 
 
 
@@ -69,6 +84,9 @@ class TaggingField(poobrains.form.fields.MultiChoice):
 
 
 class Taggable(poobrains.auth.NamedOwned):
+
+    class Meta:
+        abstract = True
 
 
     def form(self, mode=None):

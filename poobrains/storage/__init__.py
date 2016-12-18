@@ -65,8 +65,7 @@ class Model(peewee.Model, helpers.ChildAware):
 
     @classmethod
     def load(cls, handle):
-
-        #return cls.get(cls._meta.primary_key == handle)
+        
         q = cls.select()
 
         if type(handle) not in (tuple, list):
@@ -77,7 +76,7 @@ class Model(peewee.Model, helpers.ChildAware):
         for field_name in cls._meta.handle_fields:
             field = getattr(cls, field_name)
             idx = cls._meta.handle_fields.index(field_name)
-            q.where(field == handle[idx])
+            q = q.where(field == handle[idx])
 
         return q.get()
 
