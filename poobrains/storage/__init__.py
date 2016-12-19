@@ -128,7 +128,6 @@ class Storable(Model, rendering.Renderable):
     def __init__(self, *args, **kwargs):
 
         super(Storable, self).__init__(*args, **kwargs)
-        self.templates = self.instance_templates
         self.url = self.instance_url # make .url callable for class and instances
 
 
@@ -137,15 +136,6 @@ class Storable(Model, rendering.Renderable):
         return app.get_url(self.__class__, handle=self.handle_string, mode=mode)
 
 
-    @classmethod
-    def templates(cls, mode='full'):
-        return super(Storable, cls).templates(mode) 
-
-
-    def instance_templates(self, mode='edit'):
-        return self.__class__.templates(mode)
-    
-    
     @classmethod
     def class_view(cls, mode, handle):
 
@@ -273,3 +263,21 @@ class Listing(rendering.Renderable):
         except werkzeug.routing.BuildError as e:
             app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
             self.pagination = False
+
+
+    def templates(self, mode=None):
+
+        tpls = []
+
+        for x in [self.__class__] + self.__class__.ancestors():
+
+            name = x.__name__.lower()
+                
+            if mode:
+                if issubclass(x, Listing):
+                    tpls.append('%s-%s-%s.jinja' % (name, mode, self.cls.__name__))
+                tpls.append('%s-%s.jinja' % (name, mode))
+
+            tpls.append('%s.jinja' % name)
+
+        return tpls

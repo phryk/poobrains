@@ -211,12 +211,11 @@ class BaseForm(poobrains.rendering.Renderable):
         return rendered_controls
 
 
-    @classmethod
-    def templates(cls, mode=None):
+    def templates(self, mode=None):
 
         tpls = []
 
-        for x in [cls] + cls.ancestors():
+        for x in [self.__class__] + self.__class__.ancestors():
 
             name = x.__name__.lower()
 

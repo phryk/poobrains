@@ -26,7 +26,6 @@ class Renderable(helpers.ChildAware):
     def __init__(self, name=None):
 
         self.name = name
-        self.templates = self.instance_templates
         self.url = self.instance_url # make .url callable for class and instances
 
 
@@ -39,12 +38,11 @@ class Renderable(helpers.ChildAware):
         return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode) # FIXME/TODO: at least the naming doesn't fit. Ponder instantiated Renderables which are not Storables.
 
 
-    @classmethod
-    def templates(cls, mode=None):
+    def templates(self, mode=None):
 
         tpls = []
 
-        for x in [cls] + cls.ancestors():
+        for x in [self.__class__] + self.__class__.ancestors():
 
             name = x.__name__.lower()
                 
@@ -54,10 +52,6 @@ class Renderable(helpers.ChildAware):
             tpls.append('%s.jinja' % name)
 
         return tpls
-
-
-    def instance_templates(self, mode=None):
-        return self.__class__.templates(mode)
 
 
 #    def view(self, mode=None):

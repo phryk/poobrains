@@ -67,12 +67,11 @@ class Field(object):
             return real_value
 
 
-    @classmethod
-    def templates(cls, mode=None):
+    def templates(self, mode=None):
 
         tpls = []
 
-        for x in [cls] + cls.ancestors():
+        for x in [self.__class__] + self.__class__.ancestors():
 
             name = x.__name__.lower()
 
