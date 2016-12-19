@@ -1,0 +1,20 @@
+<div class="tag">
+
+    <div class="description">{{ content.description }}</div>
+
+    <div class="posts">
+    {% with tagged_posts = content.list_tagged() %}
+
+        {% if not tagged_posts|length %}
+            <p>No associated content.</p>
+        {% else %}
+            <ul class="tagged-posts">
+            {% for post in tagged_posts %}
+                <li>{{ post.render('teaser') }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+
+    {% endwith %}
+
+</div>
