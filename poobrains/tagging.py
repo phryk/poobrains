@@ -37,9 +37,10 @@ class Tag(poobrains.auth.Named):
 
     def list_tagged(self):
 
-        poobrains.app.debugger.set_trace()
+        #poobrains.app.debugger.set_trace()
         bindings = TagBinding.select().where(TagBinding.tag == self).limit(poobrains.app.config['PAGINATION_COUNT'])
         bindings_by_model = collections.OrderedDict()
+        contents = []
 
         for binding in bindings:
 
@@ -53,19 +54,23 @@ class Tag(poobrains.auth.Named):
         for model_name, handles in bindings_by_model.iteritems():
 
             model = poobrains.storage.Storable.children_keyed(model_name)
-            pkfields = model._meta.get_primary_key_fields()
-
-            pkvalues = []
-            for handle in handles:
-                pkvalues.append(model.string_handle(handle))
-
+            handle_fields = [getattr(model, field_name) for field_name in model._meta.handle_fields]
             query = model.select()
+            #pkfields = model._meta.get_primary_key_fields()
 
-        return []
+            #pkvalues = []
+            #for handle in handles:
+            #    pkvalues.append(model.string_handle(handle))
+
+
+        return contents
 
 
 
 class TagBinding(poobrains.auth.Administerable):
+
+    class Meta:
+        order_by = ['-priority']
 
     tag = poobrains.storage.fields.ForeignKeyField(Tag, related_name='_bindings')
     model = poobrains.storage.fields.CharField()
@@ -83,6 +88,18 @@ class TaggingField(poobrains.form.fields.MultiChoice):
             tags = Tag.select()
 
 
+class TaggingFieldset(poobrains.form.Fieldset):
+
+    tags = TaggingField('tags')
+
+
+    def __init__(self, *args, **kwargs):
+
+        super(TaggingFieldset, self).__init__(*args, **kwargs)
+
+        self.fields['tags'].choices = Tag.tree()
+
+
 class Taggable(poobrains.auth.NamedOwned):
 
     class Meta:
@@ -90,9 +107,9 @@ class Taggable(poobrains.auth.NamedOwned):
 
 
     def form(self, mode=None):
-
+        poobrains.app.debugger.set_trace()
         f = super(Taggable, self).form(mode=mode)
-
+        f.fields['tags'] = TaggingFieldset()
         return f
 
     def prepared(self):

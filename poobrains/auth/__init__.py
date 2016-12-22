@@ -746,10 +746,8 @@ class UserPermissionRelatedForm(RelatedForm):
                 perm_info.access = None
                 perm_mode = 'add'
 
-                #f.fields[name] = poobrains.form.AddFieldset(perm_info, mode=perm_mode, name=name)
-                #f.fields[name] = perm_info.fieldset_add(mode=perm_mode)
                 fieldset = perm_info.fieldset_add(mode=perm_mode)
-                fieldset.fields['access'].choices = perm.choices
+                #fieldset.fields['access'].choices = perm.choices
 
             fieldset.fields.user = poobrains.form.fields.Value(instance)
             fieldset.fields.permission = poobrains.form.fields.Text(value=name, readonly=True)
