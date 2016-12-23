@@ -84,20 +84,22 @@ class TaggingField(poobrains.form.fields.MultiChoice):
 
         super(TaggingField, self).__init__(*args, **kwargs)
 
-        if not len(self.choices):
-            tags = Tag.select()
+        if kwargs.has_key('choices'):
+            choices = kwargs.pop('choices')
+        else:
+            choices = []
+            for tag in Tag.select():
+                choices.append((tag.name, tag.name))
+
+        self.choices = choices
 
 
 class TaggingFieldset(poobrains.form.Fieldset):
 
     tags = TaggingField('tags')
 
-
-    def __init__(self, *args, **kwargs):
-
-        super(TaggingFieldset, self).__init__(*args, **kwargs)
-
-        self.fields['tags'].choices = Tag.tree()
+    def handle(self, instance):
+        poobrains.app.debugger.set_trace()
 
 
 class Taggable(poobrains.auth.NamedOwned):
@@ -107,9 +109,8 @@ class Taggable(poobrains.auth.NamedOwned):
 
 
     def form(self, mode=None):
-        poobrains.app.debugger.set_trace()
         f = super(Taggable, self).form(mode=mode)
-        f.fields['tags'] = TaggingFieldset()
+        setattr(f, 'tags', TaggingFieldset())
         return f
 
     def prepared(self):

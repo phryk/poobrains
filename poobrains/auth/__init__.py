@@ -141,7 +141,6 @@ class FormPermissionField(poobrains.form.fields.Choice):
     default = (None, None)
 
     def __init__(self, *args, **kwargs):
-
         super(FormPermissionField, self).__init__(*args, **kwargs)
 
         self.choices = []
@@ -609,7 +608,6 @@ class RelatedForm(poobrains.form.Form):
             
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
-        poobrains.app.debugger.set_trace()
 
         return f
 

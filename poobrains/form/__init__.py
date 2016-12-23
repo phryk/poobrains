@@ -34,7 +34,7 @@ class BaseForm(poobrains.rendering.Renderable):
     title = None
 
     def __new__(cls, *args, **kw):
-
+        poobrains.app.debugger.set_trace()
         instance = super(BaseForm, cls).__new__(cls, *args, **kw)
         instance.fields = poobrains.helpers.CustomOrderedDict()
         instance.controls = poobrains.helpers.CustomOrderedDict()
@@ -139,7 +139,13 @@ class BaseForm(poobrains.rendering.Renderable):
         return [field for field in self] 
 
 
-    def empty(self):
+    @property
+    def fieldsets(self):
+
+        return [field for field in self if isinstance(field, Fieldset)]
+
+
+    def empty(self): # TODO: find out why I didn't make this @property
         for field in self:
             if not field.empty():
                 return False
@@ -157,7 +163,7 @@ class BaseForm(poobrains.rendering.Renderable):
     
 
     def bind(self, values, files):
-        
+        poobrains.app.debugger.set_trace() 
         if not values is None:
             compound_error = errors.CompoundError()
 
@@ -173,7 +179,11 @@ class BaseForm(poobrains.rendering.Renderable):
                         field_values = field._default
                     
                     try:
-                        field.bind(field_values)
+                        if isinstance(field, Fieldset):
+                            field.bind(field_values, files) # FIXME: This is probably wrong. files[field.name] if exists or sth like that
+                        else:
+                            field.bind(field_values)
+
                     except errors.ValidationError as e:
                         compound_error.append(e)
 
@@ -442,6 +452,10 @@ class AddForm(BoundForm):
 
                 if saved:
                     flask.flash("Saved %s %s." % (self.model.__name__, self.instance.handle_string))
+
+                    for fieldset in self.fieldsets:
+                        fieldset.handle(self.instance)
+
                     try:
                         return flask.redirect(self.instance.url('edit'))
                     except LookupError:
@@ -533,6 +547,11 @@ class Fieldset(BaseForm):
 
         self.rendered = True
         return super(Fieldset, self).render(mode)
+
+
+    def handle(self, instance):
+
+        raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
 
 
     def __setattr__(self, name, value):
