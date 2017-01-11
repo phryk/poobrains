@@ -31,7 +31,7 @@ except ImportError as e:
 class FormDataParser(werkzeug.formparser.FormDataParser):
     
     def parse(self, *args, **kwargs):
-
+        
         stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
         
         flat_data = {
@@ -46,7 +46,7 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
 
         for subject, data in flat_data.iteritems():
 
-            for key, values in data.iteritems():
+            for key in data.keys():
 
                 current = processed_data[subject]
                 segments = key.split('.')
@@ -57,7 +57,8 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
 
                     current = current[segment]
 
-                current[segments[-1]] = values
+                #current[segments[-1]] = values
+                current.setlist(segments[-1], data.getlist(key))
 
             #if form_flat.has_key('submit'):
             if subject == 'form' and data.has_key('submit'):
