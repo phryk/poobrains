@@ -667,7 +667,12 @@ class RelatedForm(poobrains.form.Form):
         if not self.readonly:
             for field in self.fields.itervalues():
                 if isinstance(field, poobrains.form.Fieldset):
-                    field.handle()
+                    try:
+                        field.handle()
+                    except Exception as e:
+                        flask.flash("Failed to handle fieldset '%s.%s'." % (field.prefix, field.name))
+                        poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
+                        
             #return flask.redirect(flask.request.url)
         return self
 

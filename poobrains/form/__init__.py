@@ -454,7 +454,11 @@ class AddForm(BoundForm):
                     flask.flash("Saved %s %s." % (self.model.__name__, self.instance.handle_string))
 
                     for fieldset in self.fieldsets:
-                        fieldset.handle(self.instance)
+                        try:
+                            fieldset.handle(self.instance)
+                        except Exception as e:
+                            flask.flash("Failed to handle fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
+                            poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
 
                     try:
                         return flask.redirect(self.instance.url('edit'))
