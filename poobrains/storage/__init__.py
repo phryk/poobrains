@@ -149,7 +149,7 @@ class Storable(Model, rendering.Renderable):
         query = cls.select()
 
         if handles:
-
+            poobrains.app.debugger.set_trace()
             keyed_handles = collections.OrderedDict()
             for field_name in cls._meta.handle_fields:
                 keyed_handles[field_name] = []
@@ -164,7 +164,7 @@ class Storable(Model, rendering.Renderable):
             #query = peewee.where(cls.id._in(processed_handles))
             for field_name in cls._meta.handle_fields:
                 field = getattr(cls, field_name)
-                query = query.where(field._in(keyed_handles[field_name]))
+                query = query.where(field.in_(keyed_handles[field_name]))
                 
         return query
 

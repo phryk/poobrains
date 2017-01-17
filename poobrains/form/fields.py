@@ -28,6 +28,7 @@ class Field(object):
     empty_value = '' # value which is considered to be "empty"
     default = None # used when client sends no value for this field
     label = None
+    multi = False # Whether this field takes multiple values (i.e. value passed to .bind will be a list)
     placeholder = None
     readonly = None
     required = None
@@ -219,7 +220,6 @@ class RangedInteger(Integer):
 
 class Choice(RenderableField):
 
-    multi = False
     choices = None
     empty_label = 'Please choose'
     
@@ -248,14 +248,15 @@ class MultiChoice(Choice):
 
     def validate(self):
         
-        for value in values:
-            super(MultiChoice, self).validate() # FIXME: This is nonsense.
+        for value in self.value:
+            if not value in dict(self.choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
+                raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
     def bind(self, values):
 
         error = errors.CompoundError()
-        if isinstance(value, errors.MissingValue):
+        if isinstance(values, errors.MissingValue):
             self.value = self._default()
 
         else:

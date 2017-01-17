@@ -34,7 +34,7 @@ class BaseForm(poobrains.rendering.Renderable):
     title = None
 
     def __new__(cls, *args, **kw):
-        poobrains.app.debugger.set_trace()
+        
         instance = super(BaseForm, cls).__new__(cls, *args, **kw)
         instance.fields = poobrains.helpers.CustomOrderedDict()
         instance.controls = poobrains.helpers.CustomOrderedDict()
@@ -163,7 +163,7 @@ class BaseForm(poobrains.rendering.Renderable):
     
 
     def bind(self, values, files):
-        poobrains.app.debugger.set_trace() 
+        
         if not values is None:
             compound_error = errors.CompoundError()
 
@@ -173,14 +173,22 @@ class BaseForm(poobrains.rendering.Renderable):
                     
                     source = files if isinstance(field, fields.File) else values
                     if source.has_key(field.name):
-                        field_values = source[field.name]
+                        if field.multi:
+                            field_values = source.getlist(field.name)
+                        else:
+                            field_values = source[field.name]
+
                     else:
                         #field_values = errors.MissingValue()
-                        field_values = field._default
+                        if field.multi:
+                            field_values = [field._default] # TODO: We sure we wanna do it that way?
+                        else:
+                            field_values = field._default
                     
                     try:
                         if isinstance(field, Fieldset):
-                            field.bind(field_values, files) # FIXME: This is probably wrong. files[field.name] if exists or sth like that
+                            sub_files = files[field.name] if files.has_key(field.name) else werkzeug.datastructures.MultiDict()
+                            field.bind(field_values, sub_files) # FIXME: This is probably wrong. files[field.name] if exists or sth like that
                         else:
                             field.bind(field_values)
 
@@ -532,6 +540,7 @@ class Fieldset(BaseForm):
     errors = None
     readonly = None
     rendered = None
+    multi = False
     _default = werkzeug.MultiDict()
 
     class Meta:
