@@ -572,39 +572,48 @@ class RelatedForm(poobrains.form.Form):
     related_field = None
 
     def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
-
+        poobrains.app.debugger.set_trace()
         f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
 
         for related_instance in getattr(instance, related_field.related_name):
+            try:
+                related_instance.permissions['update'].check(flask.g.user) # throws PermissionDenied if user is not authorized
+                # Fieldset to edit an existing related instance of this instance
 
-            # Fieldset to edit an existing related instance of this instance
+                #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
+                key = related_instance.handle_string
+                #f.fields[key] = poobrains.form.EditFieldset(related_instance)
+                #f.fields[key] = related_instance.fieldset_edit()
+                setattr(f, key, related_instance.fieldset_edit())
 
-            #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
-            key = related_instance.handle_string
-            #f.fields[key] = poobrains.form.EditFieldset(related_instance)
-            #f.fields[key] = related_instance.fieldset_edit()
-            setattr(f, key, related_instance.fieldset_edit())
+                if f.fields[key].fields.has_key(related_field.name):
+                    #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # FIXME: Won't work with `CompositeKeyField`s
+                    #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
+                    setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
+
+            except PermissionDenied as e:
+                pass
+
+
+        try:
+            # Fieldset to add a new related instance to this instance
+            related_instance = related_model()
+            related_instance.permissions['create'].check(flask.g.user) # throws PermissionDenied if user is not authorized
+            setattr(related_instance, related_field.name, instance) 
+            key = '%s-add' % related_model.__name__
+
+            #f.fields[key] = poobrains.form.AddFieldset(related_instance)
+            setattr(f, key, related_instance.fieldset_add())
 
             if f.fields[key].fields.has_key(related_field.name):
                 #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # FIXME: Won't work with `CompositeKeyField`s
                 #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
                 setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
+            else:
+                poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
 
-
-        # Fieldset to add a new related instance to this instance
-        related_instance = related_model()
-        setattr(related_instance, related_field.name, instance) 
-        key = '%s-add' % related_model.__name__
-
-        #f.fields[key] = poobrains.form.AddFieldset(related_instance)
-        setattr(f, key, related_instance.fieldset_add())
-
-        if f.fields[key].fields.has_key(related_field.name):
-            #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # FIXME: Won't work with `CompositeKeyField`s
-            #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
-            setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
-        else:
-            poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
+        except PermissionDenied as e:
+            pass
             
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
