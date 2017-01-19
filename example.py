@@ -34,7 +34,7 @@ class TestForm(poobrains.form.Form):
 
 
 @app.expose('/news', mode='full')
-class News(poobrains.tagging.Taggable):
+class News(poobrains.commenting.Commentable):
 
     title = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()

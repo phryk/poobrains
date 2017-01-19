@@ -573,6 +573,9 @@ class RelatedForm(poobrains.form.Form):
 
     def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
         poobrains.app.debugger.set_trace()
+
+        related_model.permissions['create'].check(flask.g.user)
+        related_model.permissions['update'].check(flask.g.user)
         f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
 
         for related_instance in getattr(instance, related_field.related_name):
@@ -597,8 +600,8 @@ class RelatedForm(poobrains.form.Form):
 
         try:
             # Fieldset to add a new related instance to this instance
+            related_model.permissions['create'].check(flask.g.user)
             related_instance = related_model()
-            related_instance.permissions['create'].check(flask.g.user) # throws PermissionDenied if user is not authorized
             setattr(related_instance, related_field.name, instance) 
             key = '%s-add' % related_model.__name__
 

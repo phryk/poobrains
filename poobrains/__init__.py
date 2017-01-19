@@ -625,6 +625,7 @@ import poobrains.cli
 import poobrains.auth
 import poobrains.upload
 import poobrains.tagging
+import poobrains.commenting
 
 
 class ErrorPage(poobrains.rendering.Renderable):

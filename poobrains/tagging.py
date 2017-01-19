@@ -96,8 +96,13 @@ class TaggingField(poobrains.form.fields.MultiChoice):
             choices = kwargs.pop('choices')
         else:
             choices = []
-            for tag in Tag.select():
-                choices.append((tag.name, tag.name))
+
+            try:
+                for tag in Tag.select():
+                    choices.append((tag.name, tag.name))
+
+            except peewee.OperationalError as e:
+                poobrains.app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
 
         self.choices = choices
 
@@ -108,6 +113,7 @@ class TaggingFieldset(poobrains.form.Fieldset):
 
     def __init__(self, instance):
 
+        super(TaggingFieldset, self).__init__()
         if instance._get_pk_value() != None:
            self.fields['tags'].value = [tag.name for tag in instance.tags] 
 

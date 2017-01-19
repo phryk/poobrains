@@ -246,6 +246,10 @@ class MultiChoice(Choice):
     default = []
     empty_value = []
 
+    def __init__(self, *args, **kwargs):
+        super(MultiChoice, self).__init__(*args, **kwargs)
+        self.value = []
+
     def validate(self):
         
         for value in self.value:

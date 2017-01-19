@@ -15,7 +15,7 @@ import helpers
 
 class Renderable(helpers.ChildAware):
 
-    name = None
+    #name = None
 
 
     class Meta:
