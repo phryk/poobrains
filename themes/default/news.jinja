@@ -4,4 +4,10 @@
     {% if mode == 'full' %}
         <a href="{{ content.url('teaser') }}">Goto teaser</a>
     {% endif %}
+
+    <div class="comments">
+        {% for comment, children in content.comments_threaded.iteritems() %}
+            {{ comment.render('full') }}
+        {% endfor %}
+    </div>
 </article>

@@ -390,7 +390,6 @@ class ClientCertForm(poobrains.form.Form):
 
         try:
             cert_info = ClientCert()
-            cert_info.name = token.name
             cert_info.user = token.user
             cert_info.name = token.cert_name
             #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.

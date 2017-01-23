@@ -236,7 +236,8 @@ class Choice(RenderableField):
 
     def validate(self):
 
-        if not self.value in dict(self.choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
+        choices = self.choices() if callable(self.choices) else self.choices
+        if not self.value in dict(choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
             raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
@@ -253,7 +254,7 @@ class MultiChoice(Choice):
     def validate(self):
         
         for value in self.value:
-            if not value in dict(self.choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
+            if value != '' and not value in dict(self.choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 

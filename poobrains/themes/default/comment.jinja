@@ -1,0 +1,20 @@
+<div class="comment">
+    <div class="meta">
+        <span class="author">{{ content.author }}</span>
+        <span class="created">{{ content.created }}</span>
+    </div>
+    <div class="text">
+        {{ content.text }}
+    </div>
+    
+    <div class="replies">
+
+        {% for child in content.child_comments() %}
+            {{ child.render('full') }}
+        {% endfor %}
+
+        {{ content.reply_form().render('full') }}
+    </div>
+
+
+</div>
