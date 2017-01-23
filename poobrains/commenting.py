@@ -71,6 +71,7 @@ class Commentable(poobrains.tagging.Taggable):
 
 
 @poobrains.app.expose('/comment/<string:model>/<string:handle>')
+@poobrains.app.expose('/comment/<string:model>/<string:handle>/<int:reply_to>')
 class CommentForm(poobrains.form.Form):
 
     instance = None # Commentable instance the comment is going to be associated to
@@ -83,6 +84,8 @@ class CommentForm(poobrains.form.Form):
 
         poobrains.app.debugger.set_trace()
         reply_to = kwargs.pop('reply_to') if kwargs.has_key('reply_to') else None
+        if isinstance(reply_to, int):
+            reply_to = Comment.load(reply_to)
         super(CommentForm, self).__init__(**kwargs)
 
         cls = Commentable.children_keyed()[model]
@@ -92,9 +95,14 @@ class CommentForm(poobrains.form.Form):
         self.reply_to.value = reply_to
         
         self.action = "/comment/%s/%s" % (self.instance.__class__.__name__, self.instance.handle_string) # FIXME: This is shit. Maybe we want to teach Pooprint.get_view_url handling extra parameters from the URL?
+        if reply_to:
+            self.action += "/%d" % reply_to.id
 
 
     def handle(self):
+
+        self.instance.permissions['read'].check(flask.g.user)
+        Comment.permissions['create'].check(flask.g.user)
 
         poobrains.app.debugger.set_trace()
         comment = Comment()
