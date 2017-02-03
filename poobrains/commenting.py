@@ -81,7 +81,7 @@ class CommentForm(poobrains.form.Form):
     submit = poobrains.form.Button('submit', label='Send comment')
 
     def __init__(self, model, handle, **kwargs):
-
+        poobrains.app.debugger.set_trace()
         reply_to = kwargs.pop('reply_to') if kwargs.has_key('reply_to') else None
         if isinstance(reply_to, int):
             reply_to = Comment.load(reply_to)

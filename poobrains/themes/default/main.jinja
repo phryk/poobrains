@@ -20,11 +20,8 @@
         </header>
         <main>
             <header>
-                <h1>{{ g.title }}</h1>
 
-                {% if g.content.actions %}
-                    {{ g.content.actions.render() }}
-                {% endif %}
+                <h1>{{ g.title }}</h1>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
@@ -35,6 +32,11 @@
                         </ul>
                     {% endif %}
                 {% endwith %}
+
+                {% if g.content.actions %}
+                    {{ g.content.actions.render() }}
+                {% endif %}
+
             </header>
             <section id="content">
                 {{ content.render(mode) }}

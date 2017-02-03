@@ -34,6 +34,10 @@ $color_background_form: opacify($color_background_light, -0.3);
         border-right: 0.25rem solid $color_background_light;
         border-bottom: none !important;
     }
+
+    main {
+        padding-left: 1rem;
+    }
 }
 
 html {
@@ -149,7 +153,6 @@ main {
     flex-shrink: 1;
     flex-grow: 40;
     box-sizing: border-box;
-    padding: 0 1rem;
 
     &>header {
 
@@ -158,7 +161,7 @@ main {
         padding: 2rem 1rem;
         background: $color_background_light;
         color: $color_font_dark;
-        z-index: 200;
+        z-index: 110;
 
         h1 {
             font-family: 'Ostrich Sans Inline', sans;
@@ -170,14 +173,13 @@ main {
             text-align: center;
             text-shadow: 0 0 0.5rem $color_font_dark;
             position: relative;
-            z-index: 60;
         }
 
         nav.menu {
             display: block;
             position: sticky;
             top: 0;
-            z-index: 200;
+            z-index: 120;
             font-size: 1.8rem;
             margin-top: 2rem;
             margin-bottom: -2.25rem;
@@ -278,15 +280,15 @@ form {
     padding: 0;
     margin: 0;
 
-    input {
+    input,
+    select,
+    textarea {
+
         border: 0;
         background: $color_background_form;
-        
-        &[type="text"] {
-            font-size: 1rem;
-            line-height: 150%;
-            color: $color_font_dark;
-        }
+        font-size: 1rem;
+        line-height: 150%;
+        color: $color_font_dark;
     }
 
     textarea {
@@ -295,7 +297,13 @@ form {
         resize: vertical;
         background: $color_background_form;
         min-height: 5em;
-        max-height: 200em;
+    }
+
+    fieldset {
+        
+        margin: 0;
+        border: 0;
+        padding: 0;
     }
 
 }
@@ -317,4 +325,13 @@ form {
                 width: 30%;
         }
 
+}
+
+div.comment {
+
+    border-left: 0.25rem solid $color_background_light;
+    padding: 0.25rem;
+    
+    div.replies {
+        padding-left: 0.75rem;
 }
