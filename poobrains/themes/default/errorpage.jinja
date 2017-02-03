@@ -1,2 +1,4 @@
-<em>{{ content.message }}</em>
-{{ content.error.__class__ }}
+<div class="error">
+    <em>{{ content.message }}</em>
+    {{ content.error.__class__.__name__ }}
+</div>

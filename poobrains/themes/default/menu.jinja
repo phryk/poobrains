@@ -1,7 +1,7 @@
-<nav id="{{ content.name }}">
+<nav id="menu-{{ content.name }}" class="menu">
     <ul>
     {% for item in content.items: %}
-    <li><a {% if item.active %} class="active" {% endif %}href="{{ item.url }}">{{ item.caption }}</a></li>
+    <li><a {% if item.active %} class="{{ item.active }}" {% endif %}href="{{ item.url }}">{{ item.caption }}</a></li>
     {% endfor %}
     </ul>
 </nav>

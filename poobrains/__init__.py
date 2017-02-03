@@ -12,7 +12,7 @@ import functools
 import jinja2
 from playhouse import db_url
 import peewee
-
+import scss # pyScss
 
 # internal imports
 import helpers
@@ -166,11 +166,11 @@ class Poobrain(flask.Flask):
 
         self.poobrain_path = os.path.dirname(os.path.realpath(__file__))
         self.site_path = os.getcwd()
-        self.resource_extension_whitelist = ['css', 'png', 'svg', 'ttf', 'otf', 'js']
+        self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'js']
 
         self.db = db_url.connect(self.config['DATABASE'])
 
-        self.add_url_rule('/theme/<string:filename>', 'serve_theme_resources', self.serve_theme_resources)
+        self.add_url_rule('/theme/<path:resource>', 'serve_theme_resources', self.serve_theme_resources)
 
         # Make sure that each request has a proper database connection
         self.before_request(self.request_setup)
@@ -243,11 +243,11 @@ class Poobrain(flask.Flask):
 
     
     
-    def serve_theme_resources(self, filename):
-
+    def serve_theme_resources(self, resource):
+        
         paths = []
 
-        extension = filename.split('.')
+        extension = resource.split('.')
         if len(extension) > 1:
             extension = extension[-1]
 
@@ -260,22 +260,24 @@ class Poobrain(flask.Flask):
         if self.config['THEME'] != 'default':
             paths.append(os.path.join(
                 self.root_path, 'themes', self.config['THEME'],
-                filename))
+                resource))
 
             paths.append(os.path.join(
                 self.poobrain_path, 'themes', self.config['THEME'],
-                filename))
+                resource))
 
         paths.append(os.path.join(
             self.root_path, 'themes', 'default',
-            filename))
+            resource))
 
         paths.append(os.path.join(
             self.poobrain_path, 'themes', 'default',
-            filename))
+            resource))
 
         for current_path in paths:
             if os.path.exists(current_path):
+                if extension == 'scss':
+                    return flask.Response(scss.compiler.compile_file(current_path), mimetype='text/css')
                 return flask.send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
 
         flask.abort(404)

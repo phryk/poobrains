@@ -1,20 +1,22 @@
 <!doctype html>
 <html>
     <head>
+        <meta charset="utf-8" />
         <title>{{ g.title }}</title>
-        <link rel="stylesheet" type="text/css" href="/theme/main.css">
+        <link rel="stylesheet" type="text/css" href="/theme/main.scss">
     </head>
     
     <body>
         <header>
-            {% if g.boxes.menu_main %}
-                {{ g.boxes.menu_main.render() }}
-            {% endif %}
+            <div class="sticky">
+                {% if g.boxes.menu_main %}
+                    {{ g.boxes.menu_main.render() }}
+                {% endif %}
 
-            {% for n in g.forms.keys() %}
-              FORM: {{ n.__class__ }}
-            {% endfor %}
-
+                {% for n in g.forms.keys() %}
+                  FORM: {{ n.__class__ }}
+                {% endfor %}
+            </div>
         </header>
         <main>
             <header>
@@ -34,10 +36,9 @@
                     {% endif %}
                 {% endwith %}
             </header>
-            {{ content.render(mode) }}
+            <section id="content">
+                {{ content.render(mode) }}
+            </section>
         </main>
-        <footer>
-            You are {{ user.name }}. Render mode is {{ mode }}.
-        </footer>
     </body>
 </html>

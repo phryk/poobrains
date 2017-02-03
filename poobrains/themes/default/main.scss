@@ -1,0 +1,320 @@
+/*@import('static/ostrich/ostrich-sans.css');*/
+@import '/theme/fonts/ostrich-sans/ostrich-sans.css';
+@import '/theme/fonts/open-sans/open-sans.css';
+
+$color_background_dark: rgba(0,0,0, 0.8);
+$color_background_light: rgba(255,255,255, 0.8);
+$color_highlight: rgba(128,255,0, 0.8);
+$color_font_dark: $color_background_dark;
+$color_font_light: $color_background_light;
+$color_background_form: opacify($color_background_light, -0.3);
+
+@keyframes blink {
+    0% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+/*@media (max-width: 55.875rem) {*/
+@media (min-width: 56rem) {
+    #logo {
+        display: flex !important;
+    }
+
+    body > header {
+        border-left: 0.25rem solid $color_background_light;
+        border-right: 0.25rem solid $color_background_light;
+        border-bottom: none !important;
+    }
+}
+
+html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, rgb(15,15,15), rgb(40,50,80) 100%);
+    background-size: 100% auto;
+    background-attachment: fixed;
+    /*color: rgba(255, 255, 255, 0.9);*/
+    color: $color_font_light;
+    font-family: 'Open Sans', sans;
+}
+
+body {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0 auto;
+    padding: 0;
+    max-width: 55rem;
+    min-height: 100vh;
+
+
+    & > header {
+
+        position: sticky;
+        top: 0;
+        flex-basis: 15rem;
+        flex-shrink: 1;
+        flex-grow: 15;
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
+        align-items: center;
+        justify-content: center;
+        max-height: 100vh;
+        box-sizing: border-box;
+        padding: 1rem;
+        z-index: 200;
+        background-color: $color_background_dark;
+        border-bottom: 0.25rem solid $color_background_light;
+        
+        /*-webkit-clip-path: polygon(0 0, 0 calc(100% - 3rem), 50% 100%, 100% calc(100% - 3rem), 100% 0);*/
+
+        overflow: hidden;
+        
+        & > .sticky {
+            position: sticky;
+            top: 1rem;
+            flex-shrink: 1;
+        }
+
+        nav.menu {
+
+            ul {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: flex-start;
+
+                li {
+                    flex-shrink: 1;
+                    min-width: 7.5rem;
+                    margin-right: 0.5rem;
+                    font-size: 2.3rem;
+                    line-height: 100%;
+
+
+                    a {
+                        width: 100%;
+                        outline: none;
+
+                        &::after {
+                            content: "█";
+                            margin-left: 0.25rem;
+                            vertical-align: 15%;
+                            font-size: 75%;
+                            text-shadow: $color_highlight 0 0 1rem;
+                            opacity: 0;
+                        }
+
+                        &:hover,
+                        &:focus {
+                        
+                            &::after {
+                                animation: blink 0.5s ease-in-out infinite;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        #logo {
+
+            display: none;
+            flex-basis: 7.5rem;
+            flex-grow: 1;
+            flex-shrink: 0;
+            align-self: center;
+            justify-self: flex-end;
+            max-height: 7.5rem;
+        }
+    }
+}
+
+main {
+
+    flex-basis: 40rem;
+    flex-shrink: 1;
+    flex-grow: 40;
+    box-sizing: border-box;
+    padding: 0 1rem;
+
+    &>header {
+
+        position: sticky;
+        top: 0;
+        padding: 2rem 1rem;
+        background: $color_background_light;
+        color: $color_font_dark;
+        z-index: 200;
+
+        h1 {
+            font-family: 'Ostrich Sans Inline', sans;
+            font-style: italic;
+            margin: 0;
+            font-size: 4.5rem;
+            font-weight: normal;
+            transform: rotate(-5deg);
+            text-align: center;
+            text-shadow: 0 0 0.5rem $color_font_dark;
+            position: relative;
+            z-index: 60;
+        }
+
+        nav.menu {
+            display: block;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            font-size: 1.8rem;
+            margin-top: 2rem;
+            margin-bottom: -2.25rem;
+
+
+
+            ul {
+                li {
+                    display: inline;
+
+                    a {
+                        display: inline-block;
+                        padding: 0.25rem;
+                        color: $color_font_dark;
+                        
+                        background-image: linear-gradient(to bottom, rgba(0,0,0, 1.0), rgba(0,0,0, 1.0) 100%);
+                        background-size: 100% 0;
+                        background-repeat: no-repeat;
+                        background-position: bottom;
+                        transition: background 0.3s, color 0.3s;
+
+                        &.trace {
+                            color: $color_font_dark;
+                            text-shadow: 0 0 0.25rem $color_font_dark;
+                        }
+
+                        &:hover,
+                        &:focus,
+                        &.active {
+                            background-size: 100% 100%;
+                            color: $color_highlight;
+                        }
+                    }
+                }
+            }
+
+        }
+    }
+
+    #content {
+
+        & > * {
+
+            display: block;
+            position: relative;
+            box-sizing: border-box;
+            width: 100%;
+            padding: 1rem;
+            background: $color_background_dark;
+            z-index: 100;
+            border: 0.25rem solid $color_background_light;
+            border-top: none;
+            border-bottom: none;
+        }
+    }
+}
+
+nav.menu {
+
+    ul {
+        margin: 0;
+        padding: 0;
+
+        li {
+            list-style: none;
+
+            a {
+
+                font-family: 'Ostrich Sans', sans;
+                color: $color_font_light;
+                text-decoration: none;
+                transition: color 0.5s;
+
+                &.active,
+                &.trace,
+                &:hover,
+                &:focus {
+                    color: $color_highlight;
+                }
+            }
+        }
+    }
+}
+
+article {
+
+    line-height: 1.5;
+    font-weight: lighter;
+    font-size: 1.2rem;
+
+    p:first-child {
+        margin-top: 0;
+    }
+}
+
+form {
+
+    padding: 0;
+    margin: 0;
+
+    input {
+        border: 0;
+        background: $color_background_form;
+        
+        &[type="text"] {
+            font-size: 1rem;
+            line-height: 150%;
+            color: $color_font_dark;
+        }
+    }
+
+    textarea {
+
+        width: 100%;
+        resize: vertical;
+        background: $color_background_form;
+        min-height: 5em;
+        max-height: 200em;
+    }
+
+}
+
+#search {
+
+
+        input {
+                display: inline-block;
+                font-weight: bold;
+                width: 50%;
+
+                &:focus {
+                    width: 70%;
+                }
+        }
+        button {
+                display: inline;
+                width: 30%;
+        }
+
+}

@@ -105,8 +105,15 @@ class MenuItem(object):
         super(MenuItem, self).__init__()
         self.url = url
         self.caption = caption
-        self.active = active
-
+        if active:
+            self.active = active
+        else:
+            if self.url == flask.request.path:
+                self.active = 'active'
+            elif flask.request.path.startswith(self.url):
+                self.active = 'trace'
+            else:
+                self.active = False
 
 
 class Menu(Renderable):

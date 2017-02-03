@@ -149,7 +149,8 @@ class Taggable(poobrains.auth.NamedOwned):
 
     def form(self, mode=None):
         f = super(Taggable, self).form(mode=mode)
-        setattr(f, 'tags', TaggingFieldset(self))
+        if mode != 'delete':
+            setattr(f, 'tags', TaggingFieldset(self))
         return f
 
     def prepared(self):

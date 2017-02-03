@@ -82,7 +82,6 @@ class CommentForm(poobrains.form.Form):
 
     def __init__(self, model, handle, **kwargs):
 
-        poobrains.app.debugger.set_trace()
         reply_to = kwargs.pop('reply_to') if kwargs.has_key('reply_to') else None
         if isinstance(reply_to, int):
             reply_to = Comment.load(reply_to)
@@ -104,7 +103,6 @@ class CommentForm(poobrains.form.Form):
         self.instance.permissions['read'].check(flask.g.user)
         Comment.permissions['create'].check(flask.g.user)
 
-        poobrains.app.debugger.set_trace()
         comment = Comment()
         comment.model = self.instance.__class__.__name__
         comment.handle = self.instance.handle_string
