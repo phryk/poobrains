@@ -3,6 +3,6 @@
         <h2><a href="{{ content.url() }}">{{ content.title }}</a></h2>
     </header>
 
-    {{ content.text }}
+    {{ content.text|truncate(255) }}
 
 </article>

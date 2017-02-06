@@ -111,7 +111,6 @@ body {
 
                     a {
                         width: 100%;
-                        outline: none;
 
                         &::after {
                             content: "█";
@@ -164,8 +163,6 @@ main {
         z-index: 110;
 
         h1 {
-            font-family: 'Ostrich Sans Inline', sans;
-            font-style: italic;
             margin: 0;
             font-size: 4.5rem;
             font-weight: normal;
@@ -252,6 +249,7 @@ nav.menu {
                 color: $color_font_light;
                 text-decoration: none;
                 transition: color 0.5s;
+                outline: none;
 
                 &.active,
                 &.trace,
@@ -280,15 +278,28 @@ form {
     padding: 0;
     margin: 0;
 
+    & > * {
+      display: block;
+      width: 100%;
+    }
+
     input,
     select,
-    textarea {
+    textarea,
+    button {
 
         border: 0;
         background: $color_background_form;
         font-size: 1rem;
         line-height: 150%;
         color: $color_font_dark;
+        outline: none;
+        transition: background 0.3s ease-in-out;
+
+        &:hover,
+        &:focus {
+          background: $color_highlight;
+        }
     }
 
     textarea {
@@ -297,6 +308,13 @@ form {
         resize: vertical;
         background: $color_background_form;
         min-height: 5em;
+    }
+
+    select {
+
+      option {
+        outline: none;
+      }
     }
 
     fieldset {
@@ -325,6 +343,16 @@ form {
                 width: 30%;
         }
 
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Ostrich Sans Inline', sans;
+  font-style: italic;
 }
 
 div.comment {

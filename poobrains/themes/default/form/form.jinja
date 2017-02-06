@@ -1,5 +1,4 @@
 <form
-    name="{% if content.prefix%}{{content.prefix}}.{% endif %}{{ content.name }}"
     method="{{ content.method }}"
     {% if content.action %}action="{{ content.action }}"{% endif %}
     enctype="multipart/form-data" >
