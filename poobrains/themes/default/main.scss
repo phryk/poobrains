@@ -30,8 +30,6 @@ $color_background_form: opacify($color_background_light, -0.3);
     }
 
     body > header {
-        border-left: 0.25rem solid $color_background_light;
-        border-right: 0.25rem solid $color_background_light;
         border-bottom: none !important;
     }
 
@@ -45,6 +43,7 @@ html {
     padding: 0;
     width: 100%;
     min-height: 100vh;
+    overflow-y: scroll; /* always show vertical scrollbar, viewport dependant widths stay the same */
     background-image: url('/theme/bg.svg'), linear-gradient(to bottom, rgb(15,15,15), rgb(40,50,80) 100%);
     background-size: 100% auto;
     background-attachment: fixed;
@@ -81,6 +80,8 @@ body {
         padding: 1rem;
         z-index: 200;
         background-color: $color_background_dark;
+        border-left: 0.25rem solid $color_background_light;
+        border-right: 0.25rem solid $color_background_light;
         border-bottom: 0.25rem solid $color_background_light;
         
         /*-webkit-clip-path: polygon(0 0, 0 calc(100% - 3rem), 50% 100%, 100% calc(100% - 3rem), 100% 0);*/
@@ -89,7 +90,7 @@ body {
         
         & > .sticky {
             position: sticky;
-            top: 1rem;
+            top: 0;
             flex-shrink: 1;
         }
 
@@ -148,9 +149,14 @@ body {
 
 main {
 
+    /* Flex of main children */
+    display: flex;
+    flex-direction: column;
+    /* "parent" flex */
     flex-basis: 40rem;
     flex-shrink: 1;
     flex-grow: 40;
+
     box-sizing: border-box;
 
     &>header {
@@ -218,6 +224,9 @@ main {
 
     #content {
 
+        display: flex;
+        flex-basis: 100%;
+
         & > * {
 
             display: block;
@@ -260,6 +269,10 @@ nav.menu {
             }
         }
     }
+}
+
+ul {
+    list-style: square;
 }
 
 article {
@@ -352,6 +365,7 @@ h4,
 h5,
 h6 {
   font-family: 'Ostrich Sans Inline', sans;
+  font-weight: normal;
   font-style: italic;
 }
 
@@ -362,5 +376,19 @@ div.comment {
     
     div.replies {
         padding-left: 0.75rem;
+
+        & > form {
+            display: none;
+
+            &:after {
+                content: "REPLY";
+            }
+        }
+
+    }
+
+
+    &:hover > div.replies > form {
+        display: block;
     }
 }

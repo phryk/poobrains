@@ -9,11 +9,12 @@
     
     <div class="replies">
 
+        {{ content.reply_form().render('full') }}
+
         {% for child in content.child_comments() %}
             {{ child.render('full') }}
         {% endfor %}
 
-        {{ content.reply_form().render('full') }}
     </div>
 
 

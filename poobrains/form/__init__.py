@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -+-
 
 # external imports
+import copy
 import functools
 import collections
 import peewee
@@ -34,7 +35,7 @@ class BaseForm(poobrains.rendering.Renderable):
     title = None
 
     def __new__(cls, *args, **kw):
-        
+
         instance = super(BaseForm, cls).__new__(cls, *args, **kw)
         instance.fields = poobrains.helpers.CustomOrderedDict()
         instance.controls = poobrains.helpers.CustomOrderedDict()
@@ -65,8 +66,12 @@ class BaseForm(poobrains.rendering.Renderable):
 
                 kw = {}
                 for propname in attr._meta.clone_props:
-                    kw[propname] = getattr(attr, propname)
-                
+
+                    value = getattr(attr, propname)
+                    if not callable(value):
+                        value = copy.deepcopy(value)
+                    kw[propname] = value
+
                 clone = attr.__class__(**kw)
                 setattr(instance, attr_name, clone)
 
@@ -114,12 +119,15 @@ class BaseForm(poobrains.rendering.Renderable):
             super(BaseForm, self).__setattr__(name, value)
 
 
-#    def __getattr__(self, name):
-#
-#        if self.fields.has_key(name):
-#            return self.fields[name]
-#
-#        return super(BaseForm, self).__getattr__(name)
+    def __getattribute__(self, name):
+
+        proxy = super(BaseForm, self)
+        fields = proxy.__getattribute__('fields')
+
+        if fields.has_key(name):
+            return fields[name]
+
+        return proxy.__getattribute__(name)
 
 
     def __iter__(self):
