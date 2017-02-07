@@ -119,17 +119,6 @@ class BaseForm(poobrains.rendering.Renderable):
             super(BaseForm, self).__setattr__(name, value)
 
 
-    def __getattribute__(self, name):
-
-        proxy = super(BaseForm, self)
-        fields = proxy.__getattribute__('fields')
-
-        if fields.has_key(name):
-            return fields[name]
-
-        return proxy.__getattribute__(name)
-
-
     def __iter__(self):
 
         """

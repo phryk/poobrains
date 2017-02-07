@@ -9,7 +9,11 @@
     
     <div class="replies">
 
-        {{ content.reply_form().render('full') }}
+        <div class="form-wrapper">
+            <input type="checkbox" id="reply-{{ content.id }}" class="toggle" />
+            <label for="reply-{{ content.id }}" class="toggle"></label>
+            {{ content.reply_form().render('full') }}
+        </div>
 
         {% for child in content.child_comments() %}
             {{ child.render('full') }}

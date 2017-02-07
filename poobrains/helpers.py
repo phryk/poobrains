@@ -70,13 +70,18 @@ def themed(f):
             content = rv
             status_code = 200 # TODO: Find out if this is too naive
 
+
         if isinstance(content, werkzeug.wrappers.Response):
             return rv # pass Responses (i.e. redirects) upwards
 
         elif isinstance(content, ThemedPassthrough):
             return rv.themed
 
-        if hasattr(content, 'title') and content.title:
+
+        if hasattr(content, '_title') and content._title:
+            flask.g.title = content._title
+
+        elif hasattr(content, 'title') and content.title:
             flask.g.title = content.title
 
         elif hasattr(content, 'name') and content.name:

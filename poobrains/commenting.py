@@ -91,7 +91,7 @@ class CommentForm(poobrains.form.Form):
         instance = cls.load(handle)
 
         self.instance = instance
-        self.reply_to.value = reply_to
+        self.fields['reply_to'].value = reply_to
         
         self.action = "/comment/%s/%s" % (self.instance.__class__.__name__, self.instance.handle_string) # FIXME: This is shit. Maybe we want to teach Pooprint.get_view_url handling extra parameters from the URL?
         if reply_to:
