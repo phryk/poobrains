@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--Created with Inkscape (http://www.inkscape.org/)-->
+<svg id="svg2" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <metadata id="metadata7">
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>
+          image/svg+xml
+        </dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <dc:title/>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <style>
+
+    #tongue {
+        animation: tonguedip 10s linear infinite;
+    }
+
+    .pupil {
+        animation: druuugs 10s linear infinite;
+    }
+
+    #pupil-left {
+        transform-origin: 75px 150px;
+    }
+
+    #pupil-right {
+        transform-origin: 175px 150px;
+    }
+
+    @keyframes tonguedip {
+        0% {
+            transform: translateY(0);
+        }
+
+        30% {
+            transform: translateY(-15px);
+        }
+
+        40% {
+            transform: translateY(-15px);
+        }
+
+        70% {
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes druuugs {
+        0% {
+            transform: scale(1);
+        }
+
+        30% {
+            transform: scale(0.5);
+        }
+        
+        40% {
+            transform: scale(0.5);
+        }
+
+        70% {
+            transform: scale(1);
+        }
+    }
+  </style>
+    <path id="ear-left" d="M64.405 55c-.675-8.36-.84-17.063-1.02-24.805.095-14.614 22.943-24.202 22.966-6.005l.27 17.425z" fill="#5c5884"/>
+    <path id="head" style="enable-background:accumulate;color:#000000;" fill="#8a86ae" d="M289.58 155.88c0 74.567-61.83 135.02-138.1 135.02s-138.1-60.45-138.1-135.02c0-74.567 61.83-135.02 138.1-135.02s138.1 60.45 138.1 135.02z"/>
+    <path id="ear-right" style="marker-end:none;" d="M190.61 32.71l5.64-22.357c3.472-11.53 21.486-7.96 21.07 1.6-.175 6.96-2.514 21.01-4.824 29.62-4.758-3.77-11.5-7.364-21.89-8.875z" fill="#5d5884"/>
+    <g id="eye-right">
+      <path id="path3868" style="enable-background:accumulate;color:#000000;" d="M229.244 130.88c0 20.512-16.63 37.14-37.14 37.14s-37.142-16.628-37.142-37.14 16.63-37.14 37.14-37.14 37.142 16.628 37.142 37.14z" fill-opacity="0.75690609" fill="#FFF"/>
+      <path id="pupil-right" class="pupil" style="enable-background:accumulate;color:#000000;" d="M220.182 130.6c0 16.47-13.352 29.82-29.82 29.82s-29.823-13.35-29.823-29.82 13.35-29.822 29.82-29.822 29.82 13.352 29.82 29.822z" fill-opacity="0.75690607"/>
+    </g>
+    <g id="eye-left">
+      <path id="path3868-5" style="enable-background:accumulate;color:#000000;" d="M119.28 134.82c0 20.513-16.63 37.14-37.142 37.14s-37.14-16.627-37.14-37.14 16.628-37.14 37.14-37.14 37.14 16.628 37.14 37.14z" fill-opacity="0.75690609" fill="#FFF"/>
+      <path id="pupil-left" class="pupil" style="enable-background:accumulate;color:#000000;" d="M110.637 134.08c0 16.47-13.352 29.823-29.82 29.823S50.993 150.55 50.993 134.08s13.352-29.82 29.822-29.82 29.82 13.35 29.82 29.82z" fill-opacity="0.75690607"/>
+    </g>
+    <path id="mouth" style="baseline-shift:baseline;block-progression:tb;color:#000000;direction:ltr;text-indent:0;text-align:start;enable-background:accumulate;text-transform:none;" d="M167.75 175.47a.5.5 0 0 0-.13.03.5.5 0 0 0-.18.12c-4.41 3.69-8.06 9.43-9.22 15.88-.21 1.18-.34 2.38-.38 3.59-9.89-.26-19.74-.38-29.53-.15-10.01.23-19.95.84-29.748 2.06l.126 1c19.302-2.4 39.172-2.43 59.152-1.91.08 5.15 1.87 10.53 6.16 15.47a.5.5 0 1 0 .75-.62c-5.4-6.23-6.68-13.09-5.56-19.28 1.11-6.2 4.65-11.75 8.87-15.28a.5.5 0 0 0-.31-.91z" fill-opacity="0.75686276" fill="#9e2e2e"/>
+    <g id="tongue">
+      <path id="path4116" opacity="0.8" style="enable-background:accumulate;color:#000000;" d="M139.98 195.62c-1.926 7.755-3.256 18.846-4.085 21.884-2.326 6.56-19.32 7.622-20.357-2.857-.77-3.726.16-12.8.714-19.107 8.588-1.218 16.863-1.872 23.728.08z" fill="#78366c"/>
+      <path id="path4254" style="baseline-shift:baseline;block-progression:tb;color:#000000;direction:ltr;text-indent:0;text-align:start;enable-background:accumulate;text-transform:none;" fill="#682e60" d="M127.81 194.41c-.55.018-1.098.03-1.656.063a1 1 0 0 0-.125.312c-1.4 5.94-2.14 11.617-2.22 17.53a1 1 0 1 0 2 0c.08-5.767.79-11.275 2.15-17.093a1 1 0 0 0-.16-.813z"/>
+    </g>
+    <rect id="rect3999" style="enable-background:accumulate;color:#000000;" height="32.792" width="27.4" y="162.47" x="114.02" fill="#8a86ae"/>
+    <path id="path4153" style="baseline-shift:baseline;block-progression:tb;color:#000000;direction:ltr;text-indent:0;text-align:start;enable-background:accumulate;text-transform:none;" fill="#434060" d="M167.84 174.88a1 1 0 0 0-.15.03 1 1 0 0 0-.5.25c-6.69 6.08-9.44 13-9.72 19.34-9.56-.27-19.16-.35-28.81-.09-9.95.26-19.94.85-30.035 1.97a1.006 1.006 0 1 0 .22 2c19.775-2.2 39.235-2.43 58.595-1.88.22 6.48 2.91 12.17 6.34 15.56a1.008 1.008 0 1 0 1.41-1.44c-3.09-3.05-5.67-8.5-5.75-14.68-.08-6.19 2.28-13.09 9.09-19.28a1 1 0 0 0-.69-1.78z"/>
+    <path id="hair" d="M177.12 22.76L158 50.25c-7.964 10.037-24.71 22.002-25.5-2.5-8.44 13.255-25.167 30.418-26 3.5-4.632 6.472-17 19.072-17-3.25 0-7.102.107-8.373 3.5-14.25 3.736-5.787 51.987-19.835 84.125-10.994z" fill="#c0bdd3"/>
+</svg>

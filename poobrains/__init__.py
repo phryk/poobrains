@@ -7,6 +7,7 @@ import werkzeug
 import flask
 import collections
 import functools
+import pathlib # only needed to pass a pathlib.Path to scss compiler
 
 #from flask.signals import appcontext_pushed # TODO: needed?
 import jinja2
@@ -110,6 +111,9 @@ class Poobrain(flask.Flask):
 
 
     def __init__(self, *args, **kwargs):
+
+        if not kwargs.has_key('root_path'):
+            kwargs['root_path'] = str(pathlib.Path('.').absolute()) #TODO: pathlib probably isn't really needed here
 
         super(Poobrain, self).__init__(*args, **kwargs)
 
@@ -241,10 +245,23 @@ class Poobrain(flask.Flask):
         super(Poobrain, self).try_trigger_before_first_request_functions()
 
 
-    
+    @property
+    def theme_paths(self):
+
+        paths = []
+
+        if self.config['THEME'] != 'default':
+            paths.append(os.path.join(self.root_path, 'themes', self.config['THEME']))
+            paths.append(os.path.join(self.poobrain_path, 'themes', self.config['THEME']))
+
+        paths.append(os.path.join(self.root_path, 'themes', 'default'))
+        paths.append(os.path.join(self.poobrain_path, 'themes', 'default'))
+
+        return paths
+
     
     def serve_theme_resources(self, resource):
-       
+        
         paths = []
 
         extension = resource.split('.')
@@ -256,6 +273,13 @@ class Poobrain(flask.Flask):
 
         if extension not in self.resource_extension_whitelist:
             flask.abort(404) # extension not allowed
+
+
+        if extension == 'svg':
+            try:
+                return flask.Response(flask.render_template(resource, style='* {fill: #f00;}'), mimetype='image/svg+xml')
+            except jinja2.exceptions.TemplateNotFound:
+                flask.abort(404)
 
         if self.config['THEME'] != 'default':
             paths.append(os.path.join(
@@ -277,7 +301,7 @@ class Poobrain(flask.Flask):
         for current_path in paths:
             if os.path.exists(current_path):
                 if extension == 'scss':
-                    return flask.Response(scss.compiler.compile_file(current_path), mimetype='text/css')
+                    return flask.Response(scss.compiler.compile_file(current_path, root=pathlib.Path('/'), search_path=self.theme_paths), mimetype='text/css')
                 return flask.send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
 
         flask.abort(404)
@@ -604,16 +628,7 @@ class Pooprint(flask.Blueprint):
     @flask.helpers.locked_cached_property
     def jinja_loader(self):
 
-        paths = []
-
-        if self.app.config['THEME'] != 'default':
-            paths.append(os.path.join(self.root_path, 'themes', self.app.config['THEME']))
-            paths.append(os.path.join(self.poobrain_path, 'themes', self.app.config['THEME']))
-
-        paths.append(os.path.join(self.root_path, 'themes', 'default'))
-        paths.append(os.path.join(self.poobrain_path, 'themes', 'default'))
-
-        return jinja2.FileSystemLoader(paths)
+        return jinja2.FileSystemLoader(self.app.theme_paths)
 
 
 app = Poobrain(__name__) # TODO: Make app class configurable.

@@ -59,7 +59,7 @@ def themed(f):
 
     @functools.wraps(f)
     def real(*args, **kwargs):
-        import pudb; pudb.set_trace()
+        
         rv = f(*args, **kwargs)
 
         if isinstance(rv, tuple):

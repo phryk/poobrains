@@ -2,12 +2,7 @@
 @import '/theme/fonts/ostrich-sans/ostrich-sans.css';
 @import '/theme/fonts/open-sans/open-sans.css';
 
-$color_background_dark: rgba(0,0,0, 0.8);
-$color_background_light: rgba(255,255,255, 0.8);
-$color_highlight: rgba(128,255,0, 0.8);
-$color_font_dark: $color_background_dark;
-$color_font_light: $color_background_light;
-$color_background_form: opacify($color_background_light, -0.3);
+@import 'colors';
 
 @keyframes blink {
     0% {
@@ -44,8 +39,10 @@ html {
     width: 100%;
     min-height: 100vh;
     overflow-y: scroll; /* always show vertical scrollbar, viewport dependant widths stay the same */
-    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, rgb(15,15,15), rgb(40,50,80) 100%);
-    background-size: 100% auto;
+    background-image: url('/theme/poobrains-logo-animooted.svg'), linear-gradient(to bottom, rgb(15,15,15), rgb(40,50,80) 100%);
+    background-size: auto 100%;
+    background-repeat: no-repeat;
+    background-position: center;
     background-attachment: fixed;
     /*color: rgba(255, 255, 255, 0.9);*/
     color: $color_font_light;

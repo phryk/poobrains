@@ -1,0 +1,10 @@
+$color_background_dark: rgba(0,0,0, 0.8);
+$color_background_light: rgba(255,255,255, 0.8);
+$color_highlight: rgba(128,255,0, 0.8);
+$color_font_dark: $color_background_dark;
+$color_font_light: $color_background_light;
+$color_background_form: opacify($color_background_light, -0.3);
+
+html {
+    background: #f00 !important;
+}
