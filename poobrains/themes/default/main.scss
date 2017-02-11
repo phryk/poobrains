@@ -5,6 +5,7 @@
 @import 'colors';
 
 @keyframes blink {
+
     0% {
         opacity: 0;
     }
@@ -18,8 +19,8 @@
     }
 }
 
-/*@media (max-width: 55.875rem) {*/
 @media (min-width: 56rem) {
+
     #logo {
         display: flex !important;
     }
@@ -39,7 +40,7 @@ html {
     width: 100%;
     min-height: 100vh;
     overflow-y: scroll; /* always show vertical scrollbar, viewport dependant widths stay the same */
-    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, rgb(15,15,15), rgb(40,50,80) 100%);
+    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, $color_background_hard, darken(opacify($color_highlight, 0.2), 40%) 100%);
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;

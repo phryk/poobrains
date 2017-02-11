@@ -72,6 +72,8 @@ class BaseForm(poobrains.rendering.Renderable):
                         value = copy.deepcopy(value)
                     kw[propname] = value
 
+                kw['name'] = attr_name
+
                 clone = attr.__class__(**kw)
                 setattr(instance, attr_name, clone)
 
