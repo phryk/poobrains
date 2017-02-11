@@ -39,8 +39,8 @@ html {
     width: 100%;
     min-height: 100vh;
     overflow-y: scroll; /* always show vertical scrollbar, viewport dependant widths stay the same */
-    background-image: url('/theme/poobrains-logo-animooted.svg'), linear-gradient(to bottom, rgb(15,15,15), rgb(40,50,80) 100%);
-    background-size: auto 100%;
+    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, rgb(15,15,15), rgb(40,50,80) 100%);
+    background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
     background-attachment: fixed;

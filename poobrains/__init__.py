@@ -277,7 +277,24 @@ class Poobrain(flask.Flask):
 
         if extension == 'svg':
             try:
-                return flask.Response(flask.render_template(resource, style='* {fill: #f00;}'), mimetype='image/svg+xml')
+
+                return flask.Response(
+                    flask.render_template(
+                        resource,
+                        style=scss.compiler.compile_string("@import 'svg';", root=pathlib.Path('/'), search_path=self.theme_paths)
+                    ),
+                    mimetype='image/svg+xml'
+                )
+
+            except scss.errors.SassImportError:
+
+                return flask.Response(
+                    flask.render_template(
+                        resource,
+                        style=''),
+                    mimetype='image/svg+xml'
+                )
+
             except jinja2.exceptions.TemplateNotFound:
                 flask.abort(404)
 
