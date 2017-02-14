@@ -261,7 +261,6 @@ class Poobrain(flask.Flask):
 
     
     def serve_theme_resources(self, resource):
-        
         paths = []
 
         extension = resource.split('.')

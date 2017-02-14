@@ -1,6 +1,6 @@
 @import 'colors';
 
-@keyframes test {
+/*@keyframes test {
     0% {
         opacity: 1;
     }
@@ -20,60 +20,52 @@
     100% {
         opacity: 1;
     }
-}
+}*/
 
-* {
-    fill: $color_background_dark !important;
-    stroke: $color_highlight !important;
-
-}
-
-use {
-    /*animation: test 13s linear infinite;*/
-    transition: fill 0.5s;
-
-    &:hover {
-        fill: $color_background_light !important;
+@keyframes scroll {
+    0% {
     }
 
-    &:nth-child(2n){
-        animation-delay: 1s;
-    }
-
-    &:nth-child(3n){
-        animation-delay: 2s;
-    }
-
-    %:nth-child(4n){
-        animation-delay: 3s;
-    }
-
-    %:nth-child(5n){
-        animation-delay: 4s;
-    }
-
-    %:nth-child(6n){
-        animation-delay: 5s;
-    }
-
-    %:nth-child(7n){
-        animation-delay: 6s;
-    }
-
-    %:nth-child(8n){
-        animation-delay: 7s;
-    }
-
-    %:nth-child(9n){
-        animation-delay: 8s;
-    }
-
-    %:nth-child(10n){
-        animation-delay: 9s;
-    }
-    
-    %:nth-child(11n){
-        animation-delay: 10s;
+    100% {
+        transform: translateY(-170px);
     }
 }
 
+@keyframes bump {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(0.5);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+svg#hexascroll {
+
+    g#hexagon-wrapper {
+        animation: scroll 30s linear infinite;
+    }
+
+    use {
+        fill: opacify($color_background_dark, -0.2);
+        stroke: $color_background_light;
+        stroke-width: 2;
+
+        &.hexagon {
+            transition: fill 0.5s;
+
+            &:hover {
+                fill: $color_background_light !important;
+            }
+
+            &:nth-child(8n){
+                /*animation: bump 2s linear infinite;*/
+            }
+        }
+    }
+}

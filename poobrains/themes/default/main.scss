@@ -40,7 +40,7 @@ html {
     width: 100%;
     min-height: 100vh;
     overflow-y: scroll; /* always show vertical scrollbar, viewport dependant widths stay the same */
-    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, $color_background_hard, darken(opacify($color_highlight, 0.2), 40%) 100%);
+    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, opacify($color_background_dark, 0.2), darken(opacify($color_highlight, 0.2), 40%) 100%);
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -169,7 +169,6 @@ main {
         h1 {
             margin: 0;
             font-size: 4.5rem;
-            font-weight: normal;
             transform: rotate(-5deg);
             text-align: center;
             text-shadow: 0 0 0.5rem $color_font_dark;
@@ -255,17 +254,8 @@ nav.menu {
             a {
 
                 font-family: 'Ostrich Sans', sans;
-                color: $color_font_light;
-                text-decoration: none;
-                transition: color 0.5s;
                 outline: none;
 
-                &.active,
-                &.trace,
-                &:hover,
-                &:focus {
-                    color: $color_highlight;
-                }
             }
         }
     }
@@ -273,6 +263,27 @@ nav.menu {
 
 ul {
     list-style: square;
+
+    &.listing {
+        margin: 0;
+        margin-top: 1rem;
+        padding: 0;
+        padding-left: 1rem;
+    }
+}
+
+a {
+
+    color: $color_font_light;
+    text-decoration: none;
+    transition: color 0.3s;
+
+    &.active,
+    &.trace,
+    &:hover,
+    &:focus {
+        color: $color_highlight;
+    }
 }
 
 article {
@@ -367,6 +378,16 @@ h6 {
   font-family: 'Ostrich Sans Inline', sans;
   font-weight: normal;
   font-style: italic;
+  margin: 1rem 0;
+  padding: 0;
+}
+
+h1 {
+    font-size: 4.5rem;
+}
+
+h2 {
+    font-size: 3rem;
 }
         
 input.toggle {
