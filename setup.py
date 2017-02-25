@@ -7,5 +7,6 @@ setup(
     packages=find_packages(),
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
+        'Programming Language :: Python :: 2.7',
     ]
 )
