@@ -1,5 +1,4 @@
-<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}
-    <input
+<input
         class="{{ content.prefix }}.{{ content.name }}"
         type="text"
         name="{{content.prefix}}.{{ content.name }}"
@@ -12,5 +11,4 @@
         {% if content.value %}
             value="{{ content.value }}"
         {% endif %}
-    >
-</label>
+>

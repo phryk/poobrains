@@ -4,8 +4,7 @@
     name="{{ content.prefix }}.{{ content.name }}"
     {% if content.readonly %}disabled{% endif %}
     class="{% if content.errors %}invalid{% endif %}"
-    {% if content.multi %}multiple{% endif %}
->
+    {% if content.multi %}multiple{% endif %}>
 
   <option value=''>{{ content.empty_label }}</option>
   {% for value, label in content.choices %}

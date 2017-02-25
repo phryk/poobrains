@@ -46,7 +46,7 @@ class Field(object):
         self.name = name
         self.value = value
         self.label = label if label else name
-        self.placeholder = placeholder if placeholder else name
+        self.placeholder = placeholder if placeholder else self.label
         self.readonly = readonly
         self.required = required
         self.rendered = False
