@@ -41,7 +41,6 @@ class Field(object):
 
     def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None):
 
-        poobrains.app.debugger.set_trace()
         self.errors = []
         self.name = name
         self.value = value

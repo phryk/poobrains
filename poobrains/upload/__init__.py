@@ -13,7 +13,6 @@ class UploadForm(poobrains.form.AddForm):
 
     def handle(self):
 
-#        poobrains.app.debugger.set_trace()
         upload_file = self.fields['upload'].value
         filename = werkzeug.utils.secure_filename(upload_file.filename)
         upload_file.save(path.join(self.instance.path, filename))

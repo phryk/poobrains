@@ -571,7 +571,6 @@ class RelatedForm(poobrains.form.Form):
     related_field = None
 
     def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
-        poobrains.app.debugger.set_trace()
 
         related_model.permissions['create'].check(flask.g.user)
         related_model.permissions['update'].check(flask.g.user)

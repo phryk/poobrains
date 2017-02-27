@@ -38,7 +38,6 @@ class Tag(poobrains.auth.Named):
 
     def list_tagged(self):
 
-        #poobrains.app.debugger.set_trace()
         bindings = TagBinding.select().where(TagBinding.tag == self).limit(poobrains.app.config['PAGINATION_COUNT'])
         bindings_by_model = collections.OrderedDict()
         contents = []
