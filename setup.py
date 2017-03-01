@@ -12,7 +12,4 @@ setup(
         'dev': ['pudb'], 
     },
     packages=find_packages(),
-    package_data = {
-        '': ['*.jinja', '*.scss', '*.svg'],
-    },
 )
