@@ -327,6 +327,7 @@ class Poobrain(flask.Flask):
         
         flask.g.boxes = {}
         flask.g.forms = {}
+        self.db.close()
         self.db.connect()
         connection = self.db.get_conn()
 
