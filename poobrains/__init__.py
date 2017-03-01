@@ -698,6 +698,10 @@ def errorpage(error):
         return (ErrorPage(error), error.code)
 
     app.logger.error('%s when accessing %s: %s' % (error.__class__.__name__, flask.request.path, error.message))
+
+    if app.config.DEBUG:
+        import traceback
+        app.logger.debug(traceback.format_exc())
     return ErrorPage(error)
 
 app.register_error_handler(400, errorpage)
