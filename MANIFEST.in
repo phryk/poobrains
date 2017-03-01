@@ -1,1 +1,1 @@
-recursive-include poobrains/themes
+recursive-include poobrains/themes *
