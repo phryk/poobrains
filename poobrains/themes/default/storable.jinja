@@ -2,6 +2,6 @@
     This is the base template for Storables. Somebody probably ought to implement a template for {{ content.__class__.__name__ }}.
     {{ content.templates() }}
     {% if mode == 'teaser' %}
-    {{ content.actions.render() }}
+    {{ content.menu_actions.render() }}
     {% endif %}
 </div>

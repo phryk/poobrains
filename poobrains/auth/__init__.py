@@ -921,12 +921,13 @@ class Administerable(poobrains.storage.Storable, Protected):
    
 
     @property
-    def actions(self):
+    def menu_actions(self):
         try:
             self._get_pk_value()
         #except self.__class__.DoesNotExist:
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
-            return poobrains.rendering.RenderString('No actions')
+            #return poobrains.rendering.RenderString('No actions')
+            return None
 
         user = flask.g.user
         actions = poobrains.rendering.Menu('%s.actions' % self.handle_string)
@@ -948,6 +949,25 @@ class Administerable(poobrains.storage.Storable, Protected):
 
         return actions
 
+
+    @property
+    def menu_related(self):
+
+        try:
+            self._get_pk_value()
+        except peewee.DoesNotExist:
+            return None
+
+        user = flask.g.user
+        menu = poobrains.rendering.Menu('%s.related' % self.handle_string)
+
+        for related_model in self._meta.related_models():
+            if related_model is not self.__class__:
+                menu.append('/floob', related_model.__name__)
+        return menu
+
+
+    #def related_url(self, related_model): # CONTINUE HERE 
 
     def form(self, mode=None):
         
@@ -990,6 +1010,25 @@ class Administerable(poobrains.storage.Storable, Protected):
         op_name = cls._meta.ops[op]
         q = super(Administerable, cls).list(op, user, handles=handles)
         return cls.permissions[op_name].list(cls, q, op, user)
+
+
+    @classmethod
+    def related_view(cls, related_field=None, handle=None):
+
+        if related_field is None:
+            raise TypeError("%s.related_view needs Field instance for parameter 'field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
+
+        related_model = related_field.model_class
+        instance = cls.load(cls.string_handle(handle))
+
+        if hasattr(related_model, 'related_form'):
+            form_class = related_model.related_form
+        else:
+            form_class = functools.partial(poobrains.auth.RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
+
+        f = form_class(related_field, instance)
+        
+        return f.view('full')
 
 
 class Named(Administerable, poobrains.storage.Named):

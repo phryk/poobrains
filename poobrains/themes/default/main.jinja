@@ -33,8 +33,12 @@
                     {% endif %}
                 {% endwith %}
 
-                {% if g.content.actions %}
-                    {{ g.content.actions.render() }}
+                {% if g.content.menu_actions %}
+                    {{ g.content.menu_actions.render() }}
+                {% endif %}
+
+                {% if g.content.menu_related %}
+                    {{ g.content.menu_related.render() }}
                 {% endif %}
 
             </header>

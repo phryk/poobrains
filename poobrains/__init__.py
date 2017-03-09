@@ -208,36 +208,11 @@ class Poobrain(flask.Flask):
                 self.admin.add_view(cls, rule, mode='delete', force_secure=True)
                 self.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
 
-                for field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
-                    related_model = field.model_class
+                for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+                    related_model = related_field.model_class
 
                     if issubclass(related_model, poobrains.auth.Administerable):
-
-                        endpoint = "%s_%s" % (cls.__name__, related_model.__name__)
-                        
-                        #def view_func = functools.partial(cls.related_form, related_field=field)
-                        #print "view_func:", view_func
-
-
-                        def view_func(cls, field, handle):
-
-                            related_model = field.model_class
-                            instance = cls.load(cls.string_handle(handle))
-
-                            if hasattr(related_model, 'related_form'):
-                                form_class = related_model.related_form
-                            else:
-                                form_class = functools.partial(poobrains.auth.RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
-
-                            f = form_class(field, instance)
-                            
-                            return f.view('full')
-
-
-                        print "YOINKS: ", rule, related_model.__name__.lower(), endpoint
-                        if not hasattr(related_model._meta, 'abstract'):
-                            print "somethings fucky with %s" % related_model.__name__
-                        self.admin.add_url_rule("%s<handle>/%s/" % (rule, related_model.__name__.lower()), endpoint, functools.partial(view_func, cls=cls, field=field), methods=['GET', 'POST'])
+                        self.admin.add_related(cls, related_field, rule, force_secure=True)
 
             self.register_blueprint(self.site)
             self.register_blueprint(self.admin, url_prefix='/admin/')
@@ -406,6 +381,7 @@ class Pooprint(flask.Blueprint):
     db = None
     views = None
     listings = None
+    related_views = None
     boxes = None
     poobrain_path = None
 
@@ -414,8 +390,9 @@ class Pooprint(flask.Blueprint):
 
         super(Pooprint, self).__init__(*args, **kwargs)
 
-        self.views = {}
-        self.listings = {} # TODO: list of dicts? {primary: bool, endpoint: str}
+        self.views = collections.OrderedDict()
+        self.listings = collections.OrderedDict() # TODO: list of dicts? {primary: bool, endpoint: str}
+        self.related_views = collections.OrderedDict()
         self.boxes = {}
         self.poobrain_path = os.path.dirname(__file__)
         
@@ -447,26 +424,43 @@ class Pooprint(flask.Blueprint):
             rule = os.path.join(rule, 'delete')
             options['methods'].append('DELETE')
 
-        #@poobrains.helpers.themed(mode)
-        #@poobrains.helpers.access(getattr(cls, perm_names[mode]))
-        #def view_func(handle=None):
-        #    
-        #    instance = cls.load(cls.string_handle(handle))
-        #    return instance.view(mode)
+        def view_func(*args, **kwargs):
+            kwargs['mode'] = mode
+            return cls.class_view(*args, **kwargs)
 
-        view_func = functools.partial(cls.class_view, mode=mode)
-
-
-#        if force_secure:
-#            view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
+        if force_secure:
+            view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
 
         endpoint = self.next_endpoint(cls, mode, 'view')
 
-        if endpoint is None: # TODO: does this even happen? kill it if not.
-            endpoint = view_func.__name__
-
         self.add_url_rule(rule, endpoint, view_func, **options)
         self.views[cls][mode][endpoint] = {'primary': primary, 'endpoint': endpoint}
+
+
+    def add_related(self, cls, related_field, rule, endpoint=None, view_func=None, primary=False, force_secure=False, **optinal):
+
+        related_model = related_field.model_class
+        if not endpoint:
+            endpoint = self.next_endpoint(cls, related_model, 'related')
+            print "AUTO ENDPOINT: ", endpoint
+        else:
+            print "CUSTOM ENDPOINT: ", endpoint
+
+        if not self.related_views.has_key(cls):
+            self.related_views[cls] = collections.OrderedDict()
+
+        if not self.related_views[cls].has_key(related_model):
+            rule = "%s<handle>/%s/" % (rule, related_model.__name__.lower())
+            self.related_views[cls][related_model] = collections.OrderedDict()
+        else:
+            rule = "%s<handle>/%s.%s/" (rule, related_model.__name__.lower(), related_field.name)
+
+        def view_func(*args, **kwargs):
+            kwargs['related_field'] = related_field
+            return cls.related_view(*args, **kwargs)
+
+        self.add_url_rule(rule, endpoint, view_func, methods=['GET', 'POST'])
+        self.related_views[cls][related_model][endpoint] = {'primary': primary, 'endpoint': endpoint}
 
 
     def box_setup(self):
@@ -479,6 +473,9 @@ class Pooprint(flask.Blueprint):
 
         if not mode:
             mode = 'teaser'
+        
+        if endpoint is None:
+            endpoint = self.next_endpoint(cls, mode, 'listing')
 
         rule = os.path.join(rule, '') # make sure rule has trailing slash
 
@@ -500,13 +497,8 @@ class Pooprint(flask.Blueprint):
 
                 return poobrains.storage.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
 
-            endpoint = self.next_endpoint(cls, mode, 'listing')
-
         if force_secure:
             view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
-
-        if endpoint is None:
-            endpoint = view_func.__name__
 
         offset_rule = rule+'+<int:offset>'
         offset_endpoint = '%s_offset' % (endpoint,)
@@ -628,13 +620,24 @@ class Pooprint(flask.Blueprint):
         return flask.url_for(endpoint)
 
     
-    def next_endpoint(self, cls, mode, context):
+    def next_endpoint(self, cls, mode, context): # TODO: rename mode because it's not an applicable name for 'related' context
 
             format = '%s_%s_%s_autogen_%%d' % (cls.__name__, context, mode)
 
+            try:
+                if context == 'view':
+                    endpoints = self.views[cls][mode].keys()
+                elif context == 'listing':
+                    endpoints = self.listings[cls][mode].keys()
+                elif context == 'related':
+                    format = '%s_%s_%s_autogen_%%d' % (cls.__name__, context, mode.__name__)
+                    endpoints = self.related_views[cls][mode].keys()
+
+            except KeyError: # means no view/listing has been registered yet
+                endpoints = []
+            
             i = 1
             endpoint = format % (i,)
-            endpoints = self.views[cls][mode].keys() if context == 'view' else self.listings[cls][mode].keys()
             while endpoint in endpoints:
                 endpoint = format % (i,)
                 i += 1
