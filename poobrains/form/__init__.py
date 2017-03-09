@@ -357,8 +357,11 @@ class BoundForm(Form):
             f.instance = model_or_instance
             f.model = f.instance.__class__
 
-        if hasattr(f.instance, 'actions'):
-            f.actions = f.instance.actions
+        if hasattr(f.instance, 'menu_actions'):
+            f.menu_actions = f.instance.menu_actions
+
+        if hasattr(f.instance, 'menu_related'):
+            f.menu_related = f.instance.menu_related
 
         return f
     

@@ -212,7 +212,7 @@ class Poobrain(flask.Flask):
                     related_model = related_field.model_class
 
                     if issubclass(related_model, poobrains.auth.Administerable):
-                        self.admin.add_related(cls, related_field, rule, force_secure=True)
+                        self.admin.add_related_view(cls, related_field, rule, force_secure=True)
 
             self.register_blueprint(self.site)
             self.register_blueprint(self.admin, url_prefix='/admin/')
@@ -365,6 +365,12 @@ class Poobrain(flask.Flask):
                 raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
 
 
+    def get_related_view_url(self, cls, handle, related_field):
+        
+        blueprint = self.blueprints[flask.request.blueprint]
+        return blueprint.get_related_view_url(cls, handle, related_field)
+
+
     def run(self, *args, **kw):
 
         if len(sys.argv) > 1 and sys.argv[1] == 'shell':
@@ -437,30 +443,25 @@ class Pooprint(flask.Blueprint):
         self.views[cls][mode][endpoint] = {'primary': primary, 'endpoint': endpoint}
 
 
-    def add_related(self, cls, related_field, rule, endpoint=None, view_func=None, primary=False, force_secure=False, **optinal):
+    def add_related_view(self, cls, related_field, rule, endpoint=None, view_func=None, primary=False, force_secure=False, **options):
 
         related_model = related_field.model_class
         if not endpoint:
-            endpoint = self.next_endpoint(cls, related_model, 'related')
-            print "AUTO ENDPOINT: ", endpoint
-        else:
-            print "CUSTOM ENDPOINT: ", endpoint
+            endpoint = self.next_endpoint(cls, related_field, 'related')
 
         if not self.related_views.has_key(cls):
             self.related_views[cls] = collections.OrderedDict()
 
-        if not self.related_views[cls].has_key(related_model):
-            rule = "%s<handle>/%s/" % (rule, related_model.__name__.lower())
-            self.related_views[cls][related_model] = collections.OrderedDict()
-        else:
-            rule = "%s<handle>/%s.%s/" (rule, related_model.__name__.lower(), related_field.name)
+        if not self.related_views[cls].has_key(related_field):
+            rule = "%s<handle>/%s.%s/" % (rule, related_model.__name__.lower(), related_field.name.lower())
+            self.related_views[cls][related_field] = collections.OrderedDict()
 
         def view_func(*args, **kwargs):
             kwargs['related_field'] = related_field
             return cls.related_view(*args, **kwargs)
 
         self.add_url_rule(rule, endpoint, view_func, methods=['GET', 'POST'])
-        self.related_views[cls][related_model][endpoint] = {'primary': primary, 'endpoint': endpoint}
+        self.related_views[cls][related_field][endpoint] = {'primary': primary, 'endpoint': endpoint}
 
 
     def box_setup(self):
@@ -618,6 +619,23 @@ class Pooprint(flask.Blueprint):
             return flask.url_for(endpoint+'_offset', offset=offset)
 
         return flask.url_for(endpoint)
+    
+    
+    def get_related_view_url(self, cls, handle, related_field):
+
+        if not self.related_views.has_key(cls):
+            raise LookupError("No registered related views for class %s." % (cls.__name__,))
+
+        if not self.related_views[cls].has_key(related_field):
+            raise LookupError("No registered related views for %s[%s]<-%s.%s." % (cls.__name__, handle, related_field.model_class.__name__, related_field.name))
+
+
+        endpoints = self.related_views[cls][related_field]
+       
+        endpoint = helpers.choose_primary(endpoints)['endpoint']
+        endpoint = '%s.%s' % (self.name, endpoint)
+
+        return flask.url_for(endpoint, handle=handle)
 
     
     def next_endpoint(self, cls, mode, context): # TODO: rename mode because it's not an applicable name for 'related' context
@@ -630,7 +648,8 @@ class Pooprint(flask.Blueprint):
                 elif context == 'listing':
                     endpoints = self.listings[cls][mode].keys()
                 elif context == 'related':
-                    format = '%s_%s_%s_autogen_%%d' % (cls.__name__, context, mode.__name__)
+                    # mode is actually a foreign key field
+                    format = '%s_%s_%s-%s_autogen_%%d' % (cls.__name__, context, mode.model_class.__name__, mode.name)
                     endpoints = self.related_views[cls][mode].keys()
 
             except KeyError: # means no view/listing has been registered yet

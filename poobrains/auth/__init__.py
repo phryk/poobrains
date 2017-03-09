@@ -953,6 +953,8 @@ class Administerable(poobrains.storage.Storable, Protected):
     @property
     def menu_related(self):
 
+        poobrains.app.debugger.set_trace()
+
         try:
             self._get_pk_value()
         except peewee.DoesNotExist:
@@ -961,13 +963,18 @@ class Administerable(poobrains.storage.Storable, Protected):
         user = flask.g.user
         menu = poobrains.rendering.Menu('%s.related' % self.handle_string)
 
-        for related_model in self._meta.related_models():
-            if related_model is not self.__class__:
-                menu.append('/floob', related_model.__name__)
+        for related_field in self._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+            related_model = related_field.model_class
+            if related_model is not self.__class__ and issubclass(related_model, Administerable) and not related_model._meta.abstract:
+                try:
+                    menu.append(self.related_url(related_field) , related_model.__name__)
+                except LookupError:
+                    pass
         return menu
 
 
-    #def related_url(self, related_model): # CONTINUE HERE 
+    def related_url(self, related_field):
+        return poobrains.app.get_related_view_url(self.__class__, self.handle_string, related_field)
 
     def form(self, mode=None):
         
@@ -1016,7 +1023,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     def related_view(cls, related_field=None, handle=None):
 
         if related_field is None:
-            raise TypeError("%s.related_view needs Field instance for parameter 'field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
+            raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
 
         related_model = related_field.model_class
         instance = cls.load(cls.string_handle(handle))
