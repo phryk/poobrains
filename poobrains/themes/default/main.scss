@@ -157,7 +157,7 @@ main {
 
     box-sizing: border-box;
 
-    &>header {
+    & > header {
 
         position: sticky;
         top: 0;
@@ -177,14 +177,26 @@ main {
 
         nav.menu {
             display: block;
-            position: sticky;
             top: 0;
             z-index: 120;
             font-size: 1.8rem;
-            margin-top: 2rem;
-            margin-bottom: -2.25rem;
 
+            &:first-of-type {
+                margin-top: 2rem;
+            }
 
+            &:last-child {
+                margin-bottom: -2rem;
+                background: #000;
+                /*font-family: 'Open Sans', sans;
+                font-size: 1rem;*/
+
+                a {
+                    color: $color_font_light;
+                    transition: color 0.3s;
+                    background-image: none;
+                }
+            }
 
             ul {
                 li {
@@ -193,7 +205,6 @@ main {
                     a {
                         display: inline-block;
                         position:relative;
-                        margin-bottom: 0.25rem;
                         padding: 0.25rem;
                         color: $color_font_dark;
                         
@@ -217,7 +228,6 @@ main {
                     }
                 }
             }
-
         }
     }
 
@@ -244,6 +254,8 @@ main {
 
 nav.menu {
 
+    font-family: 'Ostrich Sans', sans;
+
     ul {
         margin: 0;
         padding: 0;
@@ -253,9 +265,7 @@ nav.menu {
 
             a {
 
-                font-family: 'Ostrich Sans', sans;
                 outline: none;
-
             }
         }
     }
