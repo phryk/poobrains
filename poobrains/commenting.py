@@ -49,6 +49,7 @@ class Commentable(poobrains.tagging.Taggable):
 
     comments = None
     comments_threaded = None
+    comments_enabled = poobrains.storage.fields.BooleanField(default=0)
 
     def __init__(self, *args, **kwargs):
 
