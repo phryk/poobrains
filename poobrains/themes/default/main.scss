@@ -31,6 +31,7 @@
 
     main {
         padding-left: 1rem;
+        max-width: 40rem;
     }
 }
 
@@ -186,15 +187,30 @@ main {
             }
 
             &:last-child {
-                margin-bottom: -2rem;
-                background: #000;
-                /*font-family: 'Open Sans', sans;
-                font-size: 1rem;*/
 
-                a {
-                    color: $color_font_light;
-                    transition: color 0.3s;
-                    background-image: none;
+                margin-bottom: -2rem;
+
+                &:not(:first-of-type) {
+                    background: #000;
+                    /*font-family: 'Open Sans', sans;
+                    font-size: 1rem;*/
+
+                    a {
+                        color: $color_font_light;
+                        transition: color 0.3s;
+                        background-image: none;
+
+                        &.trace {
+                          color: lighten($color_highlight, 30%);
+                        }
+
+                        &:hover,
+                        &:focus,
+                        &.trace:hover,
+                        &.trace:focus {
+                            color: $color_highlight;
+                        }
+                    }
                 }
             }
 
@@ -221,7 +237,9 @@ main {
 
                         &:hover,
                         &:focus,
-                        &.active {
+                        &.active,
+                        &.trace:hover,
+                        &.trace:focus {
                             background-size: 100% 100%;
                             color: $color_highlight;
                         }

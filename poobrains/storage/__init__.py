@@ -196,15 +196,15 @@ class Listing(rendering.Renderable):
     count = None
     pagination = None
     current_page = None
-    actions = None
+    menu_actions = None
 
-    def __init__(self, cls, mode='teaser', title=None, offset=0, limit=None, actions=None):
+    def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None):
 
         super(Listing, self).__init__()
         self.cls = cls
         self.mode = mode
         self.offset = offset
-        self.actions = actions
+        self.menu_actions = menu_actions
 
         if title is not None:
             self.title = title
@@ -216,27 +216,16 @@ class Listing(rendering.Renderable):
         else:
             self.limit = limit
 
-        #select = cls.select()
-        op = cls._meta.modes[mode]
-        select = cls.list(op, flask.g.user)
-        self.count = select.count()
+        if not query:
+            op = cls._meta.modes[mode]
+            query = cls.list(op, flask.g.user)
+
+        self.count = query.count()
 
         self.pagecount = int(math.ceil(self.count/float(self.limit)))
         self.current_page = int(math.floor(self.offset / float(self.limit))) + 1
 
-        #self.items = []
-        #items = select.offset(self.offset).limit(self.limit)
-        self.items = select.offset(self.offset).limit(self.limit)
-
-        #iteration_done = False
-        #iterator = items.__iter__()
-        #while not iteration_done:
-        #    try:
-        #        item = next(iterator)
-        #        self.items.append(item)
-
-        #    except StopIteration:
-        #        iteration_done = True
+        self.items = query.offset(self.offset).limit(self.limit)
 
         # Build pagination if matching endpoint and enough rows exist
         endpoint = flask.request.endpoint

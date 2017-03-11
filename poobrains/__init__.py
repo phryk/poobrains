@@ -341,6 +341,12 @@ class Poobrain(flask.Flask):
                 self.site.add_listing(cls, rule, mode='teaser', title=title, force_secure=force_secure)
                 self.site.add_view(cls, rule, mode=mode, force_secure=force_secure)
 
+                for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+                    related_model = related_field.model_class
+
+                    if issubclass(related_model, poobrains.auth.Administerable):
+                        self.site.add_related_view(cls, related_field, rule)
+
             elif issubclass(cls, form.Form):
 
                 self.site.add_view(cls, rule, force_secure=force_secure)
@@ -351,17 +357,19 @@ class Poobrain(flask.Flask):
 
     
     def get_url(self, cls, handle=None, mode=None):
-
+        
+        blueprint = self.blueprints[flask.request.blueprint]
         try:
-            #TODO: Is it wise to just prefer self.site?
-            return self.site.get_url(cls, handle=handle, mode=mode)
+            return blueprint.get_url(cls, handle=handle, mode=mode)
 
         except LookupError:
 
-            try: 
-                return self.admin.get_url(cls, handle=handle, mode=mode)
-            except LookupError:
-                #self.logger.error("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
+            if blueprint is not self.site:
+                try: 
+                    return self.site.get_url(cls, handle=handle, mode=mode)
+                except LookupError:
+                    pass
+
                 raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
 
 
@@ -492,11 +500,11 @@ class Pooprint(flask.Blueprint):
             def view_func(offset=0):
 
                 if action_func:
-                    actions = action_func()
+                    menu_actions = action_func()
                 else:
-                    actions = None
+                    menu_actions = None
 
-                return poobrains.storage.Listing(cls, offset=offset, title=title, mode=mode, actions=actions)
+                return poobrains.storage.Listing(cls, offset=offset, title=title, mode=mode, menu_actions=menu_actions)
 
         if force_secure:
             view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner

@@ -903,6 +903,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     class Meta:
         abstract = True
+        related_use_form = False # Whether we want to use Administerable.related_form in related view for administration.
         permission_class = Permission
         ops = collections.OrderedDict([
             ('c', 'create'),
@@ -952,8 +953,6 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @property
     def menu_related(self):
-
-        poobrains.app.debugger.set_trace()
 
         try:
             self._get_pk_value()
@@ -1028,14 +1027,18 @@ class Administerable(poobrains.storage.Storable, Protected):
         related_model = related_field.model_class
         instance = cls.load(cls.string_handle(handle))
 
-        if hasattr(related_model, 'related_form'):
-            form_class = related_model.related_form
-        else:
-            form_class = functools.partial(poobrains.auth.RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
+        if flask.request.blueprint == 'admin' and related_model._meta.related_use_form:
+            if hasattr(related_model, 'related_form'):
+                form_class = related_model.related_form
+            else:
+                form_class = functools.partial(poobrains.auth.RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
 
-        f = form_class(related_field, instance)
-        
-        return f.view('full')
+            f = form_class(related_field, instance)
+            
+            return f.view('full')
+
+        else:
+            return poobrains.storage.Listing(cls=related_model, query=related_model.list('r', flask.g.user).where(related_field == instance)).view()
 
 
 class Named(Administerable, poobrains.storage.Named):
@@ -1121,6 +1124,7 @@ class UserPermission(Administerable):
     class Meta:
         primary_key = peewee.CompositeKey('user', 'permission')
         order_by = ('user', 'permission')
+        related_use_form = True
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
