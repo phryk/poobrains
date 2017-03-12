@@ -358,7 +358,11 @@ class Poobrain(flask.Flask):
     
     def get_url(self, cls, handle=None, mode=None):
         
-        blueprint = self.blueprints[flask.request.blueprint]
+        if flask.request.blueprint is not None:
+            blueprint = self.blueprints[flask.request.blueprint]
+        else:
+            blueprint = self.site
+       
         try:
             return blueprint.get_url(cls, handle=handle, mode=mode)
 
