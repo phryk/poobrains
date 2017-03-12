@@ -717,7 +717,7 @@ class ErrorPage(poobrains.rendering.Renderable):
                     self.code = code
                     break
 
-        self.title = "Ermahgerd, %d!" % self.code
+        self.title = "Ermahgerd, %s!" % self.code
 
         if isinstance(self.error, werkzeug.exceptions.HTTPException):
             self.message = error.description
