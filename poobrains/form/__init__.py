@@ -385,8 +385,10 @@ class AddForm(BoundForm):
                 kw['name'] = field.name
                 kw['default'] = field.default
                 
-                if field.null == False:
+                if field.null == False and field.default is None:
                     kw['required'] = True
+                else:
+                    kw['required'] = False
 
                 if isinstance(field, poobrains.storage.fields.ForeignKeyField):
                     #TODO: is this the place to do permission checking for the field?
@@ -446,7 +448,7 @@ class AddForm(BoundForm):
 
     def handle(self):
         if not self.readonly:
-
+            
             for field in self.model._meta.sorted_fields:
                 if not field.name in self.model.form_blacklist:
                     #if self.fields[field.name].value is not None: # see https://github.com/coleifer/peewee/issues/107

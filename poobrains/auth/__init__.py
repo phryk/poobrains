@@ -1330,7 +1330,7 @@ class Owned(Administerable):
 
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
     group = poobrains.storage.fields.ForeignKeyField(Group, null=True)
-    access = poobrains.storage.fields.CharField(null=True)
+    access = poobrains.storage.fields.CharField(default='')
 
 
 class NamedOwned(Owned, Named):
