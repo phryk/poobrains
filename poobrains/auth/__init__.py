@@ -286,7 +286,7 @@ def protected(func):
     @functools.wraps(func)
     def substitute(cls_or_instance, mode=None, *args, **kwargs):
     #def substitute(cls_or_instance, mode, *args, **kwargs):
-
+        
         poobrains.app.logger.debug('protected call cls_or_instance: %s, %s', cls_or_instance, dir(cls_or_instance))
 
         #if not kwargs.has_key('mode'):
@@ -923,6 +923,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @property
     def menu_actions(self):
+        
         try:
             self._get_pk_value()
         #except self.__class__.DoesNotExist:
