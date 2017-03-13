@@ -454,6 +454,11 @@ class AddForm(BoundForm):
                     #if self.fields[field.name].value is not None: # see https://github.com/coleifer/peewee/issues/107
                     if not self.fields[field.name].empty():
                         setattr(self.instance, field.name, self.fields[field.name].value)
+                    elif field.default is not None:
+                        setattr(self.instance, field.name, field.default() if callable(field.default) else field.default)
+                    elif field.null:
+                        setattr(self.instance, field.name, None)
+
 
             try:
 

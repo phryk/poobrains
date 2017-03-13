@@ -444,6 +444,18 @@ class OwnedPermission(Permission):
                 poobrains.app.logger.warning("Unknown access mode '%s' for User %d with Permission %s" % (access, user.id, cls.__name__))
                 raise PermissionDenied("YOU SHALL NOT PASS!")
 
+        else:
+
+            group_access = cls.group_access(user)
+            if 'deny' in group_access.keys():
+                raise PermissionDenied("YOU SHALL NOT PASS!")
+
+            elif 'own_instance' in group_access.keys() or 'instance' in group_access.keys() or 'own' in group_access.keys() or 'grant' in group_access.keys():
+                return True
+
+            else:
+                raise PermissionDenied("YOU SHALL NOT PASS!")
+
 
     def instance_check(self, user):
         
@@ -480,13 +492,7 @@ class OwnedPermission(Permission):
 
         else:
 
-            group_access = collections.OrderedDict()
-            for group in user.groups:
-                if group.own_permissions.has_key(self.__class__.__name__):
-                    access = group.own_permissions[self.__class__.__name__]
-                    if not group_access.has_key(access):
-                        group_access[access] = []
-                    group_access[access].append(group)
+            group_access = self.__class__.group_access(user)
 
             if 'deny' in  group_access.keys():
                 raise PermissionDenied("YOU SHALL NOT PASS!")
@@ -516,7 +522,21 @@ class OwnedPermission(Permission):
 
         raise PermissionDenied("YOU SHALL NOT PASS!") # Implicit denial
 
-    
+
+    @classmethod
+    def group_access(cls, user):
+
+        group_access = collections.OrderedDict()
+        for group in user.groups:
+            if group.own_permissions.has_key(cls.__name__):
+                access = group.own_permissions[cls.__name__]
+                if not group_access.has_key(access):
+                    group_access[access] = []
+                group_access[access].append(group)
+
+        return group_access
+   
+
     @classmethod
     def list(cls, protected, q, op, user): # FIXME: should op be implied, not directly passed?
 
@@ -530,7 +550,10 @@ class OwnedPermission(Permission):
 
             elif access == 'own_instance':
                 return q.where(protected.owner == user, protected.access.contains(op))
-            
+
+            elif access == 'instance':
+                return q.where(protected.access.contains(op))
+
             elif access == 'own':
                 return q.where(protected.owner == user)
 
@@ -539,13 +562,7 @@ class OwnedPermission(Permission):
 
         else:
 
-            group_access = collections.OrderedDict()
-            for group in user.groups:
-                if group.own_permissions.has_key(cls.__name__):
-                    access = group.own_permissions[cls.__name__]
-                    if not group_access.has_key(access):
-                        group_access[access] = []
-                    group_access[access].append(group)
+            group_access = cls.group_access(user)
 
             if 'deny' in  group_access.keys():
                 raise PermissionDenied("YOU SHALL NOT PASS!")
@@ -553,6 +570,9 @@ class OwnedPermission(Permission):
             elif 'own_instance' in group_access.keys():
                 allowed_groups = group_access['own_instance']
                 return q.where(protected.group.in_(allowed_groups), protected.access.contains(op))
+
+            elif 'instance' in group_access.keys():
+                return q.where(protected.access.contains(op))
 
             elif 'own' in group_access.keys():
                 allowed_groups = group_access['own']
