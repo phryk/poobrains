@@ -447,6 +447,7 @@ class AddForm(BoundForm):
  
 
     def handle(self):
+        poobrains.app.debugger.set_trace()
         if not self.readonly:
             
             for field in self.model._meta.sorted_fields:
