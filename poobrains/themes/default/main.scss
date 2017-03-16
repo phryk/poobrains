@@ -27,6 +27,11 @@
 
     body > header {
         border-bottom: none !important;
+
+        .sticky { 
+            max-width: 13rem;
+            overflow-wrap: break-word;
+        }
     }
 
     main {

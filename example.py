@@ -65,6 +65,8 @@ class NonExposed(poobrains.auth.Administerable):
 class NonExposedB(NonExposed):
     pass
 
+class AVeryVeryLongNameToTestMenuPositioning(poobrains.auth.Administerable):
+    pass
 
 #class MultiPK(poobrains.auth.Administerable):
 #
