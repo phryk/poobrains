@@ -25,27 +25,27 @@ class Field(helpers.ChildAware):
         return self.form_class(self.name, label=self.name, value=value)
 
 
-class IntegerField(peewee.IntegerField, Field):
+class IntegerField(Field, peewee.IntegerField):
     pass
 
 
-class CharField(peewee.CharField, Field):
+class CharField(Field, peewee.CharField):
     pass
 
 
-class TextField(peewee.TextField, Field):
+class TextField(Field, peewee.TextField):
     form_class = poobrains.form.fields.TextArea
 
 
-class DateTimeField(peewee.DateTimeField, Field):
+class DateTimeField(Field, peewee.DateTimeField):
     pass
 
 
-class ForeignKeyField(peewee.ForeignKeyField, Field):
+class ForeignKeyField(Field, peewee.ForeignKeyField):
     form_class = form.fields.ForeignKeyChoice
 
 
-class BooleanField(peewee.BooleanField, Field):
+class BooleanField(Field, peewee.BooleanField):
     form_class = form.fields.Checkbox
 
 
