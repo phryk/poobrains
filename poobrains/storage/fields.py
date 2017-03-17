@@ -13,6 +13,14 @@ class Field(helpers.ChildAware):
 
     form_class = form.fields.Text
 
+    def __init__(self, *args, **kwargs):
+
+        if kwargs.has_key('form_class'):
+            self.form_class = kwargs.pop('form_class')
+
+        super(Field, self).__init__(*args, **kwargs)
+
+
     def form(self, value):
         return self.form_class(self.name, label=self.name, value=value)
 

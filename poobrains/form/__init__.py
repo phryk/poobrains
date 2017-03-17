@@ -402,8 +402,9 @@ class AddForm(BoundForm):
                         kw['choices'].append((choice.handle_string, choice_name))
 
 
-                form_field = field.form_class(**kw)
-                setattr(f, field.name, form_field)
+                if field.form_class is not None:
+                    form_field = field.form_class(**kw)
+                    setattr(f, field.name, form_field)
 
             f.controls['reset'] = Button('reset', label='Reset')
             f.controls['submit'] = Button('submit', name='submit', value='submit', label='Save')
