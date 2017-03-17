@@ -901,7 +901,6 @@ class Protected(poobrains.rendering.Renderable):
         return instance
 
 
-
     @protected
     def render(self, mode='full'):
         return super(Protected, self).render(mode)
