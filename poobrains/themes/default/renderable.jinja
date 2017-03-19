@@ -1,1 +1,20 @@
-This is the ultimate fallback template. Somebody probably ought to implement a template for {{ content.__class__.__name__ }}.
+<article class="content-type-{{ content.__class__.__name__.lower() }}">
+    {% block header %}
+    <header>
+        <h2>Missing template!</h2>
+    </header>
+    {% endblock %}
+
+    {% block content %}
+    <div>
+        This is the ultimate fallback template. Somebody probably ought to implement one of these templates:
+        <ul>
+            {% for template in content.templates() %}
+                <li>{{ template }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endblock %}
+
+    {% block footer %}GNARF?{% endblock %}
+</article>

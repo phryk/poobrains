@@ -1,21 +1,31 @@
-<div class="listing-wrapper">
+{% extends "renderable.jinja" %}
+
+
+{% block header %}{% endblock %}
+
+
+{% block content %}
 
     {% if content.items|length %}
-        <ul class="listing">
 
+        <ul class="{{ content.__class__.__name__.lower() }}">
             {% for item in content.items %}
                 <li>{{ item.render(content.mode) }}</li>
             {% endfor %}
         </ul>
 
-        {% if content.pagination %}
-            <footer>
-                {{ content.pagination.render(content.mode) }}
-            </footer>
-        {% endif %}
 
     {% else %}
         <p>You have entered the {{ content.cls.__name__ }} crypt. It is empty, save for some cobwebs.</p>
     {% endif %}
 
-</div>
+{% endblock %}
+
+
+{% block footer %}
+    {% if content.pagination %}
+        <footer>
+            {{ content.pagination.render(content.mode) }}
+        </footer>
+    {% endif %}
+{% endblock %}

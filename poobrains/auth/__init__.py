@@ -1357,6 +1357,17 @@ class Owned(Administerable):
     group = poobrains.storage.fields.ForeignKeyField(Group, null=True)
     access = poobrains.storage.fields.CharField(default='')
 
+    def form(self, mode=None):
+
+        poobrains.app.debugger.set_trace()
+        f = super(Owned, self).form(mode)
+
+        if mode == 'add':
+            f.fields['owner'].value = flask.g.user
+            f.fields['group'].value = flask.g.user.groups[0]
+
+        return f
+
 
 class NamedOwned(Owned, Named):
     

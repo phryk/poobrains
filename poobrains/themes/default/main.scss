@@ -54,6 +54,7 @@ html {
     /*color: rgba(255, 255, 255, 0.9);*/
     color: $color_font_light;
     font-family: 'Open Sans', sans;
+    overflow-wrap: break-word;
 }
 
 body {
@@ -162,6 +163,20 @@ main {
     flex-grow: 40;
 
     box-sizing: border-box;
+    
+    nav.menu {
+
+        ul {
+            li {
+                display: inline;
+
+                a {
+                    display: inline-block;
+                    position:relative;
+                }
+            }
+        }
+    }
 
     & > header {
 
@@ -221,11 +236,7 @@ main {
 
             ul {
                 li {
-                    display: inline;
-
                     a {
-                        display: inline-block;
-                        position:relative;
                         padding: 0.25rem;
                         color: $color_font_dark;
                         
@@ -338,6 +349,11 @@ article {
             opacity: 1;
         }
     }
+}
+
+audio,
+video {
+    width: 100%;
 }
 
 form {

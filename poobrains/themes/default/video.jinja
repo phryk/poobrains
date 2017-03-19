@@ -1,0 +1,5 @@
+{% extends "file.jinja" %}
+
+{% block content %}
+    <video src="{{ content.url('raw') }}" preload="metadata" controls></video>
+{% endblock %}

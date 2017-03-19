@@ -1,0 +1,7 @@
+{% extends "administerable.jinja" %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+    <a href="{{ content.url('raw') }}">{{ content.filename }}</a>
+{% endblock %}

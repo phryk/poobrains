@@ -1,0 +1,5 @@
+{% extends "file.jinja" %}
+
+{% block content %}
+    <audio src="{{ content.url('raw') }}" preload="metadata" controls /></audio>
+{% endblock %}

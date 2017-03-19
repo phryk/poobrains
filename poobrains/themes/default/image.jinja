@@ -1,5 +1,7 @@
-<article class="image">
+{% extends "file.jinja" %}
+
+{% block content %}
     <a href="{{ content.url('edit') }}">
         <img src="{{ content.url('raw') }}" />
     </a>
-</article>
+{% endblock %}
