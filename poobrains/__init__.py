@@ -368,13 +368,24 @@ class Poobrain(flask.Flask):
 
         except LookupError:
 
-            if blueprint is not self.site:
-                try: 
-                    return self.site.get_url(cls, handle=handle, mode=mode)
-                except LookupError:
-                    pass
+            blueprint_names = self.blueprints.keys()
+            
+            blueprint_names.pop(blueprint_names.index('admin'))
+            blueprint_names.insert(0, 'admin')
+            blueprint_names.pop(blueprint_names.index('site'))
+            blueprint_names.insert(0, 'site')
 
-                raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
+            for bp_name in blueprint_names:
+                if bp_name != flask.request.blueprint:
+
+                    blueprint = self.blueprints[bp_name]
+
+                    try:
+                        return blueprint.get_url(cls, handle=handle, mode=mode)
+                    except LookupError:
+                        pass
+
+            raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
 
 
     def get_related_view_url(self, cls, handle, related_field):
