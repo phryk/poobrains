@@ -251,6 +251,25 @@ class MultiChoice(Choice):
         super(MultiChoice, self).__init__(*args, **kwargs)
         self.value = []
 
+    
+    def empty(self):
+
+        if self.value == self.empty_value or len(self.value) == 0:
+            return True
+
+        for value in self.value:
+            if value != '':
+                if self.coercer:
+                    try:
+                        self.coercer(value)
+                        return False
+                    
+                    except ValueError:
+                        pass
+
+        return True # default to True if no coercible non-'' values where found
+
+
     def validate(self):
         
         for value in self.value:
@@ -258,36 +277,63 @@ class MultiChoice(Choice):
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
-    def bind(self, values):
+#    def bind(self, values):
+#
+#        error = errors.CompoundError()
+#        if isinstance(values, errors.MissingValue):
+#            self.value = self._default
+#
+#        else:
+#
+#            self.value = []
+#
+#            for value in values:
+#                try:
+#                    self.value.append(self.coerce(value))
+#
+#                except ValueError:
+#                    e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
+#                    self.errors.append(e)
+#                    error.append(e)
+#            
+#            if len(error):
+#                raise error
+#
+#            if self.empty():
+#                self.value = self._default
+#
+#        try:
+#            self.validate()
+#        except errors.ValidationError as e:
+#            self.errors.append(e)
+#            raise
 
+
+    def coerce(self, values):
+        
         error = errors.CompoundError()
-        if isinstance(values, errors.MissingValue):
-            self.value = self._default()
 
-        else:
+        if not isinstance(values, list):
+            values = [values]
 
-            self.value = []
+        if not self.coercer:
+            return values
 
-            for value in values:
-                try:
-                    self.value.append(self.coerce(value))
+        coerced = []
+        for value in values:
 
-                except ValueError:
-                    e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
-                    self.errors.append(e)
-                    error.append(e)
-            
-            if len(error):
-                raise error
+            try:
+                coerced.append(self.coercer(value))
 
-            if self.empty():
-                self.value = self._default()
+            except ValueError:
+                e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
+                self.errors.append(e)
+                error.append(e)
 
-        try:
-            self.validate()
-        except errors.ValidationError as e:
-            self.errors.append(e)
-            raise
+        if len(error):
+            raise error
+
+        return coerced
 
 
 class TextChoice(Choice):

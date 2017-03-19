@@ -116,9 +116,10 @@ class TaggingFieldset(poobrains.form.Fieldset):
         if instance._get_pk_value() != None:
            self.fields['tags'].value = [tag.name for tag in instance.tags] 
 
+
     def handle(self, instance):
         
-        TagBinding.delete().where(TagBinding.model == instance.__class__.__name__, TagBinding.handle == instance.handle_string)
+        q = TagBinding.delete().where(TagBinding.model == instance.__class__.__name__, TagBinding.handle == instance.handle_string).execute()
         for value in self.fields['tags'].value:
             try:
                 tag = Tag.load(value)
@@ -152,7 +153,10 @@ class Taggable(poobrains.auth.NamedOwned):
             setattr(f, 'tags', TaggingFieldset(self))
         return f
 
+
     def prepared(self):
+
+        super(Taggable, self).prepared()
         bindings = TagBinding.select().where(TagBinding.model == self.__class__.__name__, TagBinding.handle == self.handle_string)
 
         for binding in bindings:

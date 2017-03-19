@@ -216,7 +216,7 @@ class Listing(rendering.Renderable):
         else:
             self.limit = limit
 
-        if not query:
+        if query is None:
             op = cls._meta.modes[mode]
             query = cls.list(op, flask.g.user)
 

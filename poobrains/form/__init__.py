@@ -178,10 +178,6 @@ class BaseForm(poobrains.rendering.Renderable):
                             field_values = source[field.name]
 
                     else:
-                        #field_values = errors.MissingValue()
-                        if field.multi:
-                            field_values = [field._default] # TODO: We sure we wanna do it that way?
-                        else:
                             field_values = field._default
                     
                     try:
@@ -448,7 +444,7 @@ class AddForm(BoundForm):
  
 
     def handle(self):
-        poobrains.app.debugger.set_trace()
+
         if not self.readonly:
             
             for field in self.model._meta.sorted_fields:

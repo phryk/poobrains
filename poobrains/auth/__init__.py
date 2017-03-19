@@ -1058,7 +1058,10 @@ class Administerable(poobrains.storage.Storable, Protected):
             return f.view('full')
 
         else:
-            return poobrains.storage.Listing(cls=related_model, query=related_model.list('r', flask.g.user).where(related_field == instance)).view()
+            return poobrains.storage.Listing(
+                cls=related_model,
+                query=related_model.list('r', flask.g.user).where(related_field == instance)
+            ).view()
 
 
 class Named(Administerable, poobrains.storage.Named):
@@ -1116,7 +1119,7 @@ class User(Named):
 
         rv = super(User, self).save(*args, **kwargs)
 
-        UserPermission.delete().where(UserPermission.user == self)
+        UserPermission.delete().where(UserPermission.user == self).execute()
         for perm_name, access in self.own_permissions.iteritems():
             up = UserPermission()
             up.user = self
@@ -1124,7 +1127,7 @@ class User(Named):
             up.access = access
             up.save(force_insert=True)
 
-        UserGroup.delete().where(UserGroup.user == self)
+        UserGroup.delete().where(UserGroup.user == self).execute()
         for group in self.groups:
             ug = UserGroup()
             ug.user = self
@@ -1221,7 +1224,7 @@ class Group(Named):
 
         rv = super(Group, self).save(*args, **kwargs)
 
-        GroupPermission.delete().where(GroupPermission.group == self)
+        GroupPermission.delete().where(GroupPermission.group == self).execute()
         for perm_name, access in self.own_permissions.iteritems():
             gp = GroupPermission()
             gp.group = self
@@ -1261,6 +1264,8 @@ class GroupPermission(Administerable):
 
     
     def prepared(self):
+
+        super(GroupPermission, self).prepared()
 
         try:
             self.permission_class = Permission.children_keyed()[self.permission]

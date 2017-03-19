@@ -60,6 +60,8 @@ class Commentable(poobrains.tagging.Taggable):
 
     def prepared(self):
         
+        super(Commentable, self).prepared()
+        
         self.comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string)
         root_comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string, Comment.reply_to == None)
         for comment in root_comments:
