@@ -1,6 +1,6 @@
 <input
-        class="{{ content.prefix }}.{{ content.name }}"
-        type="text"
+        class="{{ content.prefix }}-{{ content.name }}"
+        type="{% block type %}text{% endblock %}"
         name="{{content.prefix}}.{{ content.name }}"
         {% if content.readonly %}readonly{% endif %}
 
@@ -9,6 +9,6 @@
         {% endif %}
 
         {% if content.value %}
-            value="{{ content.value }}"
+        value="{% block value %}{{ content.value }}{% endblock %}"
         {% endif %}
 >

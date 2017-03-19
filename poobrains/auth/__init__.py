@@ -959,9 +959,9 @@ class Administerable(poobrains.storage.Storable, Protected):
                 op = self._meta.modes[mode]
                 op_name = self._meta.ops[op]
 
-                self.permissions[op_name].check(user)
-
-                actions.append(self.url(mode), mode)
+                if op_name != 'create':
+                    self.permissions[op_name].check(user)
+                    actions.append(self.url(mode), mode)
 
             except PermissionDenied:
                 poobrains.app.logger.debug("Not generating %s link for %s %s because this user is not authorized for it." % (mode, self.__class__.__name__, self.handle_string))
@@ -1359,7 +1359,6 @@ class Owned(Administerable):
 
     def form(self, mode=None):
 
-        poobrains.app.debugger.set_trace()
         f = super(Owned, self).form(mode)
 
         if mode == 'add':

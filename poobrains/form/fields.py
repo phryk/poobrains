@@ -385,7 +385,7 @@ class ForeignKeyChoice(TextChoice):
     #    super(ForeignKeyChoice, self).__setattr__(name, value)
 
     def validate(self):
-        poobrains.app.debugger.set_trace()
+        
         if not self.value is None:
             if not isinstance(self.value, self.storable):
                 raise errors.ValidationError("Unknown %s handle '%s'." % (self.storable.__name__, self.value))

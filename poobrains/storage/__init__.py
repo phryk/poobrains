@@ -3,6 +3,7 @@
 # external imports
 import math
 import collections
+import re
 import flask
 import werkzeug.routing
 import peewee
@@ -15,6 +16,12 @@ from poobrains import form
 import poobrains
 # internal imports
 import fields
+
+if isinstance(poobrains.app.db, peewee.SqliteDatabase):
+
+    @poobrains.app.db.func('regexp')
+    def nonretardedsqliteregexp(regexp, value):
+        return re.search(regexp, value) is not None
 
 
 def RegexpConstraint(field_name, regexp):

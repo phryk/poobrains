@@ -264,18 +264,18 @@ class Install(Command):
             stdout.write("Database tables created!\n")
 
 
-            stdout.write("Creating Group 'AnonsAnonymous'…\n")
+            stdout.write("Creating Group 'anonsanonymous'…\n")
             anons = auth.Group()
-            anons.name = 'AnonsAnonymous'
+            anons.name = 'anonsanonymous'
             
             if not anons.save(force_insert=True):
-                raise ShellException("Failed creating Group 'AnonsAnonymous'!")
-            stdout.write("Successfully created Group 'AnonsAnonymous'.\n")
+                raise ShellException("Failed creating Group 'anonsanonymous'!")
+            stdout.write("Successfully created Group 'anonsanonymous'.\n")
 
 
-            stdout.write("Creating Group 'Administrators' with all permissions granted…\n")
+            stdout.write("Creating Group 'administrators' with all permissions granted…\n")
             admins = auth.Group()
-            admins.name = 'Administrators'
+            admins.name = 'administrators'
             
             for cls in poobrains.auth.Permission.children():
                 choice_values = [x[0] for x in cls.choices]
@@ -289,24 +289,24 @@ class Install(Command):
                 admins.own_permissions[cls.__name__] = access
             
             if not admins.save(force_insert=True):
-                raise ShellException("Failed creating Group 'Administrators'!")
+                raise ShellException("Failed creating Group 'administrators'!")
 
-            stdout.write("Successfully saved Group 'Administrators'.\n")
+            stdout.write("Successfully saved Group 'administrators'.\n")
 
 
             anon = auth.User()
-            anon.name = 'Anonymous'
+            anon.name = 'anonymous'
             anon.id = 1 # Should theoretically always happen, but let's make sure anyways
             anon.groups.append(anons)
             if not anon.save(force_insert=True):
-                raise ShellException("Failed creating User 'Anonymous'!")
-            stdout.write("Successfully created User 'Anonymous'.\n")
+                raise ShellException("Failed creating User 'anonymous'!")
+            stdout.write("Successfully created User 'anonymous'.\n")
             stdout.write(str(anon))
 
             stdout.write("Creating administrator account…\n")
             admin = auth.User()
-            admin.name = 'Administrator'
-            admin.groups.append(admins) # Put 'Administrator' into group 'Administrators'
+            admin.name = 'administrator'
+            admin.groups.append(admins) # Put 'administrator' into group 'administrators'
 
             if not admin.save():
                 

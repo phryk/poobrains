@@ -19,6 +19,8 @@ import scss # pyScss
 import helpers
 import defaults
 
+db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
+
 try:
     import config # imports config relative to main project
 

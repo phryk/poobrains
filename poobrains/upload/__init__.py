@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from os import path
+import os
 import collections
 import peewee
 import werkzeug
@@ -21,18 +21,33 @@ class UploadForm(poobrains.form.AddForm):
             self.fields['upload'].required = True
 
 
+    def bind(self, values, files):
+        
+        super(UploadForm, self).bind(values, files)
+        
+        upload_file = self.fields['upload'].value
+        self.fields['filename'].value = werkzeug.utils.secure_filename(upload_file.filename)
+
+        extension = self.fields['filename'].value.split('.')[-1]
+
+        if  not '*' in self.instance.extension_whitelist and\
+        not extension in self.instance.extension_whitelist:
+            raise poobrains.form.errors.CompoundError(
+                [poobrains.form.errors.ValidationError(
+                    'Invalid file extension: %s. Try one of %s.' % (extension, list(self.instance.extension_whitelist))
+                )]
+            )
+
+
     def handle(self):
 
-        poobrains.app.debugger.set_trace()
         upload_file = self.fields['upload'].value
-        filename = werkzeug.utils.secure_filename(upload_file.filename)
+        filename = self.fields['filename'].value
 
         if filename is not '':
 
-            self.fields['filename'].value = filename
-
             try:
-                upload_file.save(path.join(self.instance.path, filename))
+                upload_file.save(os.path.join(self.instance.path, filename))
 
             except IOError as e:
 
@@ -75,7 +90,7 @@ class File(poobrains.auth.NamedOwned):
     def __init__(self, *args, **kwargs):
 
         super(File, self).__init__(*args, **kwargs)
-        self.path = path.join(poobrains.app.site_path, 'upload', self.__class__.__name__.lower())
+        self.path = os.path.join(poobrains.app.site_path, 'upload', self.__class__.__name__.lower())
 
     def __setattr__(self, name, value):
 
@@ -98,6 +113,18 @@ class File(poobrains.auth.NamedOwned):
             return poobrains.helpers.ThemedPassthrough(super(File, self).view(mode=mode, handle=handle)) # FIXME: themed and protected called twice
 
 
+    def delete_instance(self, *args, **kwargs):
+
+        if super(File, self).delete_instance(*args, **kwargs):
+            try:
+                os.remove(os.path.join(self.path, self.filename))
+            except OSError as e:
+                flask.flash("Could not delete %s '%s'." % (self.__class__.__name__, self.filename))
+
+
+
+
+
 class Image(File):
     extension_whitelist = set(['gif', 'jpg', 'png', 'svg'])
 
@@ -110,5 +137,5 @@ class Video(File):
 # setup upload routes for "raw" mode
 
 for cls in [File] + File.children():
-    rule = path.join("/upload/", cls.__name__.lower())
+    rule = os.path.join("/upload/", cls.__name__.lower())
     poobrains.app.site.add_view(cls, rule, mode='raw')
