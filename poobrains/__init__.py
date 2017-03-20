@@ -198,10 +198,15 @@ class Poobrain(flask.Flask):
     def try_trigger_before_first_request_functions(self):
 
         # this function is the latest possible place to call @setupmethod functions
+        # TODO: move this into auth/__init__.py? poobrains.app.admin.add_view/listing?
         if not self._got_first_request:
 
-            for (key, cls) in auth.Administerable.children_keyed().iteritems():
-                
+            administerables = auth.Administerable.children_keyed()
+
+            for key in sorted(administerables):
+
+                cls = administerables[key]
+
                 rule = '%s/' % key.lower()
                 actions = functools.partial(auth.admin_listing_actions, cls)
 
