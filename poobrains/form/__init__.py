@@ -17,7 +17,13 @@ import fields
 
 
 class FormMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
-    pass
+
+    def __new__(cls, name, bases, attrs):
+        poobrains.app.debugger.set_trace()
+        return super(FormMeta, cls).__new__(cls, name, bases, attrs)
+
+    def __setattr__(cls, name, value):
+        return super(FormMeta, cls).__setattr__(name, value)
 
 
 class BaseForm(poobrains.rendering.Renderable):

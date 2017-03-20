@@ -1,0 +1,15 @@
+{% extends "renderable.jinja" %}
+
+{% block header %}
+    {{ content.form.render('full') }}
+{% endblock %}
+
+{% block content %}
+    {% if content.results|length %}
+        <ul>
+        {% for result in content.results %}
+            <li>{{ result.render('teaser') }}</li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

@@ -340,7 +340,6 @@ class Poobrain(flask.Flask):
 
 
     def expose(self, rule, mode=None, title=None, force_secure=False):
-
         def decorator(cls):
 
             if issubclass(cls, storage.Storable):
@@ -356,7 +355,13 @@ class Poobrain(flask.Flask):
 
             elif issubclass(cls, form.Form):
 
-                self.site.add_view(cls, rule, force_secure=force_secure)
+                self.site.add_view(cls, rule, mode=mode, force_secure=force_secure)
+
+            elif issubclass(cls, rendering.Renderable):
+
+                self.site.add_view(cls, rule, mode=mode, force_secure=force_secure)
+                if hasattr(cls, 'handle'):
+                    self.site.add_view(cls, os.path.join(rule, '<handle>'), mode=mode, primary=True, force_secure=force_secure)
 
             return cls
 
@@ -586,14 +591,13 @@ class Pooprint(flask.Blueprint):
 
     def get_url(self, cls, handle=None, mode=None):
 
-        if mode == 'add' or (handle and (mode is None or not mode.startswith('teaser'))):
+        if mode == 'add' or (handle is not None and (mode is None or not mode.startswith('teaser'))):
             return self.get_view_url(cls, handle, mode=mode)
 
         return self.get_listing_url(cls, mode=mode, handle=handle)
 
 
     def get_view_url(self, cls, handle, mode=None):
-
         if mode == None:
             mode = 'full'
 
@@ -712,6 +716,7 @@ import poobrains.auth
 import poobrains.upload
 import poobrains.tagging
 import poobrains.commenting
+import poobrains.search
 
 
 class ErrorPage(poobrains.rendering.Renderable):
