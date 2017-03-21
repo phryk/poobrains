@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -+-
 
 # external imports
+import time
 import copy
 import functools
 import collections
@@ -19,7 +20,6 @@ import fields
 class FormMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
 
     def __new__(cls, name, bases, attrs):
-        poobrains.app.debugger.set_trace()
         return super(FormMeta, cls).__new__(cls, name, bases, attrs)
 
     def __setattr__(cls, name, value):
@@ -45,30 +45,15 @@ class BaseForm(poobrains.rendering.Renderable):
         instance = super(BaseForm, cls).__new__(cls, *args, **kw)
         instance.fields = poobrains.helpers.CustomOrderedDict()
         instance.controls = poobrains.helpers.CustomOrderedDict()
-        
-        for attr_name in dir(instance):
 
-#            label_default = attr_name.capitalize()
-#            attr = getattr(instance, attr_name)
-#
-#            if isinstance(attr, fields.Field):
-#                label = attr.label if attr.label else label_default
-#                clone = attr.__class__(name=attr_name, value=attr.value, label=attr.label, readonly=attr.readonly, validator=attr.validator)
-#                #instance.fields[attr_name] = clone
-#                setattr(instance, attr_name, clone)
-#
-#            elif isinstance(attr, Fieldset):
-#                clone = attr.__class__(name=attr_name, title=attr.title)
-#                #instance.fields[attr_name] = clone
-#                setattr(instance, attr_name, clone)
-#
-#            elif isinstance(attr, Button):
-#                label = attr.label if attr.label else label_default
-#                clone = attr.__class__(attr.type, name=attr_name, value=attr.value, label=label)
-#                instance.controls[attr_name] = clone
+        clone_attributes = []
+        for attr_name in dir(instance):
 
             attr = getattr(instance, attr_name)
             if isinstance(attr, fields.Field) or isinstance(attr, Fieldset) or isinstance(attr, Button): # FIXME: This should be doable with just one check
+                clone_attributes.append((attr_name, attr))
+               
+        for (attr_name, attr) in sorted(clone_attributes, key=lambda x: getattr(x[1], '_created')):
 
                 kw = {}
                 for propname in attr._meta.clone_props:
@@ -107,6 +92,7 @@ class BaseForm(poobrains.rendering.Renderable):
             self.fields[name] = value
 
         elif isinstance(value, Button):
+            value.name = name
             value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
             self.controls[name] = value
 
@@ -560,6 +546,14 @@ class Fieldset(BaseForm):
         abstract = True
         clone_props = ['name', 'title']
 
+    
+    def __new__(cls, *args, **kwargs):
+
+        instance = super(Fieldset, cls).__new__(cls, *args, **kwargs)
+        instance._created = time.time()
+
+        return instance
+
 
     def __init__(self, *args, **kw):
 
@@ -629,6 +623,15 @@ class Button(poobrains.rendering.Renderable):
     class Meta:
         clone_props = ['type', 'name', 'value', 'label']
     
+    
+    def __new__(cls, *args, **kwargs):
+
+        instance = super(Button, cls).__new__(cls, *args, **kwargs)
+        instance._created = time.time()
+
+        return instance
+
+
     def __init__(self, type, name=None, value=None, label=None):
 
         super(Button, self).__init__()

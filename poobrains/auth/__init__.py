@@ -144,7 +144,10 @@ class FormPermissionField(poobrains.form.fields.Choice):
         super(FormPermissionField, self).__init__(*args, **kwargs)
 
         self.choices = []
-        for perm_name, perm in Permission.children_keyed().iteritems():
+
+        permissions = Permission.children_keyed()
+        for perm_name in sorted(permissions):
+            perm = permissions[perm_name]
             self.choices.append(([('%s.%s' % (perm_name, value), label) for (value, label) in perm.choices], perm_name))
 
 

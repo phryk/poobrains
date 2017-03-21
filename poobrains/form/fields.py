@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import time # needed for ordered attributes
 import flask
 
 # parent imports
@@ -20,7 +21,8 @@ class Field(object):
 
     __metaclass__ = poobrains.helpers.MetaCompatibility
 
-    _empty = None # hint if value of this field was set to empty_value
+    _created = None
+    _empty = None # hint if value of this field was set to empty_value <- TODO: is this even used anymore? don't we just have .empty()?
     errors = None
     prefix = None
     name = None
@@ -38,6 +40,13 @@ class Field(object):
     class Meta:
         clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default']
 
+
+    def __new__(cls, *args, **kwargs):
+
+        instance = super(Field, cls).__new__(cls, *args, **kwargs)
+        instance._created = time.time()
+
+        return instance
 
     def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None):
 
