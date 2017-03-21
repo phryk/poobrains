@@ -9,7 +9,15 @@ class SearchField(poobrains.form.fields.Text):
     pass
 
 
-@poobrains.app.site.box('search')
+@poobrains.app.box('search')
+def box_search():
+    try:
+        Search.permissions['read'].check(flask.g.user)
+        return SearchForm()
+    except poobrains.auth.AccessDenied:
+        return None
+
+
 class SearchForm(poobrains.form.Form):
 
     pattern = SearchField()
@@ -81,7 +89,7 @@ class Search(poobrains.auth.Protected):
                     administerable.permissions['read'].check(flask.g.user)
                     readable_administerables.append(administerable)
 
-                except poobrains.auth.PermissionDenied:
+                except poobrains.auth.AccessDenied:
                     pass
 
             for administerable in readable_administerables:
@@ -90,11 +98,25 @@ class Search(poobrains.auth.Protected):
                 clauses = []
 
                 term = '*%s*' % self.handle
-                if isinstance(getattr(administerable, 'title', None), poobrains.storage.fields.CharField):
-                    clauses.append((peewee.fn.Lower(administerable.title) % term)) # LIKE clause
 
-                if isinstance(getattr(administerable, 'name', None), poobrains.storage.fields.CharField):
-                    clauses.append((peewee.fn.Lower(administerable.name) % term))
+                if hasattr(administerable._meta, 'search_fields'):
+
+                    for field_name in administerable._meta.search_fields:
+
+                        field = getattr(administerable, field_name)
+                        clauses.append((peewee.fn.Lower(field) % term))
+
+                else:
+                    
+                    if isinstance(getattr(administerable, 'name', None), poobrains.storage.fields.CharField):
+                        clauses.append((peewee.fn.Lower(administerable.name) % term))
+
+                    if isinstance(getattr(administerable, 'title', None), poobrains.storage.fields.CharField):
+                        clauses.append((peewee.fn.Lower(administerable.title) % term)) # LIKE clause
+                    
+                    if isinstance(getattr(administerable, 'text', None), poobrains.storage.fields.TextField):
+                        clauses.append((peewee.fn.Lower(administerable.text) % term)) # LIKE clause
+
 
                 if len(clauses):
                     q = q.where(reduce(peewee.operator.or_, clauses))

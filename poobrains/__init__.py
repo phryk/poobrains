@@ -100,6 +100,7 @@ class Poobrain(flask.Flask):
 
     site = None
     admin = None
+    boxes = None
     resource_extension_whitelist = None
     error_codes = {
         peewee.OperationalError: 500,
@@ -165,7 +166,7 @@ class Poobrain(flask.Flask):
                 if hasattr(signal, 'SIGINFO'):
                     pdb.set_interrupt_handler(signal.SIGINFO)
 
-
+        self.boxes = {}
         self.poobrain_path = os.path.dirname(os.path.realpath(__file__))
         self.site_path = os.getcwd()
         self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'js']
@@ -181,7 +182,6 @@ class Poobrain(flask.Flask):
 
         # set up site and admin blueprints
         self.site = Pooprint('site', 'site')
-
         self.admin = Pooprint('admin', 'admin')
 
 
@@ -194,29 +194,9 @@ class Poobrain(flask.Flask):
     def try_trigger_before_first_request_functions(self):
 
         # this function is the latest possible place to call @setupmethod functions
-        # TODO: move this into auth/__init__.py? poobrains.app.admin.add_view/listing?
         if not self._got_first_request:
 
-            administerables = auth.Administerable.children_keyed()
-
-            for key in sorted(administerables):
-
-                cls = administerables[key]
-
-                rule = '%s/' % key.lower()
-                actions = functools.partial(auth.admin_listing_actions, cls)
-
-                self.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
-                self.admin.add_view(cls, rule, mode='edit', force_secure=True)
-                self.admin.add_view(cls, rule, mode='delete', force_secure=True)
-                self.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
-
-                for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
-                    related_model = related_field.model_class
-
-                    if issubclass(related_model, poobrains.auth.Administerable):
-                        self.admin.add_related_view(cls, related_field, rule, force_secure=True)
-
+            # Done here because apparently no routes can be registered on blueprints that have been registered to an app?
             self.register_blueprint(self.site)
             self.register_blueprint(self.admin, url_prefix='/admin/')
 
@@ -325,12 +305,27 @@ class Poobrain(flask.Flask):
             except:
                 pass
 
+        self.box_setup()
+
 
     def request_teardown(self, exception):
 
         if not self.db.is_closed():
             self.db.close()
 
+    def box_setup(self):
+        
+        for name, f in self.boxes.iteritems():
+            flask.g.boxes[name] = f()
+
+    
+    def box(self, name):
+
+        def decorator(f):
+            self.boxes[name] = f
+            return f
+
+        return decorator
 
     def expose(self, rule, mode=None, title=None, force_secure=False):
         def decorator(cls):
@@ -497,6 +492,15 @@ class Pooprint(flask.Blueprint):
         for name, f in self.boxes.iteritems():
             flask.g.boxes[name] = f()
 
+    
+    def box(self, name):
+
+        def decorator(f):
+            self.boxes[name] = f
+            return f
+
+        return decorator
+
 
     def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, force_secure=False, **options):
 
@@ -552,15 +556,6 @@ class Pooprint(flask.Blueprint):
             self.add_listing(cls, rule, view_func=real, **options)
 
             return real
-
-        return decorator
-
-    
-    def box(self, name):
-
-        def decorator(f):
-            self.boxes[name] = f
-            return f
 
         return decorator
 

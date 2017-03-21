@@ -51,8 +51,18 @@ class Paste(poobrains.tagging.Taggable):
 def menu_main():
 
     menu = poobrains.rendering.Menu('main')
-    menu.append(News.url(), 'News')
-    menu.append(Paste.url(), 'Pastes')
+
+    try:
+        News.permissions['read'].check(flask.g.user)
+        menu.append(News.url(), 'News')
+    except poobrains.auth.AccessDenied:
+        pass
+    
+    try:
+        Paste.permissions['read'].check(flask.g.user)
+        menu.append(Paste.url(), 'Pastes')
+    except poobrains.auth.AccessDenied:
+        pass
 
     return menu
 

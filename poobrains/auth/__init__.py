@@ -15,8 +15,45 @@ import peewee
 # local imports
 import poobrains
 
+@poobrains.app.before_first_request
+def admin_setup():
 
-class PermissionDenied(werkzeug.exceptions.Forbidden):
+    if not poobrains.app._got_first_request:
+
+        administerables = Administerable.children_keyed()
+
+        for key in sorted(administerables):
+
+            cls = administerables[key]
+
+            rule = '%s/' % key.lower()
+            actions = functools.partial(admin_listing_actions, cls)
+
+            poobrains.app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
+            poobrains.app.admin.add_view(cls, rule, mode='edit', force_secure=True)
+            poobrains.app.admin.add_view(cls, rule, mode='delete', force_secure=True)
+            poobrains.app.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
+
+            for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+                related_model = related_field.model_class
+
+                if issubclass(related_model, Administerable):
+                    poobrains.app.admin.add_related_view(cls, related_field, rule, force_secure=True)
+
+        poobrains.app.register_blueprint(poobrains.app.site)
+        poobrains.app.register_blueprint(poobrains.app.admin, url_prefix='/admin/')
+
+
+@poobrains.app.admin.before_request
+def checkAAA():
+
+    try:
+        AccessAdminArea.check(flask.g.user)
+    except AccessDenied:
+        raise werkzeug.exceptions.NotFound() # Less infoleak fo' shizzle (Unless we display e.message on errorpage)
+
+
+class AccessDenied(werkzeug.exceptions.Forbidden):
     status_code = 403
 
 
@@ -43,7 +80,7 @@ class Permission(poobrains.helpers.ChildAware):
             access = user.own_permissions[cls.__name__]
 
             if access == 'deny':
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'grant':
                 return True
@@ -52,14 +89,14 @@ class Permission(poobrains.helpers.ChildAware):
         group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
 
         if group_deny:
-            raise PermissionDenied("YOU SHALL NOT PASS!")
+            raise AccessDenied("YOU SHALL NOT PASS!")
 
         group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
 
         if group_grant:
             return True
 
-        raise PermissionDenied("YOU SHALL NOT PASS!")
+        raise AccessDenied("YOU SHALL NOT PASS!")
 
 
     def instance_check(self, user):
@@ -73,7 +110,7 @@ class Permission(poobrains.helpers.ChildAware):
             access = user.own_permissions[cls.__name__]
 
             if access == 'deny':
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
             elif access == 'grant':
                 return q
         
@@ -81,7 +118,7 @@ class Permission(poobrains.helpers.ChildAware):
         group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
 
         if group_deny:
-            raise PermissionDenied("YOU SHALL NOT PASS!")
+            raise AccessDenied("YOU SHALL NOT PASS!")
 
         group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
 
@@ -89,7 +126,11 @@ class Permission(poobrains.helpers.ChildAware):
             return q
 
 
-        raise PermissionDenied("YOU SHALL NOT PASS!")
+        raise AccessDenied("YOU SHALL NOT PASS!")
+
+
+class AccessAdminArea(Permission):
+    pass
 
 
 class PermissionInjection(poobrains.helpers.MetaCompatibility):
@@ -175,17 +216,23 @@ def admin_listing_actions(cls):
 @poobrains.app.admin.box('menu_main')
 def admin_menu():
 
-    menu = poobrains.rendering.Menu('main')
-    menu.title = 'Administration'
+    try:
+        AccessAdminArea.check(flask.g.user) # check if current user may even access the admin area
 
-    for administerable, listings in poobrains.app.admin.listings.iteritems():
+        menu = poobrains.rendering.Menu('main')
+        menu.title = 'Administration'
 
-        for mode, endpoints in listings.iteritems():
+        for administerable, listings in poobrains.app.admin.listings.iteritems():
 
-            for endpoint in endpoints: # iterates through endpoints.keys()
-                menu.append(flask.url_for('admin.%s' % endpoint), administerable.__name__)
+            for mode, endpoints in listings.iteritems():
 
-    return menu
+                for endpoint in endpoints: # iterates through endpoints.keys()
+                    menu.append(flask.url_for('admin.%s' % endpoint), administerable.__name__)
+
+        return menu
+
+    except AccessDenied:
+        return None
 
 
 @poobrains.app.admin.route('/')
@@ -230,12 +277,12 @@ def protected(func):
             raise ValueError("@protected used with non-protected class '%s'." % cls.__name__)
 
         if not cls._meta.modes.has_key(mode):
-            raise PermissionDenied("Unknown mode '%s' for accessing %s." % (mode, cls.__name__))
+            raise AccessDenied("Unknown mode '%s' for accessing %s." % (mode, cls.__name__))
 
         op = cls._meta.modes[mode]
         op_name = cls._meta.ops[op]
         if not cls._meta.ops.has_key(op):
-            raise PermissionDenied("Unknown access op '%s' for accessing %s." (op, cls.__name__))
+            raise AccessDenied("Unknown access op '%s' for accessing %s." (op, cls.__name__))
         if not cls_or_instance.permissions.has_key(op_name):
             raise NotImplementedError("Did not find permission for op '%s' in cls_or_instance of class '%s'." % (op, cls.__name__))
         
@@ -360,26 +407,26 @@ class OwnedPermission(Permission):
             access = user.own_permissions[cls.__name__]
 
             if access == 'deny':
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access in ('own_instance', 'instance', 'own', 'grant'):
                 return True
 
             else:
                 poobrains.app.logger.warning("Unknown access mode '%s' for User %d with Permission %s" % (access, user.id, cls.__name__))
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
         else:
 
             group_access = cls.group_access(user)
             if 'deny' in group_access.keys():
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif 'own_instance' in group_access.keys() or 'instance' in group_access.keys() or 'own' in group_access.keys() or 'grant' in group_access.keys():
                 return True
 
             else:
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
 
     def instance_check(self, user):
@@ -389,63 +436,63 @@ class OwnedPermission(Permission):
             access = user.own_permissions[self.__class__.__name__]
 
             if access == 'deny':
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own_instance':
                 if self.instance.owner == user and self.op in self.instance.access:
                     return True
                 else:
-                    raise PermissionDenied("YOU SHALL NOT PASS!")
+                    raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'instance':
                 if self.op in self.instance.access:
                     return True
                 else:
-                    raise PermissionDenied("YOU SHALL NOT PASS!")
+                    raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own':
                 if self.instance.owner == user and self.op in self.instance.access:
                     return True
                 else:
-                    raise PermissionDenied("YOU SHALL NOT PASS!")
+                    raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'grant':
                 return True
 
             else:
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
         else:
 
             group_access = self.__class__.group_access(user)
 
             if 'deny' in  group_access.keys():
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif 'own_instance' in group_access.keys():
                 allowed_groups = group_access['own_instance']
                 if self.instance.group in allowed_groups and self.op in self.instance.access:
                     return True
                 else:
-                    raise PermissionDenied("YOU SHALL NOT PASS!")
+                    raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif 'instance' in group_access.keys():
                 if self.op in self.instance.access:
                     return True
                 else:
-                    raise PermissionDenied("YOU SHALL NOT PASS!")
+                    raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif 'own' in group_access.keys():
                 allowed_groups = group_access['own']
                 if self.instance.group in allowed_groups:
                     return True
                 else:
-                    raise PermissionDenied("YOU SHALL NOT PASS!")
+                    raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif 'grant' in group_access.keys():
                 return True
 
-        raise PermissionDenied("YOU SHALL NOT PASS!") # Implicit denial
+        raise AccessDenied("YOU SHALL NOT PASS!") # Implicit denial
 
 
     @classmethod
@@ -471,7 +518,7 @@ class OwnedPermission(Permission):
 
             access = user.own_permissions[cls.__name__]
             if access == 'deny':
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own_instance':
                 return q.where(protected.owner == user, protected.access.contains(op))
@@ -490,7 +537,7 @@ class OwnedPermission(Permission):
             group_access = cls.group_access(user)
 
             if 'deny' in  group_access.keys():
-                raise PermissionDenied("YOU SHALL NOT PASS!")
+                raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif 'own_instance' in group_access.keys():
                 allowed_groups = group_access['own_instance']
@@ -506,7 +553,7 @@ class OwnedPermission(Permission):
             elif 'grant' in group_access.keys():
                 return q
 
-        raise PermissionDenied("YOU SHALL NOT PASS!") # implicit denial
+        raise AccessDenied("YOU SHALL NOT PASS!") # implicit denial
 
 
 class RelatedForm(poobrains.form.Form):
@@ -524,7 +571,7 @@ class RelatedForm(poobrains.form.Form):
         for related_instance in getattr(instance, related_field.related_name):
             try:
 
-                related_instance.permissions['update'].check(flask.g.user) # throws PermissionDenied if user is not authorized
+                related_instance.permissions['update'].check(flask.g.user) # throws AccessDenied if user is not authorized
                 key = related_instance.handle_string
 
                 # Fieldset to edit an existing related instance of this instance
@@ -533,7 +580,7 @@ class RelatedForm(poobrains.form.Form):
                 if f.fields[key].fields.has_key(related_field.name):
                     setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
 
-            except PermissionDenied as e:
+            except AccessDenied as e:
                 pass
 
 
@@ -551,7 +598,7 @@ class RelatedForm(poobrains.form.Form):
             else:
                 poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
 
-        except PermissionDenied as e:
+        except AccessDenied as e:
             pass
             
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
@@ -805,7 +852,7 @@ class Administerable(poobrains.storage.Storable, Protected):
                     self.permissions[op_name].check(user)
                     actions.append(self.url(mode), mode)
 
-            except PermissionDenied:
+            except AccessDenied:
                 poobrains.app.logger.debug("Not generating %s link for %s %s because this user is not authorized for it." % (mode, self.__class__.__name__, self.handle_string))
             except Exception:
                 poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.handle_string))
@@ -853,7 +900,10 @@ class Administerable(poobrains.storage.Storable, Protected):
         if mode == 'add':
             instance = cls()
         else:
-            instance = cls.load(cls.string_handle(handle))
+            try:
+                instance = cls.load(cls.string_handle(handle))
+            except ValueError:
+                raise cls.DoesNotExist("This isn't even the right type!")
 
         return instance.view(mode=mode, handle=handle)
 

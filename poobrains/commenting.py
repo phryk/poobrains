@@ -61,16 +61,27 @@ class Commentable(poobrains.tagging.Taggable):
     def prepared(self):
         
         super(Commentable, self).prepared()
-        
-        self.comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string)
-        root_comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string, Comment.reply_to == None)
-        for comment in root_comments:
-            self.comments_threaded[comment] = comment.thread()
+      
+        try:
+            Comment.permissions['read'].check(flask.g.user)
+            self.comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string)
+            root_comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string, Comment.reply_to == None)
+            for comment in root_comments:
+                self.comments_threaded[comment] = comment.thread()
+
+        except poobrains.auth.AccessDenied:
+            pass # No point loading shit this user isn't allowed to render anyways.
 
 
     def comment_form(self, reply_to=None):
 
-        return CommentForm(self.__class__.__name__, self.handle_string, reply_to=reply_to)
+        try:
+            Comment.permissions['create'].check(flask.g.user) # no form for users who aren't allowed to comment
+            return CommentForm(self.__class__.__name__, self.handle_string, reply_to=reply_to)
+
+        except poobrains.auth.AccessDenied:
+            return poobrains.rendering.RenderString("You are not allowed to post comments.")
+
 
 
 @poobrains.app.expose('/comment/<string:model>/<string:handle>')

@@ -452,4 +452,4 @@ class Add(Command):
                 if value != '': # Makes models fall back to defaults for this field
                     setattr(instance, field.name, value) # TODO type enforcement
 
-        instance.save()
+        instance.save(force_insert=True)
