@@ -38,8 +38,6 @@ class Search(poobrains.auth.Protected):
         super(Search, self).__init__(name=self.__class__.__name__)
 
         self.handle = handle
-#        if handle == '' and flask.session.has_key('search_pattern'):
-#            self.handle = flask.session['search_pattern']
 
         self.form = SearchForm()
         self.form.fields['pattern'].value = self.handle

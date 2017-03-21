@@ -286,38 +286,6 @@ class MultiChoice(Choice):
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
-#    def bind(self, values):
-#
-#        error = errors.CompoundError()
-#        if isinstance(values, errors.MissingValue):
-#            self.value = self._default
-#
-#        else:
-#
-#            self.value = []
-#
-#            for value in values:
-#                try:
-#                    self.value.append(self.coerce(value))
-#
-#                except ValueError:
-#                    e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
-#                    self.errors.append(e)
-#                    error.append(e)
-#            
-#            if len(error):
-#                raise error
-#
-#            if self.empty():
-#                self.value = self._default
-#
-#        try:
-#            self.validate()
-#        except errors.ValidationError as e:
-#            self.errors.append(e)
-#            raise
-
-
     def coerce(self, values):
         
         error = errors.CompoundError()
@@ -386,13 +354,6 @@ class ForeignKeyChoice(TextChoice):
         super(ForeignKeyChoice, self).__init__(*args, **kwargs)
 
 
-    #def __setattr__(self, name, value):
-
-    #    if name == 'value' and isinstance(value, poobrains.storage.Storable):
-    #        return super(ForeignKeyChoice, self).__setattr__(name, value.handle_string)
-
-    #    super(ForeignKeyChoice, self).__setattr__(name, value)
-
     def validate(self):
         
         if not self.value is None:
@@ -417,7 +378,6 @@ class Checkbox(RenderableField):
     default = False
     coercer = coercers.coerce_bool
     validator = validators.is_bool
-
 
 
 class Float(RenderableField):

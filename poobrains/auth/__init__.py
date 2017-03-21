@@ -33,8 +33,7 @@ class Permission(poobrains.helpers.ChildAware):
     def __init__(self, instance):
         self.instance = instance
         self.check = self.instance_check
-        #self.mode = self.__class__.__name__.split('_')[-1] # TODO: Will this explode in my face? Are non-bound permissions going to be a thing?
-        # ↑ shouldn't even be needed with PermissionInjection
+
 
     @classmethod
     def check(cls, user):
@@ -98,7 +97,6 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
     def __new__(cls, name, bases, attrs):
         
         cls = super(PermissionInjection, cls).__new__(cls, name, bases, attrs)
-        #cls._meta.permissions = collections.OrderedDict()
         cls.permissions = collections.OrderedDict()
 
         for op, op_name in cls._meta.ops.iteritems():
@@ -125,15 +123,6 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
             cls.permissions[op_name] = type(perm_name, (cls._meta.permission_class,), perm_attrs)
 
         return cls
-
-
-#def get_permission(permission_name):
-#
-#    for perm in Permission.children():
-#        if permission_name == perm.__name__:
-#            return perm
-#
-#    raise LookupError("Unknown permission: %s" % str(permission_name))
 
 
 class FormPermissionField(poobrains.form.fields.Choice):
@@ -205,69 +194,6 @@ def admin_index():
     return admin_menu()
 
 
-
-
-#def access(*args, **kwargs):
-#
-#    """
-#    Decorator; Sets the permission needed to access this page.
-#
-#    Alternatively, a custom access callback returning True or False might be
-#    passed.
-#
-#
-#    Example, using a permission name to determine access rights::
-#
-#        @app.route('/foo')
-#        @access('access_foo')
-#        @view
-#        def page_foo():
-#            return value('Here be page content.')
-#
-#
-#    Example, using a custom access callback to determine access rights::
-#
-#        def access_anon(user):
-#            if(user.id == 0):
-#                return True
-#            return False
-#
-#        @app.route('/only/for/anon')
-#        @access(callback=access_anon)
-#        @view
-#        def page_anon():
-#            return (value('Only anon visitors get access to this.')
-#      
-#
-#    ..  warning::
-#        
-#        This decorator has to be the below the app.route decorator for the page callback.
-#
-#
-#    ..  todo::
-#        
-#        Check if the custom callback example actually works
-#    """
-#
-#    def decorator(func):
-#
-#        @wraps(func)
-#        def c(*a, **kw):
-#
-#            params = {'args': a, 'kwargs': kw}
-#
-#            kwargs['params'] = params
-#
-#
-#            if flask.g.user.access(*args, **kwargs):
-#                return func(*a, **kw)
-#            else:
-#                abort(401, "Not authorized for access.")        
-#        return c
-#
-#    return decorator
-
-
 def access(permission):
 
     def decorator(func):
@@ -288,13 +214,9 @@ def protected(func):
 
     @functools.wraps(func)
     def substitute(cls_or_instance, mode=None, *args, **kwargs):
-    #def substitute(cls_or_instance, mode, *args, **kwargs):
         
         poobrains.app.logger.debug('protected call cls_or_instance: %s, %s', cls_or_instance, dir(cls_or_instance))
 
-        #if not kwargs.has_key('mode'):
-        #    raise Exception('Need explicit mode in @protected.')
-        #mode = kwargs['mode']
         if not mode:
             raise Exception('Need explicit mode in @protected.')
 
@@ -320,7 +242,6 @@ def protected(func):
 
         cls_or_instance.permissions[op_name].check(user)
 
-        #return func(cls_or_instance, *args, **kwargs)
         return func(cls_or_instance, mode=mode, *args, **kwargs)
 
     return substitute
@@ -420,6 +341,7 @@ class ClientCertForm(poobrains.form.Form):
 
 
 class OwnedPermission(Permission):
+
     choices = [
         ('deny', 'Explicitly deny'),
         ('own_instance', 'By instance access mode (own only)'),
@@ -601,18 +523,14 @@ class RelatedForm(poobrains.form.Form):
 
         for related_instance in getattr(instance, related_field.related_name):
             try:
-                related_instance.permissions['update'].check(flask.g.user) # throws PermissionDenied if user is not authorized
-                # Fieldset to edit an existing related instance of this instance
 
-                #key = '%s-%d-edit' % (related_model.__name__, related_instance.id)
+                related_instance.permissions['update'].check(flask.g.user) # throws PermissionDenied if user is not authorized
                 key = related_instance.handle_string
-                #f.fields[key] = poobrains.form.EditFieldset(related_instance)
-                #f.fields[key] = related_instance.fieldset_edit()
+
+                # Fieldset to edit an existing related instance of this instance
                 setattr(f, key, related_instance.fieldset_edit())
 
                 if f.fields[key].fields.has_key(related_field.name):
-                    #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # FIXME: Won't work with `CompositeKeyField`s
-                    #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
                     setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
 
             except PermissionDenied as e:
@@ -626,12 +544,9 @@ class RelatedForm(poobrains.form.Form):
             setattr(related_instance, related_field.name, instance) 
             key = '%s-add' % related_model.__name__
 
-            #f.fields[key] = poobrains.form.AddFieldset(related_instance)
             setattr(f, key, related_instance.fieldset_add())
 
             if f.fields[key].fields.has_key(related_field.name):
-                #f.fields[key].fields[related_field.name] = poobrains.form.fields.Value(value=instance.id) # FIXME: Won't work with `CompositeKeyField`s
-                #setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance.id)) # FIXME: Won't work with `CompositeKeyField`s
                 setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
             else:
                 poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
@@ -653,49 +568,6 @@ class RelatedForm(poobrains.form.Form):
         self.related_field = related_field
 
    
-#    @poobrains.helpers.themed
-#    def view(self, mode='teaser'):
-#
-#        """
-#        view function to be called in a flask request context
-#        """
-#        if flask.request.method == self.method:
-#
-#            values = flask.request.form[self.name]
-#
-#            for field in self:
-#
-#                if not field.empty():
-#                    try:
-#                        field.validate(values[field.name])
-#
-#                        try:
-#
-#                            field.bind(values[field.name])
-#
-#                            if isinstance(field, poobrains.form.Fieldset) and not field.errors:
-#                                field.handle()
-#                                flask.flash("Handled %s.%s" % (field.prefix, field.name))
-#                            else:
-#                                flask.flash("Not handled:")
-#                                flask.flash(field.empty())
-#
-#
-#                        except poobrains.form.errors.BindingError as e:
-#                            flask.flash(e.message)
-#
-#                    except (poobrains.form.errors.ValidationError, poobrains.form.errors.CompoundError) as e:
-#                        flask.flash(e.message)
-#
-#                try:
-#                    field.bind(values[field.name]) # bind to show erroneous values to user
-#                except poobrains.form.errors.BindingError as e:
-#                    flask.flash(e.message)
-#
-#
-#        return self
-   
-
     def handle(self):
         if not self.readonly:
             for field in self.fields.itervalues():
@@ -792,18 +664,6 @@ class UserPermissionRelatedForm(RelatedForm):
         return f
 
 
-#    def handle(self):
-#        self.instance.permissions.clear()
-#        for perm_fieldset in self.fields.itervalues():
-#            if perm_fieldset.fields['access'].value:
-#                self.instance.permissions[perm_fieldset.fields['permission'].value] = perm_fieldset.fields['access'].value
-
-        #response = super(UserPermissionRelatedForm, self).handle()
-
-#        for name, perm in Permission.children_keyed().items()
-#        return flask.redirect(flask.request.url)
-
-
 class GroupPermissionAddForm(poobrains.form.AddForm):
 
     
@@ -865,24 +725,6 @@ class BaseAdministerable(PermissionInjection, poobrains.storage.BaseModel):
     Metaclass for `Administerable`s.
     """
     pass
-#    def __new__(cls, name, bases, attrs):
-#
-#        cls = super(BaseAdministerable, cls).__new__(cls, name, bases, attrs)
-#
-#        perm_attrs = {}
-#        if hasattr(cls, '_meta') and hasattr(cls._meta, 'abstract') and cls._meta.abstract:
-#
-#            class Meta:
-#                abstract = True
-#
-#            perm_attrs['Meta'] = Meta # Makes Permissions for abstract Administerables abstract, too
-#
-#        #cls.Create = type('%sCreate' % name, (Permission,), perm_attrs)
-#        #cls.Read   = type('%sRead' % name, (Permission,), perm_attrs)
-#        #cls.Update = type('%sUpdate' % name, (Permission,), perm_attrs)
-#        #cls.Delete = type('%sDelete' % name, (Permission,), perm_attrs)
-#
-#        return cls
 
 
 class Protected(poobrains.rendering.Renderable):
@@ -919,7 +761,6 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     fieldset_add = poobrains.form.AddFieldset
     fieldset_edit = poobrains.form.EditFieldset
-    #fieldset_delete = poobrains.form.DeleteFieldset doesn't yet exist, and isn't used.
 
     related_form = RelatedForm # TODO: make naming consistent
 
@@ -948,9 +789,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         
         try:
             self._get_pk_value()
-        #except self.__class__.DoesNotExist:
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
-            #return poobrains.rendering.RenderString('No actions')
             return None
 
         user = flask.g.user
@@ -1073,33 +912,13 @@ class Named(Administerable, poobrains.storage.Named):
         abstract = True
         handle_fields = ['name']
 
-    #@property
-    #def handle_string(self):
-    #    return self.name
-
-
-    #@classmethod
-    #def string_handle(self, string):
-    #    return string
-
-
-#    @classmethod
-#    def load(cls, handle):
-#        if type(handle) is int: #or (isinstance(handle, basestring) and handle.isdigit()):
-#            return super(Administerable, cls).load(handle)
-#
-#        else:
-#            return cls.get(cls.name == handle)
-
 
 class User(Named):
 
-    #name = poobrains.storage.fields.CharField(unique=True)
     groups = None
     own_permissions = None
     _permissions = None # filled by UserPermission.permission ForeignKeyField
 
-    #form = UserForm
 
     def __init__(self, *args, **kwargs):
 
@@ -1170,14 +989,6 @@ class UserPermission(Administerable):
         except KeyError:
             poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
             #TODO: Do we want to do more, like define a permission_class that always denies access?
-
-
-#    @classmethod
-#    def load(cls, id_perm_string):
-#
-#        (user_id, permission) = id_perm_string.split(',')
-#        user = User.load(user_id)
-#        return cls.get(cls.user == user, cls.permission == permission)
 
 
     def save(self, *args, **kwargs):

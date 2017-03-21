@@ -78,10 +78,6 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
 
         # TODO: Make form ImmutableDict again?
 
-        #if app.debug:
-        #    app.debugger.set_trace()
-
-        #return (stream, form, files_flat)
         return (stream, processed_data['form'], processed_data['files'])
 
 
@@ -325,12 +321,9 @@ class Poobrain(flask.Flask):
 
         if flask.g.user == None:
             try:
-                flask.g.user = auth.User.get(auth.User.id == 1) # loads "Anonymous".
+                flask.g.user = auth.User.get(auth.User.id == 1) # loads "anonymous".
             except:
                 pass
-
-#        self.logger.debug(dir(flask.g.user))
-#        self.logger.debug(flask.g.user)
 
 
     def request_teardown(self, exception):
@@ -561,23 +554,6 @@ class Pooprint(flask.Blueprint):
             return real
 
         return decorator
-
-
-#    def view(self, cls, rule, mode=None, primary=False, **options):
-#        # TODO: Why am I not using this in here? Change that - if it makes any sense.
-#        def decorator(f):
-#
-#            @functools.wraps(f)
-#            @poobrains.helpers.themed
-#            def real(handle):
-#
-#                instance = cls.load(cls.string_handle(handle))
-#                return f(instance)
-#
-#            self.add_view(cls, rule, view_func=real, mode=mode, primary=primary, **options)
-#            return real
-#
-#        return decorator
 
     
     def box(self, name):

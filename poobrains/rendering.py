@@ -54,16 +54,12 @@ class Renderable(helpers.ChildAware):
         return tpls
 
 
-#    def view(self, mode=None):
-#
-#        """
-#        view function to be called in a flask request context
-#        """
-#
-#        return self
-
     @classmethod
     def class_view(cls, mode='full', *args, **kwargs):
+        
+        """
+        view function to be called in a flask request context
+        """
 
         instance = cls(*args, **kwargs)
         return instance.view(mode, *args, **kwargs)
@@ -71,6 +67,11 @@ class Renderable(helpers.ChildAware):
 
     @poobrains.helpers.themed
     def view(self, mode='full', *args, **kwargs):
+
+        """
+        view function to be called in a flask request context
+        """
+
         return self
 
 

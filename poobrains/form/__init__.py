@@ -241,16 +241,6 @@ class BaseForm(poobrains.rendering.Renderable):
 
     def handle(self):
 
-#        poobrains.app.logger.error("base handle")
-#        for field in self.fields.itervalues():
-#            poobrains.app.logger.debug("field: %s" % field.name)
-#            if isinstance(field, Fieldset):
-#                try:
-#                    poobrains.app.logger.error("Calling handle for a Fieldset called %s." % field.name)
-#                    field.handle(values[field.name])
-#                except Exception as e:
-#                    poobrains.app.logger.error("Possible bug in %s.handle." % field.__class__.__name__)
-
         raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
 
 
@@ -267,23 +257,6 @@ class Form(BaseForm):
         super(Form, self).__init__(prefix=prefix, name=name, title=title)
         self.method = method if method else 'POST'
         self.action = action if action else ''
-
-#    def __setattr__(self, name, value):
-#
-#        if self.name:
-#            if name == 'name' and not self.prefix:
-#                if flask.g.forms.has_key(self.name):
-#                    del(flask.g.forms[self.name])
-#                flask.g.forms[value] = self
-#
-#            if name == 'prefix':
-#                if not value:
-#                    flask.g.forms[self.name] = self
-#
-#                elif flask.g.forms.has_key(self.name):
-#                    del(flask.g.forms[self.name])
-#
-#        super(Form, self).__setattr__(name, value)
 
 
     @classmethod
@@ -403,7 +376,6 @@ class AddForm(BoundForm):
     def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
         
         if not name:
-            #name = '%s-%s' % (self.model.__name__, mode) if mode == 'add' else '%s-%s-%s' % (self.model.__name__, self.instance._get_pk_value(), mode)
             name = '%s-%s' % (self.model.__name__, self.instance.handle_string)
     
         super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)

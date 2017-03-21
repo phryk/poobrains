@@ -49,14 +49,6 @@ class QuotedSQL(peewee.Entity):
 class BaseModel(helpers.MetaCompatibility, peewee.BaseModel):
 
     pass
-#    def __new__(cls, name, bases, attrs):
-#
-#        cls = super(BaseModel, cls).__new__(cls, name, bases, attrs)
-#        if hasattr(cls, '_meta'):
-#            cls._meta._additional_keys = cls._meta._additional_keys - set(['abstract']) # This makes the "abstract" property non-inheritable.
-#            #TODO: Seems hacky as fuck, might be a good idea to ask cleifer whether this is proper.
-#
-#        return cls
 
 
 class Model(peewee.Model, helpers.ChildAware):
@@ -92,7 +84,6 @@ class Model(peewee.Model, helpers.ChildAware):
     def handle_string(self):
 
         segments = []
-        #pkfields = self._meta.get_primary_key_fields()
 
         for field_name in self._meta.handle_fields:
             try:
@@ -163,12 +154,10 @@ class Storable(Model, rendering.Renderable):
 
             for handle in handles:
                
-                #handle = cls.string_handle(handle) # TODO: remove if we can be sure only raw handles are used, not their string representations
                 for field_name in cls._meta.handle_fields:
                     idx = cls._meta.handle_fields.index(field_name) 
                     keyed_handles[field_name].append(handle[idx])
 
-            #query = peewee.where(cls.id._in(processed_handles))
             for field_name in cls._meta.handle_fields:
                 field = getattr(cls, field_name)
                 query = query.where(field.in_(keyed_handles[field_name]))
@@ -191,7 +180,7 @@ class Named(Storable):
 
 class Listing(rendering.Renderable):
 
-    #TODO: Make a Listing class that works with non-Storable Renderables
+    #TODO: Make a Listing class that works with non-Storable Renderables?
 
     cls = None
     mode = None
