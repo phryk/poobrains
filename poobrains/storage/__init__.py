@@ -135,10 +135,10 @@ class Storable(Model, rendering.Renderable):
 
 
     @classmethod
-    def class_view(cls, mode, handle):
+    def class_view(cls, mode, handle, **kwargs):
 
         instance = cls.load(cls.string_handle(handle))
-        return instance.view(mode, handle)
+        return instance.view(mode, handle, **kwargs)
 
 
     @classmethod

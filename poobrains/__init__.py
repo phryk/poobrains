@@ -327,6 +327,7 @@ class Poobrain(flask.Flask):
 
         return decorator
 
+
     def expose(self, rule, mode=None, title=None, force_secure=False):
         def decorator(cls):
 
@@ -460,7 +461,8 @@ class Pooprint(flask.Blueprint):
         if force_secure:
             view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
 
-        endpoint = self.next_endpoint(cls, mode, 'view')
+        if endpoint is None:
+            endpoint = self.next_endpoint(cls, mode, 'view')
 
         self.add_url_rule(rule, endpoint, view_func, **options)
         self.views[cls][mode][endpoint] = {'primary': primary, 'endpoint': endpoint}

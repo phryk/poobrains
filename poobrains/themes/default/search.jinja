@@ -13,3 +13,11 @@
         </ul>
     {% endif %}
 {% endblock %}
+
+{% block footer %}
+    {% if content.pagination %}
+        <footer>
+            {{ content.pagination.render() }}
+        </footer>
+    {% endif %}
+{% endblock %}
