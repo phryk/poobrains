@@ -334,13 +334,13 @@ class Poobrain(flask.Flask):
             if issubclass(cls, storage.Storable):
 
                 self.site.add_listing(cls, rule, mode='teaser', title=title, force_secure=force_secure)
-                self.site.add_view(cls, rule, mode=mode, force_secure=force_secure)
+                self.site.add_view(cls, os.path.join(rule, '<handle>/'), mode=mode, force_secure=force_secure)
 
                 for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
                     related_model = related_field.model_class
 
                     if issubclass(related_model, poobrains.auth.Administerable):
-                        self.site.add_related_view(cls, related_field, rule)
+                        self.site.add_related_view(cls, related_field, os.path.join(rule, '<handle>/'))
 
             elif issubclass(cls, form.Form):
 
@@ -350,7 +350,7 @@ class Poobrain(flask.Flask):
 
                 self.site.add_view(cls, rule, mode=mode, force_secure=force_secure)
                 if hasattr(cls, 'handle'):
-                    self.site.add_view(cls, os.path.join(rule, '<handle>'), mode=mode, primary=True, force_secure=force_secure)
+                    self.site.add_view(cls, os.path.join(rule, '<handle>/'), mode=mode, primary=True, force_secure=force_secure)
 
             return cls
 
@@ -445,13 +445,9 @@ class Pooprint(flask.Blueprint):
         if not self.views[cls].has_key(mode):
             self.views[cls][mode] = collections.OrderedDict()
 
-        if mode != 'add' and issubclass(cls, poobrains.storage.Storable): # excludes adding and non-Storable Renderables like Forms
-            rule = os.path.join(rule, '<handle>/')
-
         # Why the fuck does HTML not support DELETE!?
         options['methods'] = ['GET', 'POST']
         if mode == 'delete':
-            rule = os.path.join(rule, 'delete')
             options['methods'].append('DELETE')
 
         def view_func(*args, **kwargs):
@@ -478,7 +474,7 @@ class Pooprint(flask.Blueprint):
             self.related_views[cls] = collections.OrderedDict()
 
         if not self.related_views[cls].has_key(related_field):
-            rule = "%s<handle>/%s.%s/" % (rule, related_model.__name__.lower(), related_field.name.lower())
+            rule = "%s/%s.%s/" % (rule, related_model.__name__.lower(), related_field.name.lower())
             self.related_views[cls][related_field] = collections.OrderedDict()
 
         def view_func(*args, **kwargs):

@@ -407,7 +407,7 @@ class AddForm(BoundForm):
                     pass
  
 
-    def handle(self):
+    def handle(self, exceptions=False):
 
         if not self.readonly:
             
@@ -436,6 +436,8 @@ class AddForm(BoundForm):
                         try:
                             fieldset.handle(self.instance)
                         except Exception as e:
+                            if exceptions:
+                                raise
                             flask.flash("Failed to handle fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
                             poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
 
@@ -447,6 +449,9 @@ class AddForm(BoundForm):
                     flask.flash("Couldn't save %s." % self.model.__name__)
 
             except peewee.IntegrityError as e:
+
+                if exceptions:
+                    raise
                 flask.flash('Integrity error: %s' % e.message, 'error')
 
         else:

@@ -4,6 +4,7 @@
 import math
 import collections
 import re
+import copy
 import flask
 import werkzeug.routing
 import peewee
@@ -216,38 +217,15 @@ class Listing(rendering.Renderable):
             op = cls._meta.modes[mode]
             query = cls.list(op, flask.g.user)
 
-        self.count = query.count()
 
-        self.pagecount = int(math.ceil(self.count/float(self.limit)))
-        self.current_page = int(math.floor(self.offset / float(self.limit))) + 1
-
-        self.items = query.offset(self.offset).limit(self.limit)
-
-        # Build pagination if matching endpoint and enough rows exist
         endpoint = flask.request.endpoint
         if not endpoint.endswith('_offset'):
             endpoint = '%s_offset' % (endpoint,)
+        
+        pagination = Pagination({cls: query}, offset, endpoint)
 
-        try:
-
-            self.pagination = rendering.Menu('pagination')
-            for i in range(0, self.pagecount):
-
-                page_num = i+1
-                active = self.current_page == page_num
-
-                self.pagination.append(
-                    flask.url_for(endpoint, offset=i*self.limit),
-                    page_num,
-                    active
-                )
-
-            if len(self.pagination) < 2:
-                self.pagination = False
-
-        except werkzeug.routing.BuildError as e:
-            app.logger.error('Pagination navigation could not be built. This might be fixable with more magic.')
-            self.pagination = False
+        self.items = pagination.results
+        self.pagination = pagination.menu
 
 
     def templates(self, mode=None):
@@ -266,3 +244,103 @@ class Listing(rendering.Renderable):
             tpls.append('%s.jinja' % name)
 
         return tpls
+
+
+class Pagination(object):
+
+    menu = None # the actual pagination menu
+    options = None # optional parameters for flask.url_for
+    limit = None
+    offset = None
+    queries = None
+    counts = None
+    results = None
+    page_info = None
+    num_results = None
+    num_pages = None
+    current_page = None
+
+
+    def __init__(self, queries, offset, endpoint, limit=None, **options):
+       
+        self.queries = queries
+        self.offset = offset
+        self.endpoint = endpoint
+        self.options = options
+
+        if limit is not None:
+            self.limit = limit
+        else:
+            self.limit = poobrains.app.config['PAGINATION_COUNT']
+
+        self.menu = False
+        self.counts = dict([(cls, q.count()) for cls, q in self.queries.iteritems()])
+        self.results = []
+        self.page_info = collections.OrderedDict()
+        self.num_results = sum([x.count() for x in self.queries.itervalues()])
+        self.num_pages = int(math.ceil(float(self.num_results) / self.limit))
+        self.current_page = int(math.floor(self.offset / float(self.limit))) + 1
+
+        position = 0
+
+        range_lower = self.offset
+        range_upper = self.offset + self.limit - 1
+
+        for administerable, count in self.counts.iteritems():
+
+            if count > 0:
+
+                first_position = position
+                last_position = first_position + count - 1
+
+                on_current_page = first_position <= range_upper and last_position >= range_lower
+
+                if on_current_page:
+                
+                    self.page_info[administerable] = {}
+
+                    starts_before_page = first_position < range_lower
+                    starts_within_page = first_position >= range_lower and first_position <= range_upper
+                    ends_after_page = last_position > range_upper
+
+                    if starts_before_page:
+                        self.page_info[administerable]['offset'] = range_lower - first_position
+                    else:
+                        self.page_info[administerable]['offset'] = 0
+
+                    if starts_within_page and ends_after_page:
+                        self.page_info[administerable]['limit'] = self.limit - (first_position - range_lower)
+                    else:
+                        self.page_info[administerable]['limit'] = self.limit
+
+                position += count
+
+
+        for administerable, info in self.page_info.iteritems():
+
+            query = self.queries[administerable]
+
+            query = query.offset(info['offset'])
+            query = query.limit(info['limit'])
+            self.queries[administerable] = query # is this needed or is it just a reference?
+
+            for result in query:
+                self.results.append(result)
+
+
+        if self.num_pages > 1:
+
+            self.menu = poobrains.rendering.Menu('pagination')
+
+            for i in range(0, self.num_pages):
+
+                page_num = i + 1
+                active = page_num == self.current_page
+                kw = copy.copy(self.options)
+                kw['offset'] = i * self.limit
+
+                self.menu.append(
+                    flask.url_for(self.endpoint, **kw),
+                    page_num,
+                    active
+                )

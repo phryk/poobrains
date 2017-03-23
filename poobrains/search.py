@@ -42,7 +42,7 @@ class Search(poobrains.auth.Protected):
 
     form = None
     handle = None
-    offset = 0
+    offset = None
     results = None
 
     def __init__(self, handle='', offset=0):
@@ -56,48 +56,6 @@ class Search(poobrains.auth.Protected):
         self.form.clear = poobrains.form.Button('submit', value='clear', label='Clear')
         self.offset = offset
         self.results = []
-
-
-    def pagination_info(self, limit, offset, counts):
-
-        position = 0
-        info = collections.OrderedDict()
-
-        range_lower = offset
-        range_upper = offset + limit - 1
-
-        for administerable, count in counts.iteritems():
-
-            if count > 0:
-
-                first_position = position
-                last_position = first_position + count - 1
-
-                on_current_page = first_position <= range_upper and last_position >= range_lower
-
-                if on_current_page:
-                
-                    info[administerable] = {}
-
-                    starts_before_page = first_position < range_lower
-                    starts_within_page = first_position >= range_lower and first_position <= range_upper
-                    ends_after_page = last_position > range_upper
-
-                    if starts_before_page:
-                        info[administerable]['offset'] = range_lower - first_position
-                    else:
-                        info[administerable]['offset'] = 0
-
-                    if starts_within_page and ends_after_page:
-                        info[administerable]['limit'] = limit - (first_position - range_lower)
-                    else:
-                        info[administerable]['limit'] = limit
-
-                position += count# + 1
-
-        return info
-
-
 
 
     @poobrains.helpers.themed
@@ -170,51 +128,14 @@ class Search(poobrains.auth.Protected):
                 else:
                     continue
 
-            counts = collections.OrderedDict()
 
-            total_results = 0
-            for administerable, query in queries.iteritems():
-                c = query.count()
-                counts[administerable] = c
-                total_results += c
-            
-            pagination_info = self.pagination_info(poobrains.app.config['PAGINATION_COUNT'], offset, counts)
-
-            for administerable, info in pagination_info.iteritems():
-
-                query = queries[administerable]
-
-                query = query.offset(info['offset'])
-                query = query.limit(info['limit'])
-
-                for result in query:
-                    self.results.append(result)
-
-            num_pages = int(math.ceil(float(total_results) / poobrains.app.config['PAGINATION_COUNT']))
-
-            if num_pages > 1:
-
-                self.pagination = poobrains.rendering.Menu('menu-pagination')
-                current_page = int(offset / poobrains.app.config['PAGINATION_COUNT']) + 1
-
-                for i in range(0, num_pages):
-       
-                    page_num = i + 1
-                    active = page_num == current_page
-
-                    self.pagination.append(
-                        flask.url_for('site.search_handle_offset', handle=self.handle, offset=i * poobrains.app.config['PAGINATION_COUNT']),
-                        page_num,
-                        active
-                    )
-                    
-            else:
-                self.pagination = False
+            pagination = poobrains.storage.Pagination(queries, offset, 'site.search_handle_offset', handle=self.handle)
+            self.results = pagination.results
+            self.pagination = pagination.menu
 
 
         elif len(self.handle) > 0:
             flask.flash("Search pattern has to be at least 3 characters long.", 'error')
-
 
         return self
 

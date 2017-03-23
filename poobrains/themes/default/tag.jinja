@@ -5,14 +5,18 @@
     <div class="posts">
     {% with tagged_posts = content.list_tagged() %}
 
-        {% if not tagged_posts|length %}
+        {% if not tagged_posts.results|length %}
             <p>No associated content.</p>
         {% else %}
             <ul class="tagged-posts">
-            {% for post in tagged_posts %}
+            {% for post in tagged_posts.results %}
                 <li>{{ post.render('teaser') }}</li>
             {% endfor %}
             </ul>
+
+            {% if tagged_posts.menu %}
+                {{ tagged_posts.menu.render() }}
+            {% endif %}
         {% endif %}
 
     {% endwith %}

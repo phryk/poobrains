@@ -3,6 +3,7 @@
 # external imports
 import functools
 import collections
+import os
 import M2Crypto #import X509, EVP
 import pyspkac #import SPKAC
 import time
@@ -21,7 +22,6 @@ def admin_setup():
     if not poobrains.app._got_first_request:
 
         administerables = Administerable.children_keyed()
-
         for key in sorted(administerables):
 
             cls = administerables[key]
@@ -30,9 +30,11 @@ def admin_setup():
             actions = functools.partial(admin_listing_actions, cls)
 
             poobrains.app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
+            poobrains.app.admin.add_view(cls, os.path.join(rule, 'add/'), mode='add', force_secure=True)
+
+            rule = os.path.join(rule, '<handle>/')
             poobrains.app.admin.add_view(cls, rule, mode='edit', force_secure=True)
-            poobrains.app.admin.add_view(cls, rule, mode='delete', force_secure=True)
-            poobrains.app.admin.add_view(cls, '%sadd/' % rule, mode='add', force_secure=True)
+            poobrains.app.admin.add_view(cls, os.path.join(rule, 'delete'), mode='delete', force_secure=True)
 
             for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
                 related_model = related_field.model_class
@@ -40,7 +42,6 @@ def admin_setup():
                 if issubclass(related_model, Administerable):
                     poobrains.app.admin.add_related_view(cls, related_field, rule, force_secure=True)
 
-        poobrains.app.register_blueprint(poobrains.app.site)
         poobrains.app.register_blueprint(poobrains.app.admin, url_prefix='/admin/')
 
 

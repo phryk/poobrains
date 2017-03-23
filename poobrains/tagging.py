@@ -6,11 +6,13 @@ import flask
 
 import poobrains
 
-@poobrains.app.expose('/tag/', mode='full')
+#@poobrains.app.expose('/tag/', mode='full')
 class Tag(poobrains.auth.Named):
 
     description = poobrains.storage.fields.TextField()
     parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')])
+
+    offset = None
 
 
     class Meta:
@@ -24,6 +26,12 @@ class Tag(poobrains.auth.Named):
         ])
 
 
+    def __init__(self, *args, **kwargs):
+
+        super(Tag, self).__init__(*args, **kwargs)
+        self.offset = 0
+
+
     @classmethod
     def tree(cls, root=None):
         
@@ -34,13 +42,30 @@ class Tag(poobrains.auth.Named):
             tree[tag.name] = cls.tree(tag)
 
         return tree
+   
+
+    @poobrains.auth.protected
+    @poobrains.helpers.themed
+    def view(self, mode=None, handle=None, offset=0):
+
+        """
+        view function to be called in a flask request context
+        """
+        
+        if mode in ('add', 'edit', 'delete'):
+
+            f = self.form(mode)
+            return poobrains.helpers.ThemedPassthrough(f.view('full'))
+
+        self.offset = offset
+        return self
 
 
     def list_tagged(self):
 
         bindings = TagBinding.select().where(TagBinding.tag == self).limit(poobrains.app.config['PAGINATION_COUNT'])
         bindings_by_model = collections.OrderedDict()
-        contents = []
+        queries = collections.OrderedDict()
 
         for binding in bindings:
 
@@ -59,19 +84,17 @@ class Tag(poobrains.auth.Named):
                 poobrains.app.logger.error("TagBinding for unknown model: %s" % model_name)
                 continue
 
-            #handle_fields = [getattr(model, field_name) for field_name in model._meta.handle_fields]
             handles = [model.string_handle(binding.handle) for binding in bindings]
-            query = model.list('r', user=flask.g.user, handles=handles)
-            contents.extend(query)
-            #pkfields = model._meta.get_primary_key_fields()
-
-            #pkvalues = []
-            #for handle in handles:
-            #    pkvalues.append(model.string_handle(handle))
+            queries[model] = model.list('r', user=flask.g.user, handles=handles)
 
 
-        return contents
+        pagination = poobrains.storage.Pagination(queries, self.offset, 'site.tag_handle_offset')
 
+        return pagination
+
+poobrains.app.site.add_listing(Tag, '/tag/', mode='full', endpoint='tag')
+poobrains.app.site.add_view(Tag, '/tag/<handle>/', mode='full', endpoint='tag_handle')
+poobrains.app.site.add_view(Tag, '/tag/<handle>/+<int:offset>', mode='full', endpoint='tag_handle_offset')
 
 
 class TagBinding(poobrains.auth.Administerable):

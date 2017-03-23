@@ -1,9 +1,5 @@
-from os.path import join, exists, dirname
-from flask import abort, render_template, g
-from werkzeug.wrappers import Response
-from werkzeug.exceptions import HTTPException
-
 import collections
+import os
 import flask
 import werkzeug
 import jinja2
@@ -101,20 +97,18 @@ class MenuItem(object):
     caption = None
     active = None
 
-    def __init__(self, url, caption, active=False):
+    def __init__(self, url, caption, active=None):
 
         super(MenuItem, self).__init__()
         self.url = url
         self.caption = caption
-        if active:
-            self.active = active
+        if active is not None:
+            self.active = 'active' if active is True else active
         else:
             if self.url == flask.request.path:
                 self.active = 'active'
-            elif flask.request.path.startswith(self.url):
+            elif flask.request.path.startswith(os.path.join(self.url, '')):
                 self.active = 'trace'
-            else:
-                self.active = False
 
 
 class Menu(Renderable):
@@ -153,5 +147,5 @@ class Menu(Renderable):
         return self.items.__iter__()
 
     
-    def append(self, url, caption, active=False):
+    def append(self, url, caption, active=None):
         self.items.append(MenuItem(url, caption, active))
