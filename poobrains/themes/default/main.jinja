@@ -29,6 +29,8 @@
         <main>
             <header>
 
+                {% block breadcrumb %}{{ g.boxes['breadcrumb'].render() }}{% endblock %}
+
                 <h1>{{ g.title }}</h1>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}

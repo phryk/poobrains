@@ -26,7 +26,7 @@ def admin_setup():
 
             cls = administerables[key]
 
-            rule = '%s/' % key.lower()
+            rule = '%s' % key.lower()
             actions = functools.partial(admin_listing_actions, cls)
 
             poobrains.app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
@@ -841,7 +841,7 @@ class Administerable(poobrains.storage.Storable, Protected):
             return None
 
         user = flask.g.user
-        actions = poobrains.rendering.Menu('%s.actions' % self.handle_string)
+        actions = poobrains.rendering.Menu('actions')
 
         for mode in self.__class__._meta.modes:
 
@@ -870,7 +870,7 @@ class Administerable(poobrains.storage.Storable, Protected):
             return None
 
         user = flask.g.user
-        menu = poobrains.rendering.Menu('%s.related' % self.handle_string)
+        menu = poobrains.rendering.Menu('related')
 
         for related_field in self._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
             related_model = related_field.model_class

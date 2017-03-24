@@ -1,4 +1,4 @@
-<nav id="menu-{{ content.name }}" class="menu">
+<nav class="menu {{ content.name }}">
     <ul>
     {% for item in content.items: %}
     <li><a {% if item.active %} class="{{ item.active }}" {% endif %}href="{{ item.url }}">{{ item.caption }}</a></li>

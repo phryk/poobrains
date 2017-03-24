@@ -169,7 +169,7 @@ class Poobrain(flask.Flask):
         self.boxes = {}
         self.poobrain_path = os.path.dirname(os.path.realpath(__file__))
         self.site_path = os.getcwd()
-        self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'js']
+        self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'js', 'jpg']
 
         self.db = db_url.connect(self.config['DATABASE'])
 
@@ -474,7 +474,8 @@ class Pooprint(flask.Blueprint):
             self.related_views[cls] = collections.OrderedDict()
 
         if not self.related_views[cls].has_key(related_field):
-            rule = "%s/%s.%s/" % (rule, related_model.__name__.lower(), related_field.name.lower())
+            url_segment = '%s:%s' % (related_model.__name__.lower(), related_field.name.lower())
+            rule = os.path.join(rule, url_segment)
             self.related_views[cls][related_field] = collections.OrderedDict()
 
         def view_func(*args, **kwargs):
@@ -730,6 +731,35 @@ def errorpage(error):
         import traceback
         app.logger.debug(traceback.format_exc())
     return ErrorPage(error)
+
+
+@app.box('breadcrumb')
+def menu_breadcrumb():
+
+    """ HELLO, I'M A POTENTIAL XSS VULNERABILITY! """
+
+    app.debugger.set_trace()
+    m = poobrains.rendering.Menu('breadcrumb')
+
+    segments = flask.request.path.split('/')
+    for i in range(0, len(segments)):
+
+        segment = segments[i]
+        
+        if i == 0:
+            m.append('/', 'home')
+            continue
+
+        elif segment != '':
+
+            if ''.join(segments[i+1:]) == '': # means the rest of segments just appears empty strings
+                path = flask.request.path # makes sure we don't fuck over any trailing-slash rules
+            else:
+                path = '/' + os.path.join(*segments[0:i+1]) + '/'
+
+            m.append(path, segment)
+
+    return m
 
 app.register_error_handler(400, errorpage)
 app.register_error_handler(403, errorpage)

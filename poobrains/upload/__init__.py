@@ -43,7 +43,6 @@ class UploadForm(poobrains.form.AddForm):
 
     def handle(self):
 
-
         force = self.fields['force'].value
         upload_file = self.fields['upload'].value
         filename = self.fields['filename'].value
@@ -90,7 +89,6 @@ class UploadForm(poobrains.form.AddForm):
             os.remove(file_path)
 
         return self
-
 
 
 class File(poobrains.auth.NamedOwned):

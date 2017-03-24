@@ -46,7 +46,10 @@ html {
     width: 100%;
     min-height: 100vh;
     overflow-y: scroll; /* always show vertical scrollbar, viewport dependant widths stay the same */
-    background-image: url('/theme/bg.svg'), linear-gradient(to bottom, opacify($color_background_dark, 0.2), darken(opacify($color_highlight, 0.2), 40%) 100%);
+    background-image: url('/theme/bg.svg'), linear-gradient(45deg, opacify($color_background_dark, 0.2), $color_highlight);
+    /*background-image: url('/theme/pooscape-probablyold.svg'), linear-gradient(to bottom, opacify($color_background_dark, 0.2), darken(opacify($color_highlight, 0.2), 40%) 100%);*/
+    /*background-image: url('/theme/test.png');*/
+    background-color: #333;
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -58,6 +61,7 @@ html {
 }
 
 body {
+
     position: relative;
     display: flex;
     flex-direction: row;
@@ -85,21 +89,25 @@ body {
         padding: 1rem;
         z-index: 200;
         background-color: $color_background_dark;
-        border-left: 0.25rem solid $color_background_light;
-        border-right: 0.25rem solid $color_background_light;
-        border-bottom: 0.25rem solid $color_background_light;
+        /*border-left: 0.25rem solid;
+        border-right: 0.25rem solid;
+        border-bottom: 0.25rem solid;
+        border-color: $color_border;*/
         
         /*-webkit-clip-path: polygon(0 0, 0 calc(100% - 3rem), 50% 100%, 100% calc(100% - 3rem), 100% 0);*/
 
         overflow: hidden;
         
         & > .sticky {
+            overflow-y: auto;
+            overflow-x: hidden;
             position: sticky;
             top: 0;
             flex-shrink: 1;
         }
 
-        nav.menu {
+        nav.menu.main {
+
 
             ul {
                 display: flex;
@@ -173,6 +181,7 @@ main {
                 a {
                     display: inline-block;
                     position:relative;
+                    padding: 0.25rem;
                 }
             }
         }
@@ -202,63 +211,105 @@ main {
             z-index: 120;
             font-size: 1.8rem;
 
-            &:first-of-type {
-                margin-top: 2rem;
+            &:last-child {
+                margin-bottom: -2rem;
             }
 
-            &:last-child {
+            &.breadcrumb {
 
-                margin-bottom: -2rem;
+                margin: 0;
+                margin-top: -2rem;
+                margin-bottom: 3rem;
 
-                &:not(:first-of-type) {
-                    background: #000;
-                    /*font-family: 'Open Sans', sans;
-                    font-size: 1rem;*/
+                font-size: 1.2rem;
+                letter-spacing: 0.1rem;
 
-                    a {
-                        color: $color_font_light;
-                        transition: color 0.3s;
-                        background-image: none;
-
-                        &.trace {
-                          color: lighten($color_highlight, 30%);
+                ul {
+                    li {
+                        &:after {
+                            content: '/';
                         }
 
-                        &:hover,
-                        &:focus,
-                        &.trace:hover,
-                        &.trace:focus {
-                            color: $color_highlight;
+                        &:last-child:after {
+                            content: '';
+                        }
+                        a {
+
+                            padding-top: 0.5rem;
+                            margin-right: 0.25rem;
+                            color: $color_font_dark;
+                            background-image: linear-gradient(to top, rgba(0,0,0, 1.0), rgba(0,0,0, 1.0) 100%);
+                            background-size: 100% 0;
+                            background-repeat: no-repeat;
+                            background-position: top;
+                            transition: background 0.3s, color 0.3s;
+
+                            &:hover,
+                            &:focus,
+                            &.active {
+                                /*background-image: none;*/
+                                outline: none;
+                                background-size: 100% 100%;
+                                color: $color_highlight;
+                            }
                         }
                     }
                 }
             }
 
-            ul {
-                li {
-                    a {
-                        padding: 0.25rem;
-                        color: $color_font_dark;
-                        
-                        background-image: linear-gradient(to bottom, rgba(0,0,0, 1.0), rgba(0,0,0, 1.0) 100%);
-                        background-size: 100% 0;
-                        background-repeat: no-repeat;
-                        background-position: bottom;
-                        transition: background 0.3s, color 0.3s;
 
-                        &.trace {
+            &.actions {
+
+                margin-top: 3rem;
+
+                ul {
+                    li {
+                        a {
                             color: $color_font_dark;
-                            text-shadow: 0 0 0.25rem $color_font_dark;
-                        }
+                            
+                            background-image: linear-gradient(to bottom, rgba(0,0,0, 1.0), rgba(0,0,0, 1.0) 100%);
+                            background-size: 100% 0;
+                            background-repeat: no-repeat;
+                            background-position: bottom;
+                            transition: background 0.3s, color 0.3s;
 
-                        &:hover,
-                        &:focus,
-                        &.active,
-                        &.trace:hover,
-                        &.trace:focus {
-                            background-size: 100% 100%;
-                            color: $color_highlight;
+                            &.trace {
+                                color: $color_font_dark;
+                                text-shadow: 0 0 0.25rem $color_font_dark;
+                            }
+
+                            &:hover,
+                            &:focus,
+                            &.active,
+                            &.trace:hover,
+                            &.trace:focus {
+                                background-size: 100% 100%;
+                                color: $color_highlight;
+                            }
                         }
+                    }
+                }
+            }
+
+            &.related {
+                background: #000;
+                /*font-family: 'Open Sans', sans;
+                font-size: 1rem;*/
+
+                a {
+                    color: $color_font_light;
+                    transition: color 0.3s;
+                    background-image: none;
+
+                    &.trace {
+                      color: lighten($color_highlight, 30%);
+                    }
+
+                    &:hover,
+                    &:focus,
+                    &.trace:hover,
+                    &.trace:focus {
+                        color: $color_highlight;
                     }
                 }
             }
@@ -279,9 +330,10 @@ main {
             padding: 1rem;
             background: $color_background_dark;
             z-index: 100;
-            border: 0.25rem solid $color_background_light;
+            /*border: 0.25rem solid;
             border-top: none;
             border-bottom: none;
+            border-color: $color_border;*/
         }
     }
 }
