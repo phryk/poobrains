@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
-
+import os
 import random
+import functools
 import collections
 import datetime
 import peewee
 import flask
+
+from wand import image, drawing, color
+
 import poobrains
 
 
@@ -135,45 +139,37 @@ class CommentForm(poobrains.form.Form):
 #
 #        return flask.redirect(self.instance.url('full'))
 
-        challenges = Challenge.select()
-        if len(challenges):
-            challenge = challenges[random.randint(0, len(challenges) - 1)] # I'm hoping this automatically adds a WHERE clause, consider this a FIXME if not
-        else:
-            flask.flash("I'm sorry Dave. I'm afraid I can't do that.")
-            return flask.redirect(self.instance.url('full'))
-
         iteration_limit = 10
         for i in range(0, iteration_limit):
-            name = poobrains.helpers.random_string_light(32).lower()
-            if not Response.select().where(Response.name == name).count():
+            name = poobrains.helpers.random_string_light(16).lower()
+            if not Challenge.select().where(Challenge.name == name).count():
                 break
-            elif i == iteration_limit - 1: # means loop ran through without finding a free response name
+            elif i == iteration_limit - 1: # means loop ran through without finding a free challenge name
                 flask.flash("I'm sorry Dave. I'm afraid I can't do that.")
                 return flask.redirect(self.instance.url('full'))
 
-        response = Response()
-        response.name = name
-        response.challenge = challenge
-        response.model = self.instance.__class__.__name__
-        response.handle = self.instance.handle_string
-        response.reply_to = self.fields['reply_to'].value
-        response.author = self.fields['author'].value
-        response.text = self.fields['text'].value
+        challenge = Challenge()
+        challenge.name = name
+        challenge.model = self.instance.__class__.__name__
+        challenge.handle = self.instance.handle_string
+        challenge.reply_to = self.fields['reply_to'].value
+        challenge.author = self.fields['author'].value
+        challenge.text = self.fields['text'].value
 
-        response.save()
-        return flask.redirect(response.url('full'))
-
-
-class Challenge(poobrains.auth.Administerable):
-
-    question = poobrains.storage.fields.CharField()
-    answer = poobrains.storage.fields.CharField()
+        challenge.save()
+        return flask.redirect(challenge.url('full'))
 
 
-class Response(poobrains.storage.Named):
+class Challenge(poobrains.storage.Named):
 
-    title = "Comment challenge"
-    challenge = poobrains.storage.fields.ForeignKeyField(Challenge)
+
+    class Meta:
+
+        modes = collections.OrderedDict([('full', 'r'), ('raw', 'r')])
+
+
+    title = 'Fuck bots, get bugs'
+    captcha = poobrains.storage.fields.CharField(default=functools.partial(poobrains.helpers.random_string_light, 6))
     model = poobrains.storage.fields.CharField()
     handle = poobrains.storage.fields.CharField()
     reply_to = poobrains.storage.fields.ForeignKeyField('self', null=True)
@@ -181,28 +177,71 @@ class Response(poobrains.storage.Named):
     author = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()
 
-    @poobrains.helpers.themed
+
     def view(self, mode=None, handle=None):
 
         """
         view function to be called in a flask request context
         """
-        poobrains.app.debugger.set_trace()  
-        return self
+        poobrains.app.debugger.set_trace()
+
+        if mode == 'raw':
+
+            colors = [
+                color.Color('#aaff00'),
+                color.Color('#ffaa00'),
+                color.Color('#ff00aa'),
+                color.Color('#aa00ff'),
+                color.Color('#99ffaa'),
+                color.Color('#00aaff')
+            ]
+
+            img = image.Image(width=210, height=70)
+            x_jitter = (-5, 5)
+            y_jitter = (-10, 10)
+
+            x = (img.width / 2) #+ random.randint(x_jitter[0], x_jitter[1])
+            y = (img.width / 2) #+ random.randint(y_jitter[0], y_jitter[1])
+            x = 10
+            y = 50
+            baseline = y
+
+            for char in self.captcha:
+
+                draw = drawing.Drawing()
+                draw.font = os.path.join(poobrains.app.poobrain_path, 'knewave-outline.otf')
+                c = colors[random.randint(0, len(colors) -1)]
+                draw.stroke_color = c
+                draw.fill_color = c
+                draw.font_size = 40
+                draw.translate(x, y)
+                draw.rotate(random.randint(-20, 20))
+                draw.text(0,0 , char)
+                draw(img)
+
+                x += 30 + random.randint(x_jitter[0], x_jitter[1])
+                y = baseline + random.randint(y_jitter[0], y_jitter[1])
+            fg = img.clone()    
+            img.gaussian_blur(3, 3)
+            img.composite(fg, left=0, top=0)
+
+            return flask.Response(
+                img.make_blob('png'),
+                mimetype='image/png'
+            )
+
+        return ChallengeForm(self).view('full')
+
+poobrains.app.site.add_view(Challenge, '/comment/challenge/<handle>/', mode='full')
+poobrains.app.site.add_view(Challenge, '/comment/challenge/<handle>/raw', mode='raw')
 
 
-poobrains.app.site.add_view(Response, '/comment/challengeresponse/<handle>', mode='full')
+class ChallengeForm(poobrains.form.Form):
 
+    challenge = None
+    response = poobrains.form.fields.Text()
+    send = poobrains.form.Button('submit', 'Send')
 
-class ResonseForm(poobrains.form.Form):
+    def __init__(self, challenge):
 
-    response = poobrains.form.fields.Text(required=True)
-
-    def __init__(self, response, **kwargs):
-        self.response = 'foo'# TODO: Fuck it, going to go for captchas.
-
-
-    def handle(self):
-
-        #if ''.join(self.fields['response'].value.lower().split(' ')) == self.
-        pass
+        self.challenge = challenge

@@ -3,9 +3,16 @@
     {% if content.action %}action="{{ content.action }}"{% endif %}
     enctype="multipart/form-data" >
 
-{% for field in content %}
-    {{ field.render() }}
-{% endfor %}
-{{ content.render_controls() }}
+{% block header %}{%endblock%}
+
+{% block fields %}
+    {% for field in content %}
+        {{ field.render() }}
+    {% endfor %}
+{% endblock %}
+
+{% block footer %}
+    {{ content.render_controls() }}
+{% endblock %}
 
 </form>
