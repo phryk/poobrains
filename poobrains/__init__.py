@@ -450,9 +450,10 @@ class Pooprint(flask.Blueprint):
         if mode == 'delete':
             options['methods'].append('DELETE')
 
-        def view_func(*args, **kwargs):
+        def view_func(**kwargs):
+           
             kwargs['mode'] = mode
-            return cls.class_view(*args, **kwargs)
+            return cls.class_view(**kwargs)
 
         if force_secure:
             view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
@@ -738,7 +739,6 @@ def menu_breadcrumb():
 
     """ HELLO, I'M A POTENTIAL XSS VULNERABILITY! """
 
-    app.debugger.set_trace()
     m = poobrains.rendering.Menu('breadcrumb')
 
     segments = flask.request.path.split('/')

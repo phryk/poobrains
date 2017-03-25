@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import random
 import collections
 import datetime
 import peewee
@@ -114,22 +115,94 @@ class CommentForm(poobrains.form.Form):
 
     def handle(self):
 
+        poobrains.app.debugger.set_trace()
         self.instance.permissions['read'].check(flask.g.user)
-        Comment.permissions['create'].check(flask.g.user)
+#        Comment.permissions['create'].check(flask.g.user)
+#
+#        comment = Comment()
+#        comment.model = self.instance.__class__.__name__
+#        comment.handle = self.instance.handle_string
+#        comment.reply_to = self.fields['reply_to'].value
+#        comment.author = self.fields['author'].value
+#        comment.text = self.fields['text'].value
+#
+#        try:
+#            comment.save()
+#            flask.flash("Comment saved!")
+#        except peewee.PeeweeException as e:
+#            flask.flash("Could not save your comment!", 'error')
+#            poobrains.app.logger.error("Could not save a comment. %s: %s" % (e.__class__.__name__, e.message))
+#
+#        return flask.redirect(self.instance.url('full'))
 
-        comment = Comment()
-        comment.model = self.instance.__class__.__name__
-        comment.handle = self.instance.handle_string
-        comment.reply_to = self.fields['reply_to'].value
-        comment.author = self.fields['author'].value
-        comment.text = self.fields['text'].value
+        challenges = Challenge.select()
+        if len(challenges):
+            challenge = challenges[random.randint(0, len(challenges) - 1)] # I'm hoping this automatically adds a WHERE clause, consider this a FIXME if not
+        else:
+            flask.flash("I'm sorry Dave. I'm afraid I can't do that.")
+            return flask.redirect(self.instance.url('full'))
 
-        try:
-            comment.save()
-            flask.flash("Comment saved!")
-        except peewee.PeeweeException as e:
-            flask.flash("Could not save your comment!", 'error')
-            poobrains.app.logger.error("Could not save a comment. %s: %s" % (e.__class__.__name__, e.message))
+        iteration_limit = 10
+        for i in range(0, iteration_limit):
+            name = poobrains.helpers.random_string_light(32).lower()
+            if not Response.select().where(Response.name == name).count():
+                break
+            elif i == iteration_limit - 1: # means loop ran through without finding a free response name
+                flask.flash("I'm sorry Dave. I'm afraid I can't do that.")
+                return flask.redirect(self.instance.url('full'))
+
+        response = Response()
+        response.name = name
+        response.challenge = challenge
+        response.model = self.instance.__class__.__name__
+        response.handle = self.instance.handle_string
+        response.reply_to = self.fields['reply_to'].value
+        response.author = self.fields['author'].value
+        response.text = self.fields['text'].value
+
+        response.save()
+        return flask.redirect(response.url('full'))
 
 
-        return flask.redirect(self.instance.url('full'))
+class Challenge(poobrains.auth.Administerable):
+
+    question = poobrains.storage.fields.CharField()
+    answer = poobrains.storage.fields.CharField()
+
+
+class Response(poobrains.storage.Named):
+
+    title = "Comment challenge"
+    challenge = poobrains.storage.fields.ForeignKeyField(Challenge)
+    model = poobrains.storage.fields.CharField()
+    handle = poobrains.storage.fields.CharField()
+    reply_to = poobrains.storage.fields.ForeignKeyField('self', null=True)
+    created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
+    author = poobrains.storage.fields.CharField()
+    text = poobrains.storage.fields.TextField()
+
+    @poobrains.helpers.themed
+    def view(self, mode=None, handle=None):
+
+        """
+        view function to be called in a flask request context
+        """
+        poobrains.app.debugger.set_trace()  
+        return self
+
+
+poobrains.app.site.add_view(Response, '/comment/challengeresponse/<handle>', mode='full')
+
+
+class ResonseForm(poobrains.form.Form):
+
+    response = poobrains.form.fields.Text(required=True)
+
+    def __init__(self, response, **kwargs):
+        self.response = 'foo'# TODO: Fuck it, going to go for captchas.
+
+
+    def handle(self):
+
+        #if ''.join(self.fields['response'].value.lower().split(' ')) == self.
+        pass

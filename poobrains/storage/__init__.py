@@ -65,7 +65,7 @@ class Model(peewee.Model, helpers.ChildAware):
 
     @classmethod
     def load(cls, handle):
-        
+
         q = cls.select()
 
         if type(handle) not in (tuple, list):
@@ -122,7 +122,8 @@ class Storable(Model, rendering.Renderable):
 
     class Meta:
         abstract = True
-
+        ops = collections.OrderedDict([('r', 'read')])
+        modes = collections.OrderedDict([('full', 'r')])
 
     def __init__(self, *args, **kwargs):
 
@@ -136,10 +137,10 @@ class Storable(Model, rendering.Renderable):
 
 
     @classmethod
-    def class_view(cls, mode, handle, **kwargs):
+    def class_view(cls, mode='teaser', handle=None, **kwargs):
 
         instance = cls.load(cls.string_handle(handle))
-        return instance.view(mode, handle, **kwargs)
+        return instance.view(handle=handle, mode=mode, **kwargs)
 
 
     @classmethod
@@ -167,6 +168,9 @@ class Storable(Model, rendering.Renderable):
 
 
 class Named(Storable):
+
+    class Meta:
+        handle_fields = ['name']
 
     name = fields.CharField(index=True, unique=True, null=False, constraints=[RegexpConstraint('name', '^[a-z0-9_\-]+$')])
 

@@ -383,10 +383,6 @@ class ClientCertForm(poobrains.form.Form):
         r.mimetype = 'application/x-x509-user-cert'
         return r
 
-    @poobrains.helpers.is_secure
-    def view(self, *args, **kwargs):
-        return super(ClientCertForm, self).view(*args, **kwargs)
-
 
 class OwnedPermission(Permission):
 
@@ -896,7 +892,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     
 
     @classmethod
-    def class_view(cls, mode=None, handle=None):
+    def class_view(cls, mode=None, handle=None, **kwargs):
        
         if mode == 'add':
             instance = cls()
@@ -906,17 +902,18 @@ class Administerable(poobrains.storage.Storable, Protected):
             except ValueError:
                 raise cls.DoesNotExist("This isn't even the right type!")
 
-        return instance.view(mode=mode, handle=handle)
+        return instance.view(mode=mode, handle=handle, **kwargs)
 
 
     @protected
     @poobrains.helpers.themed
-    def view(self, mode=None, handle=None):
+    def view(self, mode='teaser', handle=None, **kwargs):
 
         """
         view function to be called in a flask request context
         """
-        if mode in ('add', 'edit', 'delete'):
+        
+        if self._meta.modes[mode] in ['c', 'u', 'd']:
 
             f = self.form(mode)
             return poobrains.helpers.ThemedPassthrough(f.view('full'))

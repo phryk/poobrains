@@ -260,14 +260,14 @@ class Form(BaseForm):
 
 
     @classmethod
-    def class_view(cls, mode='full', *args, **kwargs):
+    def class_view(cls, mode='full', **kwargs):
 
-        instance = cls(*args, **kwargs)
+        instance = cls(**kwargs)
         return instance.view(mode)
 
 
     @poobrains.helpers.themed
-    def view(self, mode='full', *args, **kwargs):
+    def view(self, mode='full', **kwargs):
 
         """
         view function to be called in a flask request context
@@ -292,7 +292,6 @@ class Form(BaseForm):
             except errors.CompoundError as validation_error:
                 for error in validation_error.errors:
                     flask.flash(error.message, 'error')
-
 
         return self
 

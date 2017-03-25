@@ -99,7 +99,8 @@ def themed(f):
         if kwargs.has_key('mode'):
             mode = kwargs['mode']
         else:
-            mode = content._meta.modes.keys()[0] # TODO: Default mode option in _meta?
+            #mode = content._meta.modes.keys()[0] # TODO: Default mode option in _meta?
+            mode = None # will use default value for kwarg in .view
 
         return flask.render_template('main.jinja', content=content, mode=mode, user=user), status_code
 
