@@ -119,7 +119,6 @@ class CommentForm(poobrains.form.Form):
 
     def handle(self):
 
-        poobrains.app.debugger.set_trace()
         self.instance.permissions['read'].check(flask.g.user)
 #        Comment.permissions['create'].check(flask.g.user)
 #
@@ -183,7 +182,6 @@ class Challenge(poobrains.storage.Named):
         """
         view function to be called in a flask request context
         """
-        poobrains.app.debugger.set_trace()
 
         if mode == 'raw':
 
@@ -240,8 +238,47 @@ class ChallengeForm(poobrains.form.Form):
 
     challenge = None
     response = poobrains.form.fields.Text()
-    send = poobrains.form.Button('submit', 'Send')
+    submit = poobrains.form.Button('submit', label='Send')
 
     def __init__(self, challenge):
 
+        super(ChallengeForm, self).__init__()
         self.challenge = challenge
+
+
+    def handle(self):
+
+        if self.fields['response'].value == self.challenge.captcha:
+
+            try:
+
+                cls = Commentable.children_keyed()[self.challenge.model]
+                instance = cls.load(self.challenge.handle)
+
+            except KeyError:
+                flask.flash("WRONG!1!!", 'error')
+                return flask.redirect('/')
+
+            except peewee.DoesNotExist:
+                flask.flash("The thing you wanted to comment on does not exist anymore.")
+                return flask.redirect(cls.url('teaser'))
+
+            comment = Comment()
+            comment.model = self.challenge.model
+            comment.handle = self.challenge.handle
+            comment.reply_to = self.challenge.reply_to
+            comment.author = self.challenge.author
+            comment.text = self.challenge.text
+
+            if comment.save():
+                flask.flash("Your comment has been saved.")
+                return flask.redirect(instance.url('full'))
+ 
+            flask.flash("Your comment could not be saved.", 'error')
+
+        else:
+
+            flask.flash("WRONG.", 'error')
+            self.challenge.captcha = self.challenge.__class__.captcha.default()
+            self.challenge.save()
+            return flask.redirect(self.challenge.url('full'))
