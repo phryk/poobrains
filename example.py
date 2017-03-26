@@ -36,6 +36,8 @@ class TestForm(poobrains.form.Form):
 @app.expose('/news', mode='full')
 class News(poobrains.commenting.Commentable):
 
+    """ This is the news class docstring """
+
     title = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()
 

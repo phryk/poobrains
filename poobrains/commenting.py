@@ -43,7 +43,14 @@ class Comment(poobrains.auth.Administerable):
 
 
     def reply_form(self):
-        return CommentForm(self.model, self.handle, reply_to=self)
+
+        try:
+            self.permissions['create'].check(flask.g.user)
+            return CommentForm(self.model, self.handle, reply_to=self)
+
+        except poobrains.auth.AccessDenied:
+            return False
+
 
 
 

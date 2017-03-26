@@ -45,7 +45,7 @@ class Search(poobrains.auth.Protected):
     offset = None
     results = None
 
-    def __init__(self, handle='', offset=0):
+    def __init__(self, handle='', offset=0, **kwargs):
         
         super(Search, self).__init__(name=self.__class__.__name__)
 

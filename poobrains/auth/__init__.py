@@ -208,7 +208,7 @@ class FormPermissionField(poobrains.form.fields.Choice):
 
 def admin_listing_actions(cls):
 
-    m = poobrains.rendering.Menu('admin-listing-actions')
+    m = poobrains.rendering.Menu('actions')
     m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
 
     return m
@@ -239,7 +239,31 @@ def admin_menu():
 @poobrains.app.admin.route('/')
 @poobrains.helpers.themed
 def admin_index():
-    return admin_menu()
+
+    try:
+
+        AccessAdminArea.check(flask.g.user)
+
+        container = poobrains.rendering.Container(title='Administration')
+        
+        for administerable, listings in poobrains.app.admin.listings.iteritems():
+
+            subcontainer = poobrains.rendering.Container()
+            menu = poobrains.rendering.Menu('listings-%s' % administerable.__name__)
+            for mode, endpoints in listings.iteritems():
+
+                for endpoint in endpoints: # iterates through endpoints.keys()
+                    menu.append(flask.url_for('admin.%s' % endpoint), administerable.__name__)
+
+            subcontainer.append(menu)
+            if administerable.__doc__:
+                subcontainer.append(poobrains.rendering.RenderString(administerable.__doc__))
+            container.append(subcontainer)
+
+        return container
+
+    except AccessDenied:
+        return None
 
 
 def access(permission):

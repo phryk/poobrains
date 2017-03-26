@@ -19,7 +19,7 @@ class Renderable(helpers.ChildAware):
         modes = collections.OrderedDict([('full', 'r')])
 
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, **kwargs):
 
         self.name = name
         self.url = self.instance_url # make .url callable for class and instances
@@ -91,40 +91,25 @@ class RenderString(Renderable):
         return self.value # TODO: cast to jinja2.Markup or sth?
 
 
-class MenuItem(object):
+class Container(Renderable):
 
-    url = None
-    caption = None
-    active = None
-
-    def __init__(self, url, caption, active=None):
-
-        super(MenuItem, self).__init__()
-        self.url = url
-        self.caption = caption
-        if active is not None:
-            self.active = 'active' if active is True else active
-        else:
-            if self.url == flask.request.path:
-                self.active = 'active'
-            elif flask.request.path.startswith(os.path.join(self.url, '')):
-                self.active = 'trace'
-
-
-class Menu(Renderable):
-
-    name = None
     title = None
     items = None
+    menu_actions = None
 
-    def __init__(self, name, title=None):
+    def __init__(self, title=None, items=None, menu_actions=None, **kwargs):
 
-        super(Menu, self).__init__(name=name)
+        super(Container, self).__init__(**kwargs)
 
-        if title:
-            self.title = title
+        self.title = title
+        if self.title is None:
+            self.title = self.__class__.__name__
 
-        self.items = []
+        self.items = items
+        if self.items is None:
+            self.items = []
+
+        self.menu_actions = menu_actions
 
 
     def __len__(self):
@@ -146,6 +131,49 @@ class Menu(Renderable):
     def __iter__(self):
         return self.items.__iter__()
 
+
+    def append(self, item):
+        self.items.append(item)
+
+    def clear(self):
+        self.items.clear()
+
     
+class MenuItem(object):
+
+    url = None
+    caption = None
+    active = None
+
+    def __init__(self, url, caption, active=None):
+
+        super(MenuItem, self).__init__()
+        self.url = url
+        self.caption = caption
+        if active is not None:
+            self.active = 'active' if active is True else active
+        else:
+            if self.url == flask.request.path:
+                self.active = 'active'
+            elif flask.request.path.startswith(os.path.join(self.url, '')):
+                self.active = 'trace'
+
+
+class Menu(Container):
+
+    name = None
+    title = None
+    items = None
+
+    def __init__(self, name, title=None):
+
+        super(Menu, self).__init__(name=name)
+
+        if title:
+            self.title = title
+
+        self.items = []
+
+
     def append(self, url, caption, active=None):
         self.items.append(MenuItem(url, caption, active))

@@ -9,11 +9,15 @@
     
     <div class="replies">
 
-        <div class="form-wrapper">
-            <input type="checkbox" id="reply-{{ content.id }}" class="toggle" />
-            <label for="reply-{{ content.id }}" class="toggle"></label>
-            {{ content.reply_form().render('full') }}
-        </div>
+        {% with reply_form = content.reply_form() %}
+            {% if reply_form %}
+                <div class="form-wrapper">
+                    <input type="checkbox" id="reply-{{ content.id }}" class="toggle" />
+                    <label for="reply-{{ content.id }}" class="toggle"></label>
+                    {{ reply_form.render('full') }}
+                </div>
+            {% endif %}
+        {% endwith %}
 
         {% for child in content.child_comments() %}
             {{ child.render('full') }}

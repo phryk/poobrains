@@ -203,6 +203,7 @@ main {
             text-align: center;
             text-shadow: 0 0 0.5rem $color_font_dark;
             position: relative;
+            margin-bottom: 1rem;
         }
 
         nav.menu {
@@ -260,7 +261,7 @@ main {
 
             &.actions {
 
-                margin-top: 3rem;
+                margin-top: 2rem;
 
                 ul {
                     li {
@@ -319,9 +320,10 @@ main {
 
         display: flex;
         flex-basis: 100%;
+        flex-direction: column;
 
         & > * {
-
+            flex-grow: 1;
             display: block;
             position: relative;
             box-sizing: border-box;
@@ -347,9 +349,10 @@ nav.menu {
 
         li {
             list-style: none;
+            font-size: 1.4rem;
+            font-weight: normal;
 
             a {
-
                 outline: none;
             }
         }
@@ -458,12 +461,17 @@ form {
         }
     }
 
+    button {
+        white-space: nowrap; /* avoides forms jumping in height when animating their width */
+        overflow: hidden;
+    }
+
     textarea {
 
         width: 100%;
         resize: vertical;
         background: $color_background_form;
-        min-height: 5em;
+        min-height: 5rem;
     }
 
     select {
@@ -521,7 +529,7 @@ h1 {
 h2 {
     font-size: 3rem;
 }
-        
+
 input.toggle {
 
     display: none;
@@ -550,7 +558,7 @@ div.comment {
             overflow: hidden;
             width: 0;
             height: 0;
-            transition: width 0.5s, height 0.3s;
+            transition: height 0.3s, width 0.3s 0.2s;
         }
 
         input.toggle {
@@ -563,7 +571,7 @@ div.comment {
 
             &:checked + label.toggle + form {
                 width: 100%;
-                height: 10em;
+                height: 9rem;
             }
         }
     }

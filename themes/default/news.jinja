@@ -1,12 +1,7 @@
-<article id="news-{{ content.id }}">
-    {{ content.text }}
+{% extends "commentable.jinja" %}
 
-    <div class="comments">
-        <div class="direct-reply">
-            {{ content.comment_form().render('full') }}
-        </div>
-        {% for comment, children in content.comments_threaded.iteritems() %}
-            {{ comment.render('full') }}
-        {% endfor %}
-    </div>
-</article>
+{% block header %}{% endblock %}
+
+{% block content %}
+{{ content.text }}
+{% endblock %}

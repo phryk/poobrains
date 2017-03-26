@@ -1,0 +1,9 @@
+{% extends "renderable.jinja" %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+{% for item in content.items %}
+    {{ item.render('full') }}
+{% endfor %}
+{% endblock %}
