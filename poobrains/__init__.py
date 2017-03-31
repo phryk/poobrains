@@ -193,14 +193,17 @@ class Poobrain(flask.Flask):
 
     def try_trigger_before_first_request_functions(self):
 
-        # this function is the latest possible place to call @setupmethod functions
-        if not self._got_first_request:
-
-            # Done here because apparently no routes can be registered on blueprints that have been registered to an app?
-            self.register_blueprint(self.site)
-            self.register_blueprint(self.admin, url_prefix='/admin/')
-
+        if not self.setup in self.before_first_request_funcs:
+            self.before_first_request_funcs.append(self.setup)
+        else:
+            self.logger.debug('try_trigger_before_first_request_functions apparently called multiple times. We should investigate this.')
         super(Poobrain, self).try_trigger_before_first_request_functions()
+
+    
+    def setup(self):
+
+        self.register_blueprint(self.site)
+        self.register_blueprint(self.admin, url_prefix='/admin/')
 
 
     @property
@@ -350,22 +353,22 @@ class Poobrain(flask.Flask):
 
                 self.site.add_view(cls, rule, mode=mode, force_secure=force_secure)
                 if hasattr(cls, 'handle'):
-                    self.site.add_view(cls, os.path.join(rule, '<handle>/'), mode=mode, primary=True, force_secure=force_secure)
+                    self.site.add_view(cls, os.path.join(rule, '<handle>/'), mode=mode, force_secure=force_secure)
 
             return cls
 
         return decorator
 
     
-    def get_url(self, cls, handle=None, mode=None):
-        
+    def get_url(self, cls, mode=None, **url_params):
+
         if flask.request.blueprint is not None:
             blueprint = self.blueprints[flask.request.blueprint]
         else:
             blueprint = self.site
        
         try:
-            return blueprint.get_url(cls, handle=handle, mode=mode)
+            return blueprint.get_url(cls, mode=mode, **url_params)
 
         except LookupError:
 
@@ -382,11 +385,11 @@ class Poobrain(flask.Flask):
                     blueprint = self.blueprints[bp_name]
 
                     try:
-                        return blueprint.get_url(cls, handle=handle, mode=mode)
+                        return blueprint.get_url(cls, mode=mode, **url_params)
                     except LookupError:
                         pass
 
-            raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, handle, mode))
+            raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, url_params.get('handle', None), mode))
 
 
     def get_related_view_url(self, cls, handle, related_field):
@@ -421,9 +424,9 @@ class Pooprint(flask.Blueprint):
         super(Pooprint, self).__init__(*args, **kwargs)
 
         self.views = collections.OrderedDict()
-        self.listings = collections.OrderedDict() # TODO: list of dicts? {primary: bool, endpoint: str}
+        self.listings = collections.OrderedDict()
         self.related_views = collections.OrderedDict()
-        self.boxes = {}
+        self.boxes = collections.OrderedDict()
         self.poobrain_path = os.path.dirname(__file__)
         
         self.before_request(self.box_setup)
@@ -437,13 +440,13 @@ class Pooprint(flask.Blueprint):
         self.db = app.db
 
 
-    def add_view(self, cls, rule, endpoint=None, view_func=None, mode=None, primary=False, force_secure=False, **options):
+    def add_view(self, cls, rule, endpoint=None, view_func=None, mode=None, force_secure=False, **options):
 
         if not self.views.has_key(cls):
             self.views[cls] = collections.OrderedDict()
 
         if not self.views[cls].has_key(mode):
-            self.views[cls][mode] = collections.OrderedDict()
+            self.views[cls][mode] = []
 
         # Why the fuck does HTML not support DELETE!?
         options['methods'] = ['GET', 'POST']
@@ -451,7 +454,7 @@ class Pooprint(flask.Blueprint):
             options['methods'].append('DELETE')
 
         def view_func(**kwargs):
-           
+
             kwargs['mode'] = mode
             return cls.class_view(**kwargs)
 
@@ -462,10 +465,10 @@ class Pooprint(flask.Blueprint):
             endpoint = self.next_endpoint(cls, mode, 'view')
 
         self.add_url_rule(rule, endpoint, view_func, **options)
-        self.views[cls][mode][endpoint] = {'primary': primary, 'endpoint': endpoint}
+        self.views[cls][mode].append(endpoint)
 
 
-    def add_related_view(self, cls, related_field, rule, endpoint=None, view_func=None, primary=False, force_secure=False, **options):
+    def add_related_view(self, cls, related_field, rule, endpoint=None, view_func=None, force_secure=False, **options):
 
         related_model = related_field.model_class
         if not endpoint:
@@ -477,14 +480,14 @@ class Pooprint(flask.Blueprint):
         if not self.related_views[cls].has_key(related_field):
             url_segment = '%s:%s' % (related_model.__name__.lower(), related_field.name.lower())
             rule = os.path.join(rule, url_segment)
-            self.related_views[cls][related_field] = collections.OrderedDict()
+            self.related_views[cls][related_field] = []
 
         def view_func(*args, **kwargs):
             kwargs['related_field'] = related_field
             return cls.related_view(*args, **kwargs)
 
         self.add_url_rule(rule, endpoint, view_func, methods=['GET', 'POST'])
-        self.related_views[cls][related_field][endpoint] = {'primary': primary, 'endpoint': endpoint}
+        self.related_views[cls][related_field].append(endpoint)
 
 
     def box_setup(self):
@@ -502,7 +505,7 @@ class Pooprint(flask.Blueprint):
         return decorator
 
 
-    def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, primary=False, action_func=None, force_secure=False, **options):
+    def add_listing(self, cls, rule, title=None, mode=None, endpoint=None, view_func=None, action_func=None, force_secure=False, **options):
 
         if not mode:
             mode = 'teaser'
@@ -513,10 +516,10 @@ class Pooprint(flask.Blueprint):
         rule = os.path.join(rule, '') # make sure rule has trailing slash
 
         if not self.listings.has_key(cls):
-            self.listings[cls] = {}
+            self.listings[cls] = collections.OrderedDict()
 
         if not self.listings[cls].has_key(mode):
-            self.listings[cls][mode] = collections.OrderedDict()
+            self.listings[cls][mode] = []
 
         if view_func is None:
 
@@ -539,7 +542,7 @@ class Pooprint(flask.Blueprint):
         self.add_url_rule(rule, endpoint=endpoint, view_func=view_func, **options)
         self.add_url_rule(offset_rule, endpoint=offset_endpoint, view_func=view_func, **options)
 
-        self.listings[cls][mode][endpoint] = {'primary': primary, 'endpoint': endpoint}
+        self.listings[cls][mode].append(endpoint)
     
 
     def listing(self, cls, rule, mode='teaser', title=None, **options):
@@ -560,15 +563,29 @@ class Pooprint(flask.Blueprint):
         return decorator
 
 
-    def get_url(self, cls, handle=None, mode=None):
+    def choose_endpoint(self, endpoints, **url_params):
 
-        if mode == 'add' or (handle is not None and (mode is None or not mode.startswith('teaser'))):
-            return self.get_view_url(cls, handle, mode=mode)
+        for rule in self.app.url_map.iter_rules():
+            if rule.endpoint in endpoints:
+                endpoint = rule.endpoint
+                if sorted(rule.arguments) == sorted(url_params.keys()): # means url parameters match perfectly
+                    return endpoint
 
-        return self.get_listing_url(cls, mode=mode, handle=handle)
+        raise ValueError("No fitting url rule found for all params: %s", ','.join(url_params.keys()))
 
 
-    def get_view_url(self, cls, handle, mode=None):
+    def get_url(self, cls, mode=None, **url_params):
+        
+        if not issubclass(cls, poobrains.storage.Model) or \
+        mode == 'add' or \
+        (url_params.has_key('handle') and (mode is None or not mode.startswith('teaser'))):
+            return self.get_view_url(cls, mode=mode, **url_params)
+
+        return self.get_listing_url(cls, mode=mode, **url_params)
+
+
+    def get_view_url(self, cls, mode=None, **url_params):
+
         if mode == None:
             mode = 'full'
 
@@ -579,21 +596,19 @@ class Pooprint(flask.Blueprint):
             raise LookupError("No registered views for class %s with mode %s." % (cls.__name__, mode))
 
 
-        endpoints = self.views[cls][mode]
-       
-        endpoint = helpers.choose_primary(endpoints)['endpoint']
-        endpoint = '%s.%s' % (self.name, endpoint)
+        endpoints = ['%s.%s' % (self.name, x) for x in self.views[cls][mode]]
+        endpoint = self.choose_endpoint(endpoints, **url_params)
 
-        return flask.url_for(endpoint, handle=handle)
+        return flask.url_for(endpoint, **url_params)
 
 
-    def get_listing_url(self, cls, mode=None, offset=0, handle=None):
+    def get_listing_url(self, cls, handle=None, mode=None, offset=0):
 
         if mode == None:
             mode = 'teaser'
-        
+
         if handle is not None:
-            
+
             instance = cls.load(handle)
 
             clauses = []
@@ -604,8 +619,6 @@ class Pooprint(flask.Blueprint):
                 else: # We'll just assume there can only be ASC and DESC
                     clauses.append(instance._meta.fields[order_field.name] >= getattr(instance, order_field.name))
 
-            #clause = 
-
             offset = cls.select().where(*clauses).count() - 1
 
         if not self.listings.has_key(cls):
@@ -614,16 +627,17 @@ class Pooprint(flask.Blueprint):
         if not self.listings[cls].has_key(mode):
             raise LookupError("No registered listings for class %s with mode %s." % (cls.__name__, mode))
 
-        endpoints = self.listings[cls][mode]
+        endpoints = ['%s.%s' % (self.name, x) for x in self.listings[cls][mode]]
+        endpoint = self.choose_endpoint(endpoints)
 
-        #endpoint = endpoints.choose()
-        endpoint = helpers.choose_primary(endpoints)['endpoint']
-        endpoint = '%s.%s' % (self.name, endpoint)
+#        if isinstance(offset, int) and offset > 0:
+#            return flask.url_for(endpoint+'_offset', offset=offset)
 
-        if isinstance(offset, int) and offset > 0:
-            return flask.url_for(endpoint+'_offset', offset=offset)
+        url_params = {}
+        if offset > 0:
+            url_params['offset'] = offset
 
-        return flask.url_for(endpoint)
+        return flask.url_for(endpoint, **url_params)
     
     
     def get_related_view_url(self, cls, handle, related_field):
@@ -635,10 +649,9 @@ class Pooprint(flask.Blueprint):
             raise LookupError("No registered related views for %s[%s]<-%s.%s." % (cls.__name__, handle, related_field.model_class.__name__, related_field.name))
 
 
-        endpoints = self.related_views[cls][related_field]
+        endpoints = ['%s.%s' % (self.name, x) for x in self.related_views[cls][related_field]]
        
-        endpoint = helpers.choose_primary(endpoints)['endpoint']
-        endpoint = '%s.%s' % (self.name, endpoint)
+        endpoint = self.choose_endpoint(endpoints, **{'handle': handle}) 
 
         return flask.url_for(endpoint, handle=handle)
 
@@ -649,13 +662,13 @@ class Pooprint(flask.Blueprint):
 
             try:
                 if context == 'view':
-                    endpoints = self.views[cls][mode].keys()
+                    endpoints = self.views[cls][mode]
                 elif context == 'listing':
-                    endpoints = self.listings[cls][mode].keys()
+                    endpoints = self.listings[cls][mode]
                 elif context == 'related':
                     # mode is actually a foreign key field
                     format = '%s_%s_%s-%s_autogen_%%d' % (cls.__name__, context, mode.model_class.__name__, mode.name)
-                    endpoints = self.related_views[cls][mode].keys()
+                    endpoints = self.related_views[cls][mode]
 
             except KeyError: # means no view/listing has been registered yet
                 endpoints = []
@@ -682,12 +695,13 @@ import poobrains.helpers
 import poobrains.rendering
 import poobrains.form
 import poobrains.storage
-import poobrains.cli
 import poobrains.auth
 import poobrains.upload
 import poobrains.tagging
 import poobrains.commenting
 import poobrains.search
+import poobrains.mailing
+import poobrains.cli
 
 
 class ErrorPage(poobrains.rendering.Renderable):

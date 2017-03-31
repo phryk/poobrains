@@ -10,6 +10,10 @@ import gnupg
 
 import poobrains
 
+def getgpg():
+    return gnupg.GPG(homedir=poobrains.app.config['GPG_HOME'])
+
+
 class MailError(Exception):
     pass
 
@@ -23,7 +27,7 @@ class Mail(MIMEMultipart):
 
         super(Mail, self).__init__(**kwargs)
         self.fingerprint = fingerprint
-        self.crypto = gnugp.GPG(homedir=poobrains.app.config['GPG_HOME'])
+        self.crypto = getgpg()
         self['From'] = poobrains.app.config['SMTP_FROM']
 
 
@@ -50,7 +54,7 @@ class Mail(MIMEMultipart):
                 crypto_kw['passphrase'] = poobrains.app.config.GPG_PASSPHRASE
                 crypto_kw['default_key'] = poobrains.app.config.GPG_SIGNKEY
 
-        ciphertext = str(self.crypto.encrypt(self_string, [self.fingerprint], 
+        ciphertext = str(self.crypto.encrypt(self_string, [self.fingerprint], **crypto_kw)) 
         pgp_attachment = MIMEApplication(ciphertext, _encoder=lambda x: str(x))#, _subtype='octet-stream')
         wrapper_msg.append(pgp_attachment)
 
@@ -66,12 +70,46 @@ class Mail(MIMEMultipart):
             raise MailError('Recipient for mail not set!')
 
         if poobrains.app.config['SMTP_STARTTLS']:
-            smtp = smtplib.SMTP(poobrains.app.config['SMTP_HOST'], port=poobrains.app.config.['SMTP_PORT'])
+            smtp = smtplib.SMTP(poobrains.app.config['SMTP_HOST'], port=poobrains.app.config['SMTP_PORT'])
             smtp.starttls() # FIXME: We'll want to check if this actually worked
 
         else:
             smtp = smtplib.SMTP_SSL(poobrains.app.config['SMTP_HOST'], port=poobrains.app.config['SMTP_PORT'])
 
         smtp.ehlo()
-        smtp.login(poobrains.app.config['SMTP_ACCOUNT'], poobrains.app.config.['SMTP_PASSWORD'])
+        smtp.login(poobrains.app.config['SMTP_ACCOUNT'], poobrains.app.config['SMTP_PASSWORD'])
         smtp.sendmail(self['From'], self['To'], self.as_string())
+
+
+class PubkeyForm(poobrains.form.BoundForm):
+
+    pubkey = poobrains.form.fields.File()
+    submit = poobrains.form.Button('submit', 'Update key')
+
+    
+    def handle(self):
+
+        poobrains.app.debugger.set_trace()
+#poobrains.app.admin.add_view(PubkeyForm, '/user/<handle>/pgpupdate', mode='full')
+
+@poobrains.app.site.route('/testmail')
+def testmail():
+
+    poobrains.app.debugger.set_trace()
+
+    user = poobrains.auth.User.load('administrator')
+
+    mail = Mail()
+    mail['To'] = user.mail
+    mail.fingerprint = user.pgp_fingerprint
+    mail['Body'] = 'Testmail'
+    
+    fd = open('/home/phryk/pics/poobrains.gif', 'rb')
+    attachment = MIMEImage(fd.read()) 
+    fd.close()
+
+    mail.attach(attachment)
+
+    mail.send()
+
+    return "Florb sent?"

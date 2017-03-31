@@ -26,12 +26,16 @@ class Renderable(helpers.ChildAware):
 
 
     @classmethod
-    def url(cls, mode=None):
+    def url(cls, mode='teaser'):
         return poobrains.app.get_url(cls, mode=mode)
 
 
-    def instance_url(self, mode=None):
-        return poobrains.app.get_url(self.__class__, handle=getattr(self, 'handle', None), mode=mode) # FIXME/TODO: at least the naming doesn't fit. Ponder instantiated Renderables which are not Storables.
+    def instance_url(self, mode='full'):
+        
+        url_params = {}
+        if getattr(self, 'handle', False):
+            url_params['handle'] = self.handle
+        return poobrains.app.get_url(self.__class__, mode=mode, **url_params)
 
 
     def templates(self, mode=None):

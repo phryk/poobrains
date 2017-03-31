@@ -42,7 +42,7 @@ def admin_setup():
                 if issubclass(related_model, Administerable):
                     poobrains.app.admin.add_related_view(cls, related_field, rule, force_secure=True)
 
-        poobrains.app.register_blueprint(poobrains.app.admin, url_prefix='/admin/')
+        #poobrains.app.register_blueprint(poobrains.app.admin, url_prefix='/admin/')
 
 
 @poobrains.app.admin.before_request
@@ -990,6 +990,7 @@ class User(Named):
     groups = None
     own_permissions = None
 
+    mail = poobrains.storage.fields.CharField(null=True) # FIXME: implement an EmailField
     pgp_fingerprint = poobrains.storage.fields.CharField(null=True)
 
     def __init__(self, *args, **kwargs):

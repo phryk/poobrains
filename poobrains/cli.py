@@ -2,10 +2,10 @@
 
 from sys import exit, stdout
 from playhouse.db_url import connect
-from collections import OrderedDict
 import collections
 import peewee
 import helpers
+import gnupg
 
 # local imports
 import storage
@@ -54,8 +54,6 @@ class Shell(object):
         #    self.storables[child.__name__.lower()] = child
         
         self.db = connect(self.config['DATABASE'])
-        import storage
-        #storage.proxy.initialize(self.db)
 
         self.commands = {}
         classes = Command.children()
@@ -197,7 +195,7 @@ class Command(helpers.ChildAware):
     @classmethod
     def get_parameters(cls):
 
-        parameters = OrderedDict()
+        parameters = collections.OrderedDict()
         for attr_name in dir(cls):
 
             attr = getattr(cls, attr_name)
@@ -252,20 +250,21 @@ class Test(Command):
 class Install(Command):
 
     def execute(self):
-        import storage
-        import auth
+
         stdout.write("Really execute installation procedure? (y/N): ")
         value = raw_input().lower()
         if value == 'y':
 
+            config_addendum = collections.OrderedDict()
+
             stdout.write("Installing now...\n")
 
-            self.shell.db.create_tables(storage.Model.children())
+            self.shell.db.create_tables(poobrains.storage.Model.children())
             stdout.write("Database tables created!\n")
 
 
             stdout.write("Creating Group 'anonsanonymous'…\n")
-            anons = auth.Group()
+            anons = poobrains.auth.Group()
             anons.name = 'anonsanonymous'
             
             if not anons.save(force_insert=True):
@@ -274,7 +273,7 @@ class Install(Command):
 
 
             stdout.write("Creating Group 'administrators' with all permissions granted…\n")
-            admins = auth.Group()
+            admins = poobrains.auth.Group()
             admins.name = 'administrators'
             
             for cls in poobrains.auth.Permission.children():
@@ -294,7 +293,7 @@ class Install(Command):
             stdout.write("Successfully saved Group 'administrators'.\n")
 
 
-            anon = auth.User()
+            anon = poobrains.auth.User()
             anon.name = 'anonymous'
             anon.id = 1 # Should theoretically always happen, but let's make sure anyways
             anon.groups.append(anons)
@@ -303,9 +302,12 @@ class Install(Command):
             stdout.write("Successfully created User 'anonymous'.\n")
             stdout.write(str(anon))
 
+            stdout.write("Administrator email addr: ")
+            admin_mail = raw_input()
             stdout.write("Creating administrator account…\n")
-            admin = auth.User()
+            admin = poobrains.auth.User()
             admin.name = 'administrator'
+            admin.mail = admin_mail
             admin.groups.append(admins) # Put 'administrator' into group 'administrators'
 
             if not admin.save():
@@ -316,13 +318,63 @@ class Install(Command):
             stdout.write("Please type in a name for an admin certificate: ")
             cert_name = raw_input()
 
-            t = auth.ClientCertToken()
+            t = poobrains.auth.ClientCertToken()
             t.user = admin
             t.cert_name = cert_name
 
             if t.save():
                 stdout.write("Admin certificate token is: %s\n" % t.token)
-                stdout.write("Installation complete!\n")
+
+            stdout.write("SMTP host: ")
+            config_addendum['SMTP_HOST'] = raw_input()
+            
+            stdout.write("SMTP port: ")
+            config_addendum['SMTP_PORT'] = raw_input()
+            
+            stdout.write("SMTP account: ")
+            config_addendum['SMTP_ACCOUNT'] = raw_input()
+            
+            stdout.write("SMTP password: ")
+            config_addendum['SMTP_PASSWORD'] = raw_input()
+
+            stdout.write("SMTP from: ")
+            site_mail = raw_input()
+            config_addendum['SMTP_FROM'] = site_mail
+            
+            stdout.write("We'll now configure GPG for sending encrypted mail.\n")
+            stdout.write("GPG home (relative to project root): ")
+            gpg_home = raw_input()
+
+            gpg = gnupg.GPG(homedir=gpg_home)
+            config_addendum['GPG_HOME'] = gpg_home
+            
+            stdout.write("Site PGP passphrase :")
+            passphrase = raw_input()
+            config_addendum['GPG_PASSPHRASE'] = passphrase
+
+
+            stdout.write("Creating trustdb, if it doesn't exist\n")
+            gpg.create_trustdb()
+            site_gpg_info = gpg.gen_key_input(
+                name_email = site_mail,
+                key_type = 'RSA',
+                key_length = 4096,
+                key_usage = 'encrypt,sign',
+                passphrase = passphrase
+            )
+
+            stdout.write("Generating PGP key for this site. This will probably take a pretty long while. Go get a sammich.\n")
+            gpg.gen_key(site_gpg_info)
+            
+            stdout.write("Probably created site PGP key")
+
+
+            stdout.write("Installation complete!\n")
+
+            stdout.write("Add these lines to your config.py:\n\n")
+
+            for k, v in config_addendum.iteritems():
+                stdout.write("%s = %s\n" % (k, v))
 
 
 class Exit(Command):
@@ -341,7 +393,7 @@ class Help(Command):
 
         super(Help, self).__init__(shell, **params)
 
-        self.commands = OrderedDict()
+        self.commands = collections.OrderedDict()
         classes = Command.children()
 
         for cls in classes:
@@ -402,8 +454,7 @@ class StorableParam(StringParam):
         if kw.has_key('cls'):
             self.cls = cls
         else:
-            import storage
-            self.cls = storage.Storable
+            self.cls = poobrains.storage.Storable
 
     def parse(self, value):
 
