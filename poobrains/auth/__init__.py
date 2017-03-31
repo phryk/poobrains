@@ -989,8 +989,8 @@ class User(Named):
 
     groups = None
     own_permissions = None
-    _permissions = None # filled by UserPermission.permission ForeignKeyField
 
+    pgp_fingerprint = poobrains.storage.fields.CharField(null=True)
 
     def __init__(self, *args, **kwargs):
 
