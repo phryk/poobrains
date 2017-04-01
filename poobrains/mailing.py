@@ -8,6 +8,7 @@ from email.mime.application import MIMEApplication
 import smtplib
 import gnupg
 
+import flask
 import poobrains
 
 def getgpg():
@@ -25,13 +26,15 @@ class Mail(MIMEMultipart):
 
     def __init__(self, fingerprint=None, **kwargs):
 
-        super(Mail, self).__init__(**kwargs)
+        MIMEMultipart.__init__(self, **kwargs)
         self.fingerprint = fingerprint
         self.crypto = getgpg()
         self['From'] = poobrains.app.config['SMTP_FROM']
 
 
     def as_string(self, unixfrom=False):
+
+        poobrains.app.debugger.set_trace()
 
         fingerprint = str(self.fingerprint) # TODO: enforce str by implementing __setattr__?
 
@@ -43,22 +46,32 @@ class Mail(MIMEMultipart):
         pgp_info['Content-Disposition'] = 'attachment'
         wrapper_msg.attach(pgp_info)
 
-        self_string = super(Mail, self).as_string(unixfrom=unixfrom)
+        self_string = MIMEMultipart.as_string(self, unixfrom=unixfrom)
 
         crypto_kw = {
             'symmetric': False # IIUC symmetric=True makes us at risk for leaking private keys
         }
 
-        if  poobrains.app.config.GPG_PASSPHRASE is not None and \
-            poobrains.app.config.GPG_SIGNKEY is not None:
-                crypto_kw['passphrase'] = poobrains.app.config.GPG_PASSPHRASE
-                crypto_kw['default_key'] = poobrains.app.config.GPG_SIGNKEY
+        if  poobrains.app.config['GPG_PASSPHRASE'] is not None and \
+            poobrains.app.config['GPG_SIGNKEY'] is not None:
+                crypto_kw['passphrase'] = poobrains.app.config['GPG_PASSPHRASE']
+                crypto_kw['default_key'] = poobrains.app.config['GPG_SIGNKEY']
 
-        ciphertext = str(self.crypto.encrypt(self_string, [self.fingerprint], **crypto_kw)) 
-        pgp_attachment = MIMEApplication(ciphertext, _encoder=lambda x: str(x))#, _subtype='octet-stream')
-        wrapper_msg.append(pgp_attachment)
+        ciphertext = str(self.crypto.encrypt(self_string, str(self.fingerprint), **crypto_kw))
+        if ciphertext != '':
+            pgp_attachment = MIMEApplication(ciphertext, _encoder=lambda x: str(x))#, _subtype='octet-stream')
+            wrapper_msg.attach(pgp_attachment)
 
-        return wrapper_msg.as_string(unixfrom=unixfrom)
+            return wrapper_msg.as_string(unixfrom=unixfrom)
+
+
+        if hasattr(cryptinfo.stderr):
+            poobrains.app.logger.error("Problem encrypting mail. stderr follows.")
+            poobrains.app.logger.error(cryptinfo.stderr)
+        else:
+            poobrains.app.logger.error("Problem encrypting mail. No further information.")
+
+        raise MailError("Problem encrypting mail.")
 
 
     def send(self):
@@ -81,30 +94,44 @@ class Mail(MIMEMultipart):
         smtp.sendmail(self['From'], self['To'], self.as_string())
 
 
-class PubkeyForm(poobrains.form.BoundForm):
+class PubkeyForm(poobrains.form.Form):
 
+    user_handle = None
     pubkey = poobrains.form.fields.File()
-    submit = poobrains.form.Button('submit', 'Update key')
+    submit = poobrains.form.Button('submit', label='Update key')
+
+    def __init__(self, handle=None, **kwargs):
+
+        super(PubkeyForm, self).__init__(**kwargs)
+        self.user_handle = handle
 
     
     def handle(self):
 
         poobrains.app.debugger.set_trace()
-#poobrains.app.admin.add_view(PubkeyForm, '/user/<handle>/pgpupdate', mode='full')
+
+        user = poobrains.auth.User.load(self.user_handle)
+        pubkey = self.fields['pubkey'].value.read()
+        crypto = getgpg()
+        x = crypto.import_keys(pubkey)
+        flask.flash("Imported new key!")
+
+        return self
+
+poobrains.app.site.add_view(PubkeyForm, '/user/<handle>/pgp', mode='full')
 
 @poobrains.app.site.route('/testmail')
 def testmail():
-
-    poobrains.app.debugger.set_trace()
 
     user = poobrains.auth.User.load('administrator')
 
     mail = Mail()
     mail['To'] = user.mail
     mail.fingerprint = user.pgp_fingerprint
-    mail['Body'] = 'Testmail'
+    mail['Subject'] = 'Testmail'
+    mail.attach(MIMEText(u'Jurbn Schnörbn\nFlörb'.encode('utf-8'), 'plain', 'utf-8'))
     
-    fd = open('/home/phryk/pics/poobrains.gif', 'rb')
+    fd = open('upload/image/poobrains.gif', 'rb')
     attachment = MIMEImage(fd.read()) 
     fd.close()
 

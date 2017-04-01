@@ -252,7 +252,7 @@ class Form(BaseForm):
     class Meta:
         abstract = True
 
-    def __init__(self, prefix=None, name=None, title=None, method=None, action=None):
+    def __init__(self, prefix=None, name=None, title=None, method=None, action=None, **kwargs):
 
         super(Form, self).__init__(prefix=prefix, name=name, title=title)
         self.method = method if method else 'POST'
@@ -272,11 +272,12 @@ class Form(BaseForm):
         """
         view function to be called in a flask request context
         """
+
         if flask.request.method == self.method:
 
             validation_error = None
             binding_error = None
-            values = flask.request.form[self.name]
+            values = flask.request.form[self.name] if flask.request.form.has_key(self.name) else werkzeug.datastructures.MultiDict()
             files = flask.request.files[self.name] if flask.request.files.has_key(self.name) else werkzeug.datastructures.FileMultiDict()
             #FIXME: filter self.readonly in here instead of .bind and .handle?
             try:
