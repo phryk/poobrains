@@ -1,0 +1,15 @@
+{% extends "renderable.jinja" %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+
+    <div class="dashboard-pgp">
+    {% if  content.user.pgp_fingerprint %}
+        Your PGP fingerprint is {{ content.user.pgp_fingerprint }}
+    {% else %}
+        You have no assigned PGP public key.
+    {% endif %}
+    </div>
+
+{% endblock %}
