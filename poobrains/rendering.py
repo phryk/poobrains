@@ -181,3 +181,96 @@ class Menu(Container):
 
     def append(self, url, caption, active=None):
         self.items.append(MenuItem(url, caption, active))
+
+
+class RowIterator(object):
+
+    row = None
+    current_idx = None
+
+    def __init__(self, row):
+        self.row = row
+        self.current_idx = -1 # so first next call uses 0
+
+
+    def __iter__(self):
+        return self
+
+
+    def next(self):
+        self.current_idx += 1
+
+        if self.current_idx >= len(self.row.columns):
+            raise StopIteration()
+
+        return self.row._data[self.current_idx]
+
+
+class TableRow(object):
+
+    columns = None
+    _data = None
+
+    def __init__(self, columns = [], *data, **kwdata):
+
+        self.columns = columns
+        self._data = []
+
+        for i in range(0, len(columns)):
+            self[i] = None
+
+        for i in range(0, len(data)):
+            self[i] = data[i]
+
+        for key, value in kwdata.iteritems():
+            self[key] = value
+
+
+    def __getitem__(self, key):
+
+        idx = self._get_idx(key)
+        return self._data[idx]
+
+
+    def __setitem__(self, key, value):
+
+        idx = self._get_idx(key)
+        self._data[idx] = value
+
+
+    def __delitem__(self, key):
+
+        idx = self._get_idx(key)
+        self._data[idx] = None
+
+
+    def __iter__(self):
+        return RowIterator(self)
+
+
+    def _get_idx(self, key):
+
+        if not isinstance(key, int):
+            return key
+
+        columns_lower = [column.lower for column in self.columns]
+        if key.lower() in columns_lower:
+            return columns_lower.index(key.lower())
+
+        raise KeyError("Column %s is unknown!" % key)
+
+
+class Table(Renderable):
+
+    rows = None
+    columns = None
+
+    def __init__(self, columns = [], rows = [], **kwargs):
+
+        super(Table, self).__init__(**kwargs)
+        self.columns = []
+        self.rows = rows
+
+
+    def append(self, *data, **kwdata):
+        self.rows.append(TableRow(columns=self.columns))

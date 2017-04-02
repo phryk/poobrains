@@ -819,6 +819,10 @@ class Protected(poobrains.rendering.Renderable):
         return super(Protected, self).render(mode)
 
 
+#class ProtectedForm(Protected, poobrains.form.Form):
+#    pass # let's just hope this works out of the box
+
+
 class Administerable(poobrains.storage.Storable, Protected):
     
     __metaclass__ = BaseAdministerable

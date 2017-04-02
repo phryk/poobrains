@@ -701,6 +701,7 @@ import poobrains.tagging
 import poobrains.commenting
 import poobrains.search
 import poobrains.mailing
+import poobrains.dashboard
 import poobrains.cli
 
 

@@ -94,49 +94,23 @@ class Mail(MIMEMultipart):
         smtp.sendmail(self['From'], self['To'], self.as_string())
 
 
-class PubkeyForm(poobrains.form.Form):
-
-    user_handle = None
-    pubkey = poobrains.form.fields.File()
-    submit = poobrains.form.Button('submit', label='Update key')
-
-    def __init__(self, handle=None, **kwargs):
-
-        super(PubkeyForm, self).__init__(**kwargs)
-        self.user_handle = handle
-
-    
-    def handle(self):
-
-        poobrains.app.debugger.set_trace()
-
-        user = poobrains.auth.User.load(self.user_handle)
-        pubkey = self.fields['pubkey'].value.read()
-        crypto = getgpg()
-        x = crypto.import_keys(pubkey)
-        flask.flash("Imported new key!")
-
-        return self
-
-poobrains.app.site.add_view(PubkeyForm, '/user/<handle>/pgp', mode='full')
-
-@poobrains.app.site.route('/testmail')
-def testmail():
-
-    user = poobrains.auth.User.load('administrator')
-
-    mail = Mail()
-    mail['To'] = user.mail
-    mail.fingerprint = user.pgp_fingerprint
-    mail['Subject'] = 'Testmail'
-    mail.attach(MIMEText(u'Jurbn Schnörbn\nFlörb'.encode('utf-8'), 'plain', 'utf-8'))
-    
-    fd = open('upload/image/poobrains.gif', 'rb')
-    attachment = MIMEImage(fd.read()) 
-    fd.close()
-
-    mail.attach(attachment)
-
-    mail.send()
-
-    return "Florb sent?"
+#@poobrains.app.site.route('/testmail')
+#def testmail():
+#
+#    user = poobrains.auth.User.load('administrator')
+#
+#    mail = Mail()
+#    mail['To'] = user.mail
+#    mail.fingerprint = user.pgp_fingerprint
+#    mail['Subject'] = 'Testmail'
+#    mail.attach(MIMEText(u'Jurbn Schnörbn\nFlörb'.encode('utf-8'), 'plain', 'utf-8'))
+#    
+#    fd = open('upload/image/poobrains.gif', 'rb')
+#    attachment = MIMEImage(fd.read()) 
+#    fd.close()
+#
+#    mail.attach(attachment)
+#
+#    mail.send()
+#
+#    return "Florb sent?"
