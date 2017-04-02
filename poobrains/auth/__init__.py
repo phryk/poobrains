@@ -287,8 +287,6 @@ def protected(func):
     @functools.wraps(func)
     def substitute(cls_or_instance, mode=None, *args, **kwargs):
         
-        poobrains.app.logger.debug('protected call cls_or_instance: %s, %s', cls_or_instance, dir(cls_or_instance))
-
         if not mode:
             raise Exception('Need explicit mode in @protected.')
 
@@ -346,8 +344,9 @@ class ClientCertForm(poobrains.form.Form):
             )
 
         except peewee.DoesNotExist as e:
-            return poobrains.rendering.RenderString("No such token.")
-
+            
+            flask.flash("No such token.", 'error')
+            return flask.redirect(self.url())
 
         try:
 
@@ -359,7 +358,6 @@ class ClientCertForm(poobrains.form.Form):
             poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
             poobrains.app.logger.debug(e)
             return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
-
 
         try:
             common_name = '%s:%s' % (token.user.name, token.cert_name)
@@ -389,8 +387,9 @@ class ClientCertForm(poobrains.form.Form):
             cert_info.user = token.user
             cert_info.name = token.cert_name
             #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
-            cert_info.subject_name = unicode(client_cert.get_subject())
-
+            #cert_info.subject_name = unicode(client_cert.get_subject())
+            cert_info.fingerprint = client_cert.get_fingerprint('sha512')
+            
             cert_info.save()
 
         except Exception as e:
@@ -1179,7 +1178,7 @@ class GroupPermission(Administerable):
 class ClientCertToken(Administerable):
 
     validity = None
-    user = poobrains.storage.fields.ForeignKeyField(User)
+    user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     cert_name = poobrains.storage.fields.CharField(null=False, max_length=32)
     token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
@@ -1223,9 +1222,10 @@ class ClientCertToken(Administerable):
 
 class ClientCert(poobrains.storage.Storable):
 
-    user = poobrains.storage.fields.ForeignKeyField(User)
+    user = poobrains.storage.fields.ForeignKeyField(User, related_name="clientcerts")
     name = poobrains.storage.fields.CharField(null=False, max_length=32)
-    subject_name = poobrains.storage.fields.CharField()
+    #subject_name = poobrains.storage.fields.CharField()
+    fingerprint = poobrains.storage.fields.CharField()
     
     
     def save(self, force_insert=False, only=None):

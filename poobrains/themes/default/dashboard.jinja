@@ -5,11 +5,17 @@
 {% block content %}
 
     <div class="dashboard-pgp">
+    <h2>PGP Public Key</h2>
     {% if  content.user.pgp_fingerprint %}
-        Your PGP fingerprint is {{ content.user.pgp_fingerprint }}
+        Your PGP fingerprint is {{ content.user.pgp_fingerprint }}.
     {% else %}
         You have no assigned PGP public key.
     {% endif %}
+    <a href="{{ content.pgp_update_url }}">Update it here.</a>
     </div>
 
+    <div class="clientcerts">
+        <h2>TLS Client Certificates</h2>
+        {{ content.cert_table.render() }}
+    </div>
 {% endblock %}

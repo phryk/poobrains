@@ -392,6 +392,29 @@ a {
     }
 }
 
+table {
+    table-layout: fixed;
+    width: 100%;
+    overflow-wrap: break-word;
+
+    thead {
+        tr:first-of-type {
+            background: $color_background_light;
+            color: $color_font_dark;
+        }
+    }
+
+    tr:nth-of-type(2n){
+        background: opacify($color_background_light, -0.4);
+        color: $color_font_dark;
+    }
+
+    tr.active {
+        background: opacify($color_highlight, -0.4);
+        color: $color_font_dark;
+    }
+}
+
 article {
 
     line-height: 1.5;

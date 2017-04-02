@@ -33,7 +33,7 @@ class Renderable(helpers.ChildAware):
     def instance_url(self, mode='full'):
         
         url_params = {}
-        if getattr(self, 'handle', False):
+        if getattr(self, 'handle', False) and not isinstance(self, poobrains.form.Form): # FIXME: resolve name collision "handle" storable vs. form
             url_params['handle'] = self.handle
         return poobrains.app.get_url(self.__class__, mode=mode, **url_params)
 
@@ -91,8 +91,8 @@ class RenderString(Renderable):
         self.value = value
 
 
-    def render(self, mode='full'):
-        return self.value # TODO: cast to jinja2.Markup or sth?
+    #def render(self, mode='full'):
+    #    return self.value # TODO: cast to jinja2.Markup or sth?
 
 
 class Container(Renderable):
@@ -183,41 +183,23 @@ class Menu(Container):
         self.items.append(MenuItem(url, caption, active))
 
 
-class RowIterator(object):
-
-    row = None
-    current_idx = None
-
-    def __init__(self, row):
-        self.row = row
-        self.current_idx = -1 # so first next call uses 0
-
-
-    def __iter__(self):
-        return self
-
-
-    def next(self):
-        self.current_idx += 1
-
-        if self.current_idx >= len(self.row.columns):
-            raise StopIteration()
-
-        return self.row._data[self.current_idx]
-
-
 class TableRow(object):
 
-    columns = None
+    classes = None
+    _columns = None # don't set this manually, but only indirectly via Table.columns
     _data = None
 
-    def __init__(self, columns = [], *data, **kwdata):
+    def __init__(self, columns, *data, **kwdata):
 
-        self.columns = columns
+        super(TableRow, self).__setattr__('_columns', columns)
+
+        if kwdata.has_key('_classes'):
+            self.classes = kwdata.pop('_classes')
+
         self._data = []
 
         for i in range(0, len(columns)):
-            self[i] = None
+            self.append(None)
 
         for i in range(0, len(data)):
             self[i] = data[i]
@@ -248,16 +230,100 @@ class TableRow(object):
         return RowIterator(self)
 
 
+    def __setattr__(self, name, value):
+
+        if name == '_columns':
+            
+            new_data = []
+            for column in value:
+                try:
+                    new_data.append(self[column])
+                except IndexError:
+                    new_data.append(None)
+
+            self._data = new_data
+
+        super(TableRow, self).__setattr__(name, value)
+
+#            columns_old = self._columns
+#            columns_new = value
+#
+#            columns_removed = []
+#            for column in columns_old:
+#                if column not in columns_new:
+#                    columns_removed.append((column, columns_old.index(column)))
+#
+#            columns_added = []
+#            for column in columns_new:
+#                if column not in columns_old:
+#                    columns_added.append((column, columns_new.index(columns)))
+
+
     def _get_idx(self, key):
 
-        if not isinstance(key, int):
+        if isinstance(key, int):
             return key
 
-        columns_lower = [column.lower for column in self.columns]
+        columns_lower = [column.lower for column in self._columns]
         if key.lower() in columns_lower:
             return columns_lower.index(key.lower())
 
         raise KeyError("Column %s is unknown!" % key)
+
+
+    def append(self, value):
+
+        self._data.append(value)
+
+
+class RowIterator(object):
+
+    row = None
+    current_idx = None
+
+    def __init__(self, row):
+        self.row = row
+        self.current_idx = -1 # so first next call uses 0
+
+
+    def __iter__(self):
+        return self
+
+
+    def next(self):
+        self.current_idx += 1
+
+        if self.current_idx >= len(self.row._columns):
+            raise StopIteration()
+
+        return self.row._data[self.current_idx]
+
+
+class MagicColumns(list):
+
+    table = None
+
+    def __init__(self, table, iterable=[]):
+
+        super(MagicColumns, self).__init__(iterable)
+        self.table = table
+
+    def __setitem__(self, idx, value):
+
+        super(MagicColumns, self).__setitem__(idx, value)
+        self.table._columns_updated()
+    
+    
+    def __delitem__(self, idx):
+
+        super(MagicColumns, self).__delitem__(idx)
+        self.table._columns_updated()
+
+
+    def append(self, item):
+
+        super(MagicColumns, self).append(item)
+        self.table._columns_updated()
 
 
 class Table(Renderable):
@@ -265,12 +331,34 @@ class Table(Renderable):
     rows = None
     columns = None
 
-    def __init__(self, columns = [], rows = [], **kwargs):
-
+    def __init__(self, columns = None, rows = None, **kwargs):
+        
         super(Table, self).__init__(**kwargs)
-        self.columns = []
-        self.rows = rows
+
+        if columns is None:
+            self.columns = []
+        else:
+            self.columns = columns
+
+        if rows is None:
+            self.rows = []
+        else:
+            self.rows = rows
+
+    
+    def __setattr__(self, name, value):
+
+        if name == 'columns':
+            value = MagicColumns(self, value)
+
+        super(Table, self).__setattr__(name, value)
+
+
+    def _columns_updated(self):
+
+        for row in self.rows:
+            row._columns = list(self.columns)
 
 
     def append(self, *data, **kwdata):
-        self.rows.append(TableRow(columns=self.columns))
+        self.rows.append(TableRow(list(self.columns), *data, **kwdata))

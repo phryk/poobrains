@@ -2,12 +2,13 @@
 
 import os
 import sys
-import logging
-import werkzeug
-import flask
 import collections
 import functools
 import pathlib # only needed to pass a pathlib.Path to scss compiler
+import logging
+import OpenSSL as openssl
+import werkzeug
+import flask
 
 #from flask.signals import appcontext_pushed # TODO: needed?
 import jinja2
@@ -195,8 +196,6 @@ class Poobrain(flask.Flask):
 
         if not self.setup in self.before_first_request_funcs:
             self.before_first_request_funcs.append(self.setup)
-        else:
-            self.logger.debug('try_trigger_before_first_request_functions apparently called multiple times. We should investigate this.')
         super(Poobrain, self).try_trigger_before_first_request_functions()
 
     
@@ -294,9 +293,11 @@ class Poobrain(flask.Flask):
 
         flask.g.user = None
         if flask.request.environ['SSL_CLIENT_VERIFY'] == 'SUCCESS':
-
+ 
             try:
-                cert_info = auth.ClientCert.get(auth.ClientCert.subject_name == flask.request.environ['SSL_CLIENT_S_DN'])
+                #cert_info = auth.ClientCert.get(auth.ClientCert.subject_name == flask.request.environ['SSL_CLIENT_S_DN'])
+                cert = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, flask.request.environ['SSL_CLIENT_CERT']) 
+                cert_info = auth.ClientCert.get(auth.ClientCert.fingerprint == cert.digest('sha512').replace(':', '')) # fuck colons
                 flask.g.user = cert_info.user
 
             except auth.ClientCert.DoesNotExist:
@@ -331,7 +332,7 @@ class Poobrain(flask.Flask):
         return decorator
 
 
-    def expose(self, rule, mode=None, title=None, force_secure=False):
+    def expose(self, rule, mode='full', title=None, force_secure=False):
         def decorator(cls):
 
             if issubclass(cls, storage.Storable):
@@ -440,7 +441,7 @@ class Pooprint(flask.Blueprint):
         self.db = app.db
 
 
-    def add_view(self, cls, rule, endpoint=None, view_func=None, mode=None, force_secure=False, **options):
+    def add_view(self, cls, rule, endpoint=None, view_func=None, mode='full', force_secure=False, **options):
 
         if not self.views.has_key(cls):
             self.views[cls] = collections.OrderedDict()

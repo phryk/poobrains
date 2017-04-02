@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import OpenSSL as openssl
+
 import flask
 import poobrains
 
@@ -7,12 +9,30 @@ import poobrains
 class Dashboard(poobrains.auth.Protected):
 
     user = None
+    cert_table = None
+    pgp_update_url = None
 
     def __init__(self, **kwargs):
 
         self.user = flask.g.user
         self.title = self.user.name
 
+        if len(flask.request.environ['SSL_CLIENT_CERT']):
+            cert_current = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, flask.request.environ['SSL_CLIENT_CERT'])
+        else:
+            cert_current = None
+
+        self.cert_table = poobrains.rendering.Table(columns=['Name', 'Fingerprint'])
+        for cert_info in self.user.clientcerts:
+
+            if cert_current and cert_info.fingerprint == cert_current.digest('sha512').replace(':', ''):
+                classes = 'active'
+            else:
+                classes = None
+
+            self.cert_table.append(cert_info.name, cert_info.fingerprint, _classes=classes)
+
+        self.pgp_update_url = PubkeyForm.url('full')
 
 poobrains.app.site.add_view(Dashboard, '/~', endpoint='dashboard', mode='full')
 
