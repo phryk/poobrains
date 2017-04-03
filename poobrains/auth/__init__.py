@@ -4,6 +4,7 @@
 import functools
 import collections
 import os
+import OpenSSL as openssl
 import M2Crypto #import X509, EVP
 import pyspkac #import SPKAC
 import time
@@ -360,19 +361,7 @@ class ClientCertForm(poobrains.form.Form):
             return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
 
         try:
-            common_name = '%s:%s' % (token.user.name, token.cert_name)
-            spkac = pyspkac.SPKAC(self.fields['key'].value, flask.session['key_challenge'], CN=common_name) # TODO: Make sure CN is unique
-            spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
-            spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
-
-            spkac.subject.C = ca_cert.get_subject().C
-
-            not_before = int(time.time())
-            not_after = not_before + poobrains.app.config['CERT_LIFETIME']
-
-            serial = int(time.time())
-
-            client_cert = spkac.gen_crt(ca_key, ca_cert, serial, not_before, not_after, hash_algo='sha512')
+            client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, flask.session['key_challenge'])
             del flask.session['key_challenge']
 
         except Exception as e:
@@ -1034,6 +1023,49 @@ class User(Named):
 
         return rv
 
+
+    def gen_clientcert_from_spkac(self, name, spkac, challenge):
+
+        try:
+
+            ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
+            ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
+
+        except Exception as e:
+
+            poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
+            poobrains.app.logger.debug(e)
+            flask.flash("Plumbing issue. Invalid CA_KEY or CA_CERT.")
+            raise e
+
+        common_name = '%s:%s' % (self.name, name)
+        spkac = pyspkac.SPKAC(spkac, challenge, CN=common_name) # TODO: Make sure CN is unique
+        spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
+        spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
+
+        spkac.subject.C = ca_cert.get_subject().C
+
+        not_before = int(time.time())
+        not_after = not_before + poobrains.app.config['CERT_LIFETIME']
+
+        serial = int(time.time())
+
+        return spkac.gen_crt(ca_key, ca_cert, serial, not_before, not_after, hash_algo='sha512')
+
+
+    def gen_clientcert_and_privatekey_pkcs12(self, name):
+
+        keypair = openssl.crypto.PKey()
+        keypair.generate_key(openssl.crypto.TYPE_RSA, 4096)
+
+        extensions []
+        extensions.append(openssl.crypto.X509Extension('keyUsage', True, 'digitalSignature, keyEncipherment, keyAgreement'))
+        extensions.append(openssl.crypto.X509Extension('extendedKeyUsage', 'clientAuth'))
+
+        cert = openssl.crypto.X509()
+        cert.add_extensions(extensions)
+        cert.set_serial_number(int(time.time())) # FIXME: This is bad, but probably won't fuck us over for a while ¯\_(ツ)_/¯
+        #cert.
 
 class UserPermission(Administerable):
 
