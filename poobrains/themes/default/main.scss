@@ -410,7 +410,7 @@ table {
     }
 
     tr.active {
-        background: opacify($color_highlight, -0.4);
+        background: opacify(lighten($color_highlight, 10%), -0.4);
         color: $color_font_dark;
     }
 }
