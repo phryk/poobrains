@@ -41,7 +41,7 @@ class UploadForm(poobrains.form.AddForm):
             )
 
 
-    def handle(self):
+    def handle(self, submit):
         
         force = self.fields['force'].value
         upload_file = self.fields['upload'].value
@@ -81,7 +81,7 @@ class UploadForm(poobrains.form.AddForm):
                 return self # stop handling, show form within same request
 
         try:
-            return super(UploadForm, self).handle(exceptions=True)
+            return super(UploadForm, self).handle(submit, exceptions=True)
 
         except peewee.DatabaseError as e:
             flask.flash(u"Could not save file metadata for file '%s'. Deleting file, sorry if it was big. ¯\_(ツ)_/¯" % filename)

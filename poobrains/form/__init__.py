@@ -239,7 +239,7 @@ class BaseForm(poobrains.rendering.Renderable):
         return tpls
 
 
-    def handle(self):
+    def handle(self, submit):
 
         raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
 
@@ -279,12 +279,13 @@ class Form(BaseForm):
             binding_error = None
             values = flask.request.form[self.name] if flask.request.form.has_key(self.name) else werkzeug.datastructures.MultiDict()
             files = flask.request.files[self.name] if flask.request.files.has_key(self.name) else werkzeug.datastructures.FileMultiDict()
+            submit = flask.request.form['submit'] if flask.request.form.has_key('submit') else None
             #FIXME: filter self.readonly in here instead of .bind and .handle?
             try:
                 self.bind(values, files)
 
                 try:
-                    return self.handle()
+                    return self.handle(submit)
 
                 except errors.CompoundError as handling_error:
                     for error in handling_error.errors:
@@ -407,7 +408,7 @@ class AddForm(BoundForm):
                     pass
  
 
-    def handle(self, exceptions=False):
+    def handle(self, submit, exceptions=False):
 
         if not self.readonly:
             
@@ -434,7 +435,7 @@ class AddForm(BoundForm):
 
                     for fieldset in self.fieldsets:
                         try:
-                            fieldset.handle(self.instance)
+                            fieldset.handle(submit, self.instance)
                         except Exception as e:
                             if exceptions:
                                 raise
@@ -499,7 +500,7 @@ class DeleteForm(BoundForm):
                 self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._get_pk_value()))
 
     
-    def handle(self):
+    def handle(self, submit):
 
         if hasattr(self.instance, 'title') and self.instance.title:
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
@@ -546,7 +547,7 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
-    def handle(self, instance):
+    def handle(self, submit):
 
         raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
 
@@ -617,3 +618,8 @@ class Button(poobrains.rendering.Renderable):
         self.type = type
         self.value = value
         self.label = label
+
+
+    def templates(self, mode=None):
+
+        return ['form/button-%s.jinja' % self.type, 'form/button.jinja']

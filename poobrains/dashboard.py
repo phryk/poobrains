@@ -52,7 +52,7 @@ class PubkeyForm(poobrains.form.Form):
             self.user = flask.g.user
 
     
-    def handle(self):
+    def handle(self, submit):
 
         poobrains.app.debugger.set_trace()
 

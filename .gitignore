@@ -5,5 +5,7 @@
 *.swo
 *.core
 *.log
+ssl
+gnupg
 upload
 config.py

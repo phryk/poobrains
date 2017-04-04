@@ -4,9 +4,10 @@
 import functools
 import collections
 import os
+import re
 import OpenSSL as openssl
-import M2Crypto #import X509, EVP
-import pyspkac #import SPKAC
+import M2Crypto
+import pyspkac
 import time
 import datetime
 import werkzeug
@@ -57,6 +58,10 @@ def checkAAA():
 
 class AccessDenied(werkzeug.exceptions.Forbidden):
     status_code = 403
+
+
+class CryptoError(werkzeug.exceptions.InternalServerError):
+    status_code = 500
 
 
 class Permission(poobrains.helpers.ChildAware):
@@ -325,15 +330,18 @@ class ClientCertForm(poobrains.form.Form):
     title = "Be safe, certificatisize yourself!"
     token = poobrains.form.fields.ObfuscatedText(label='Token')
     key = poobrains.form.fields.Keygen()
-    submit = poobrains.form.Button('submit', label='Generate Certificate')
+    keygen_submit = poobrains.form.Button('submit', label='Generate certificate with <keygen>')
+    pgp_submit = poobrains.form.Button('submit', label="Generate keypair + certificate and send it via PGP-mail")
+    tls_submit = poobrains.form.Button('submit', label="Generate keypair + certificate and send it via HTTPS")
 
     def __init__(self, *args, **kwargs):
         super(ClientCertForm, self).__init__(*args, **kwargs)
         flask.session['key_challenge'] = self.key.challenge
 
 
-    def handle(self):
-        
+    def handle(self, submit):
+
+        poobrains.app.debugger.set_trace()
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
@@ -348,37 +356,65 @@ class ClientCertForm(poobrains.form.Form):
             
             flask.flash("No such token.", 'error')
             return flask.redirect(self.url())
-
-        try:
-
-            ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
-            ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
-
-        except Exception as e:
-
-            poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
-            poobrains.app.logger.debug(e)
-            return poobrains.rendering.RenderString("Plumbing issue. Invalid CA_KEY or CA_CERT.")
-
-        try:
-            client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, flask.session['key_challenge'])
-            del flask.session['key_challenge']
-
-        except Exception as e:
-
-            if poobrains.app.debug:
-                raise
-
-            return poobrains.rendering.RenderString("Client certificate creation failed.")
-
-        try:
-            cert_info = ClientCert()
-            cert_info.user = token.user
-            cert_info.name = token.cert_name
-            #cert_info.pubkey = client_cert.get_pubkey().as_pem(cipher=None) # We don't even need the pubkey. subject distinguished name should™ work just as well.
-            #cert_info.subject_name = unicode(client_cert.get_subject())
-            cert_info.fingerprint = client_cert.get_fingerprint('sha512')
             
+        cert_info = ClientCert()
+        cert_info.user = token.user
+        cert_info.name = token.cert_name
+
+        if submit == 'ClientCertForm.keygen_submit':
+
+            try:
+                client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, flask.session['key_challenge'])
+                del flask.session['key_challenge']
+
+            except Exception as e: # FIXME: More specific exception matching?
+
+                if poobrains.app.debug:
+                    raise
+
+                return poobrains.rendering.RenderString("Client certificate creation failed.")
+
+            cert_info.fingerprint = client_cert.get_fingerprint('sha512')
+
+            r = werkzeug.wrappers.Response(client_cert.as_pem())
+            r.mimetype = 'application/x-x509-user-cert'
+
+        elif submit in ('ClientCertForm.pgp_submit', 'ClientCertForm.tls_submit'):
+
+            try:
+                keypair, client_cert = token.user.gen_keypair_and_clientcert(token.cert_name)
+                pkcs12 = openssl.crypto.PKCS12()
+                pkcs12.set_privatekey(keypair)
+                pkcs12.set_certificate(client_cert)
+                pkcs12.set_friendlyname(str(token.cert_name))
+
+
+            except Exception as e:
+                return poobrains.rendering.RenderString("Client certificate creation failed.")
+            
+            cert_info.fingerprint = client_cert.digest('sha512').replace(':', '')
+
+            if submit == 'ClientCertForm.tls_submit':
+                r = werkzeug.wrappers.Response(pkcs12.export())
+                r.mimetype = 'application/pkcs-12'
+
+            else: # means pgp
+
+                mail = poobrains.mailing.Mail(token.user.pgp_fingerprint)
+                mail['Subject'] = 'Bow before entropy'
+                mail['To'] = token.user.mail
+
+                pkcs12_attachment = poobrains.mailing.MIMEApplication(pkcs12.export(), _subtype='pkcs12')
+                mail.attach(pkcs12_attachment)
+
+                mail.send()
+
+                flask.flash("Your private key and client certificate have been send to '%s'." % token.user.mail)
+
+                r = self
+
+
+        try:
             cert_info.save()
 
         except Exception as e:
@@ -391,8 +427,6 @@ class ClientCertForm(poobrains.form.Form):
         token.redeemed = True
         token.save()
 
-        r = werkzeug.wrappers.Response(client_cert.as_pem())
-        r.mimetype = 'application/x-x509-user-cert'
         return r
 
 
@@ -624,12 +658,12 @@ class RelatedForm(poobrains.form.Form):
         self.related_field = related_field
 
    
-    def handle(self):
+    def handle(self, submit):
         if not self.readonly:
             for field in self.fields.itervalues():
                 if isinstance(field, poobrains.form.Fieldset):
                     try:
-                        field.handle()
+                        field.handle(submit)
                     except Exception as e:
                         flask.flash("Failed to handle fieldset '%s.%s'." % (field.prefix, field.name))
                         poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
@@ -651,7 +685,7 @@ class UserPermissionAddForm(poobrains.form.AddForm):
         return f
 
 
-    def handle(self):
+    def handle(self, submit):
 
         self.instance.user = self.fields['user'].value
         self.instance.permission = self.fields['permission'].value[0]
@@ -733,7 +767,7 @@ class GroupPermissionAddForm(poobrains.form.AddForm):
         return f
 
 
-    def handle(self):
+    def handle(self, submit):
 
         self.instance.group = self.fields['group'].value
         self.instance.permission = self.fields['permission'].value[0]
@@ -1053,19 +1087,44 @@ class User(Named):
         return spkac.gen_crt(ca_key, ca_cert, serial, not_before, not_after, hash_algo='sha512')
 
 
-    def gen_clientcert_and_privatekey_pkcs12(self, name):
+    def gen_keypair_and_clientcert(self, name):
+     
+        if not re.match('^[a-zA-Z0-9_\- ]+$', name):
+            raise ValueError("Requested client certificate name is invalid.")
+
+        common_name = '%s:%s' % (self.name, name)
+
+        fd = open(poobrains.app.config['CA_KEY'], 'rb')
+        ca_key = openssl.crypto.load_privatekey(openssl.crypto.FILETYPE_PEM, fd.read())
+        fd.close()
+        del fd
+
+        fd = open(poobrains.app.config['CA_CERT'], 'rb')
+        ca_cert = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, fd.read())
+        fd.close()
+        del fd
 
         keypair = openssl.crypto.PKey()
         keypair.generate_key(openssl.crypto.TYPE_RSA, 4096)
 
-        extensions []
+        extensions = []
         extensions.append(openssl.crypto.X509Extension('keyUsage', True, 'digitalSignature, keyEncipherment, keyAgreement'))
-        extensions.append(openssl.crypto.X509Extension('extendedKeyUsage', 'clientAuth'))
+        extensions.append(openssl.crypto.X509Extension('extendedKeyUsage', True, 'clientAuth'))
 
         cert = openssl.crypto.X509()
         cert.add_extensions(extensions)
+        cert.set_issuer(ca_cert.get_subject())
+        cert.set_pubkey(keypair)
+        cert.gmtime_adj_notBefore(0)
+        cert.gmtime_adj_notAfter(poobrains.app.config['CERT_LIFETIME'])
         cert.set_serial_number(int(time.time())) # FIXME: This is bad, but probably won't fuck us over for a while ¯\_(ツ)_/¯
-        #cert.
+        cert.get_subject().CN = common_name
+        cert.get_subject().C = ca_cert.get_subject().C
+
+        cert.sign(keypair, 'sha512')
+
+        return (keypair, cert)
+
 
 class UserPermission(Administerable):
 
@@ -1212,7 +1271,7 @@ class ClientCertToken(Administerable):
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
-    cert_name = poobrains.storage.fields.CharField(null=False, max_length=32)
+    cert_name = poobrains.storage.fields.CharField(null=False, max_length=32, constraints=[poobrains.storage.RegexpConstraint('name', '^[a-zA-Z0-9_\- ]+$')])
     token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
     token.form_class = poobrains.form.fields.Value
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
