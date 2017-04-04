@@ -381,9 +381,15 @@ class ClientCertForm(poobrains.form.Form):
 
         elif submit in ('ClientCertForm.pgp_submit', 'ClientCertForm.tls_submit'):
 
+            fd = open(poobrains.app.config['CA_CERT'], 'rb')
+            ca_cert = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, fd.read())
+            fd.close()
+            del fd
+
             try:
                 keypair, client_cert = token.user.gen_keypair_and_clientcert(token.cert_name)
                 pkcs12 = openssl.crypto.PKCS12()
+                pkcs12.set_ca_certificates([ca_cert])
                 pkcs12.set_privatekey(keypair)
                 pkcs12.set_certificate(client_cert)
                 pkcs12.set_friendlyname(str(token.cert_name))
