@@ -22,7 +22,7 @@ class Dashboard(poobrains.auth.Protected):
         else:
             cert_current = None
 
-        self.cert_table = poobrains.rendering.Table(columns=['Name', 'Fingerprint'])
+        self.cert_table = poobrains.rendering.Table(columns=['Name', 'Fingerprint', 'Actions'])
         for cert_info in self.user.clientcerts:
 
             if cert_current and cert_info.fingerprint == cert_current.digest('sha512').replace(':', ''):
@@ -30,7 +30,10 @@ class Dashboard(poobrains.auth.Protected):
             else:
                 classes = None
 
-            self.cert_table.append(cert_info.name, cert_info.fingerprint, _classes=classes)
+            actions = poobrains.rendering.Menu('certificate-actions')
+            actions.append(cert_info.url('delete'), 'Delete')
+
+            self.cert_table.append(cert_info.name, cert_info.fingerprint, actions,_classes=classes)
 
         self.pgp_update_url = PubkeyForm.url('full')
 

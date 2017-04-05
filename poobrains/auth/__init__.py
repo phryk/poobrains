@@ -24,6 +24,7 @@ def admin_setup():
     if not poobrains.app._got_first_request:
 
         administerables = Administerable.children_keyed()
+
         for key in sorted(administerables):
 
             cls = administerables[key]
@@ -32,17 +33,25 @@ def admin_setup():
             actions = functools.partial(admin_listing_actions, cls)
 
             poobrains.app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
-            poobrains.app.admin.add_view(cls, os.path.join(rule, 'add/'), mode='add', force_secure=True)
+
+            if cls._meta.modes.has_key('add'):
+                poobrains.app.admin.add_view(cls, os.path.join(rule, 'add/'), mode='add', force_secure=True)
 
             rule = os.path.join(rule, '<handle>/')
-            poobrains.app.admin.add_view(cls, rule, mode='edit', force_secure=True)
-            poobrains.app.admin.add_view(cls, os.path.join(rule, 'delete'), mode='delete', force_secure=True)
+
+            if cls._meta.modes.has_key('edit'):
+                poobrains.app.admin.add_view(cls, rule, mode='edit', force_secure=True)
+
+            if cls._meta.modes.has_key('delete'):
+                poobrains.app.admin.add_view(cls, os.path.join(rule, 'delete'), mode='delete', force_secure=True)
 
             for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
                 related_model = related_field.model_class
 
                 if issubclass(related_model, Administerable):
                     poobrains.app.admin.add_related_view(cls, related_field, rule, force_secure=True)
+
+        
 
         #poobrains.app.register_blueprint(poobrains.app.admin, url_prefix='/admin/')
 
@@ -215,7 +224,8 @@ class FormPermissionField(poobrains.form.fields.Choice):
 def admin_listing_actions(cls):
 
     m = poobrains.rendering.Menu('actions')
-    m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
+    if cls._meta.modes.has_key('add'):
+        m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
 
     return m
 
@@ -303,6 +313,7 @@ def protected(func):
             cls = cls_or_instance
 
         if not (issubclass(cls, Protected) or isinstance(cls_or_instance, Protected)):
+            poobrains.app.debugger.set_trace()
             raise ValueError("@protected used with non-protected class '%s'." % cls.__name__)
 
         if not cls._meta.modes.has_key(mode):
@@ -401,7 +412,7 @@ class ClientCertForm(poobrains.form.Form):
             cert_info.fingerprint = client_cert.digest('sha512').replace(':', '')
 
             if submit == 'ClientCertForm.tls_submit':
-                r = werkzeug.wrappers.Response(pkcs12.export())
+                r = werkzeug.wrappers.Response(pkcs12.export(passphrase='florb'))
                 r.mimetype = 'application/pkcs-12'
 
             else: # means pgp
@@ -410,7 +421,7 @@ class ClientCertForm(poobrains.form.Form):
                 mail['Subject'] = 'Bow before entropy'
                 mail['To'] = token.user.mail
 
-                pkcs12_attachment = poobrains.mailing.MIMEApplication(pkcs12.export(), _subtype='pkcs12')
+                pkcs12_attachment = poobrains.mailing.MIMEApplication(pkcs12.export(passphrase='florb'), _subtype='pkcs12')
                 mail.attach(pkcs12_attachment)
 
                 mail.send()
@@ -1115,9 +1126,10 @@ class User(Named):
 
         extensions = []
         extensions.append(openssl.crypto.X509Extension('keyUsage', True, 'digitalSignature, keyEncipherment, keyAgreement'))
-        extensions.append(openssl.crypto.X509Extension('extendedKeyUsage', True, 'clientAuth'))
+        extensions.append(openssl.crypto.X509Extension('extendedKeyUsage', True, 'clientAuth, emailProtection, nsSGC'))
 
         cert = openssl.crypto.X509()
+        cert.set_version(2) # 2 == 3, WHAT THE FUCK IS WRONG WITH THESE PEOPLE!?
         cert.add_extensions(extensions)
         cert.set_issuer(ca_cert.get_subject())
         cert.set_pubkey(keypair)
@@ -1127,7 +1139,7 @@ class User(Named):
         cert.get_subject().CN = common_name
         cert.get_subject().C = ca_cert.get_subject().C
 
-        cert.sign(keypair, 'sha512')
+        cert.sign(ca_key, 'sha512')
 
         return (keypair, cert)
 
@@ -1272,7 +1284,7 @@ class GroupPermission(Administerable):
         return f
 
 
-class ClientCertToken(Administerable):
+class ClientCertToken(Administerable, Protected):
 
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
@@ -1317,7 +1329,16 @@ class ClientCertToken(Administerable):
         return super(ClientCertToken, self).save(force_insert=force_insert, only=only)
 
 
-class ClientCert(poobrains.storage.Storable):
+class ClientCert(Administerable):
+
+    class Meta:
+
+        permission_class = Permission
+        modes = collections.OrderedDict([
+            ('teaser', 'r'),
+            ('full', 'r'),
+            ('delete', 'd')
+        ])
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name="clientcerts")
     name = poobrains.storage.fields.CharField(null=False, max_length=32)
@@ -1332,6 +1353,22 @@ class ClientCert(poobrains.storage.Storable):
                 raise ValueError("User %s already has a client certificate named '%s'." % (self.user.name, self.name))
 
         return super(ClientCert, self).save(force_insert=force_insert, only=only)
+
+    
+    @protected
+    @poobrains.helpers.themed
+    def view(self, mode='teaser', handle=None, **kwargs):
+
+        """
+        view function to be called in a flask request context
+        """
+        
+        if self._meta.modes[mode] in ['c', 'u', 'd']:
+
+            f = self.form(mode)
+            return poobrains.helpers.ThemedPassthrough(f.view('full'))
+
+        return self
 
 
 class Owned(Administerable):
