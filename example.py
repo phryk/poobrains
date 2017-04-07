@@ -39,7 +39,7 @@ class News(poobrains.commenting.Commentable):
     """ This is the news class docstring """
 
     title = poobrains.storage.fields.CharField()
-    text = poobrains.storage.fields.TextField()
+    text = poobrains.md.MarkdownField()
 
 
 @app.expose('/paste', mode='full', title='Copypasta')

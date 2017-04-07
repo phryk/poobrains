@@ -4,6 +4,14 @@
 
 {% block content %}
 
+    <div class="notifications">
+        <ul>
+        {% for notification in content.user.unread_notifications %}
+            <li>{{ notification.render() }}</li>
+        {% endfor %}
+        </ul>
+    </div>
+
     <div class="dashboard-pgp">
     <h2>PGP Public Key</h2>
     {% if  content.user.pgp_fingerprint %}

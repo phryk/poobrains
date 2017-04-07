@@ -160,6 +160,39 @@ body {
     }
 }
 
+section.dashbar {
+
+    position: sticky;
+    z-index: 9001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 3rem;
+    line-height: 3rem;
+    display: inherit;
+    background: $color_background_light;
+    color: $color_font_dark;
+    font-family: 'Ostrich Sans', sans;
+    font-size: 1.4rem;
+
+    & > * {
+        margin-left: 0.25rem;
+    }
+
+    a {
+        color: $color_font_dark;
+        text-shadow: 0 0 1rem $color_font_dark;
+        transition: text-shadow 0.3s ease-out;
+
+        &:hover,
+        &:focus,
+        &.active {
+            text-shadow: 0 0 0.25rem opacify($color_font_dark, 100%);
+        }
+    }
+
+}
+
 main {
 
     /* Flex of main children */

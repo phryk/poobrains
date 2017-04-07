@@ -6,6 +6,29 @@ import flask
 import poobrains
 
 
+class Dashbar(poobrains.rendering.Container):
+
+    user = None
+
+    def __init__(self, user, **kwargs):
+
+        super(Dashbar, self).__init__(**kwargs)
+
+        self.user = user
+        self.items.append(poobrains.rendering.RenderString("%s@%s" % (user.name, poobrains.app.config['SITE_NAME'])))
+
+        menu = poobrains.rendering.Menu('dashbar-actions')
+        menu.append(PubkeyForm.url('full'), 'Manage PGP public key')
+
+        self.items.append(menu)
+
+@poobrains.app.box('dashbar')
+def dashbar():
+    user = flask.g.user
+    if user.id != 1: # not "anonymous"
+        return Dashbar(flask.g.user)
+
+
 class Dashboard(poobrains.auth.Protected):
 
     user = None

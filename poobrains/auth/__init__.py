@@ -313,7 +313,6 @@ def protected(func):
             cls = cls_or_instance
 
         if not (issubclass(cls, Protected) or isinstance(cls_or_instance, Protected)):
-            poobrains.app.debugger.set_trace()
             raise ValueError("@protected used with non-protected class '%s'." % cls.__name__)
 
         if not cls._meta.modes.has_key(mode):
@@ -392,36 +391,33 @@ class ClientCertForm(poobrains.form.Form):
 
         elif submit in ('ClientCertForm.pgp_submit', 'ClientCertForm.tls_submit'):
 
-            fd = open(poobrains.app.config['CA_CERT'], 'rb')
-            ca_cert = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, fd.read())
-            fd.close()
-            del fd
+            passphrase = poobrains.helpers.random_string_light()
 
             try:
-                keypair, client_cert = token.user.gen_keypair_and_clientcert(token.cert_name)
-                pkcs12 = openssl.crypto.PKCS12()
-                pkcs12.set_ca_certificates([ca_cert])
-                pkcs12.set_privatekey(keypair)
-                pkcs12.set_certificate(client_cert)
-                pkcs12.set_friendlyname(str(token.cert_name))
+
+                pkcs12 = token.user.gen_keypair_and_clientcert(token.cert_name)
 
 
             except Exception as e:
                 return poobrains.rendering.RenderString("Client certificate creation failed.")
             
-            cert_info.fingerprint = client_cert.digest('sha512').replace(':', '')
+            cert_info.fingerprint = pkcs12.get_certificate().digest('sha512').replace(':', '')
 
             if submit == 'ClientCertForm.tls_submit':
-                r = werkzeug.wrappers.Response(pkcs12.export(passphrase='florb'))
+                r = werkzeug.wrappers.Response(pkcs12.export(passphrase=passphrase))
                 r.mimetype = 'application/pkcs-12'
+                flask.flash("The passphrase for this delicious bundle of crypto is '%s'" % passphrase)
 
             else: # means pgp
+
+                text = "Hello %s. Here's your new set of keys to the gates of Shambala.\nYour passphrase is '%s'." % (token.user.name, passphrase)
 
                 mail = poobrains.mailing.Mail(token.user.pgp_fingerprint)
                 mail['Subject'] = 'Bow before entropy'
                 mail['To'] = token.user.mail
 
-                pkcs12_attachment = poobrains.mailing.MIMEApplication(pkcs12.export(passphrase='florb'), _subtype='pkcs12')
+                mail.attach(poobrains.mailing.MIMEText(text))
+                pkcs12_attachment = poobrains.mailing.MIMEApplication(pkcs12.export(passphrase=passphrase), _subtype='pkcs12')
                 mail.attach(pkcs12_attachment)
 
                 mail.send()
@@ -1035,6 +1031,8 @@ class User(Named):
 
     mail = poobrains.storage.fields.CharField(null=True) # FIXME: implement an EmailField
     pgp_fingerprint = poobrains.storage.fields.CharField(null=True)
+    mail_notifications = poobrains.storage.fields.BooleanField(default=False)
+    about = poobrains.md.MarkdownField(null=True)
 
     def __init__(self, *args, **kwargs):
 
@@ -1089,7 +1087,7 @@ class User(Named):
             flask.flash("Plumbing issue. Invalid CA_KEY or CA_CERT.")
             raise e
 
-        common_name = '%s:%s' % (self.name, name)
+        common_name = '%s:%s@%s' % (self.name, name, poobrains.app.config['SITE_NAME'])
         spkac = pyspkac.SPKAC(spkac, challenge, CN=common_name) # TODO: Make sure CN is unique
         spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
         spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
@@ -1109,7 +1107,7 @@ class User(Named):
         if not re.match('^[a-zA-Z0-9_\- ]+$', name):
             raise ValueError("Requested client certificate name is invalid.")
 
-        common_name = '%s:%s' % (self.name, name)
+        common_name = '%s:%s@%s' % (self.name, name, poobrains.app.config['SITE_NAME'])
 
         fd = open(poobrains.app.config['CA_KEY'], 'rb')
         ca_key = openssl.crypto.load_privatekey(openssl.crypto.FILETYPE_PEM, fd.read())
@@ -1126,7 +1124,7 @@ class User(Named):
 
         extensions = []
         extensions.append(openssl.crypto.X509Extension('keyUsage', True, 'digitalSignature, keyEncipherment, keyAgreement'))
-        extensions.append(openssl.crypto.X509Extension('extendedKeyUsage', True, 'clientAuth, emailProtection, nsSGC'))
+        extensions.append(openssl.crypto.X509Extension('extendedKeyUsage', True, 'clientAuth'))
 
         cert = openssl.crypto.X509()
         cert.set_version(2) # 2 == 3, WHAT THE FUCK IS WRONG WITH THESE PEOPLE!?
@@ -1141,8 +1139,46 @@ class User(Named):
 
         cert.sign(ca_key, 'sha512')
 
-        return (keypair, cert)
+        pkcs12 = openssl.crypto.PKCS12()
+        pkcs12.set_ca_certificates([ca_cert])
+        pkcs12.set_privatekey(keypair)
+        pkcs12.set_certificate(cert)
+        pkcs12.set_friendlyname(str(name))
 
+        return pkcs12
+
+
+    def mkmail(self):
+
+        mail = poobrains.mailing.Mail()
+        mail['To'] = self.mail
+        mail['Subject'] = 'Bow before entropy'
+        mail.fingerprint = self.pgp_fingerprint
+
+        return mail
+
+
+    def notify(self, message):
+        poobrains.app.debugger.set_trace()
+        n = Notification(to=self, message=message)
+
+        if self.mail_notifications:
+            if not self.pgp_fingerprint:
+                n.message += "\nYou didn't get a mail notification because you have no PGP public key stored."
+
+            else:
+                mail = self.mkmail()
+                mail.attach(poobrains.mailing.MIMEText(message))
+                mail.send()
+
+        return n.save()
+
+
+    @property
+    def unread_notifications(self):
+        return self.notifications.where(Notification.read == 0)
+
+poobrains.app.site.add_view(User, '/~<handle>/', 'full')
 
 class UserPermission(Administerable):
 
@@ -1397,3 +1433,11 @@ class NamedOwned(Owned, Named):
     
     class Meta:
         abstract = True
+
+
+class Notification(poobrains.storage.Storable):
+
+    to = poobrains.storage.fields.ForeignKeyField(User, related_name='notifications')
+    created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
+    read = poobrains.storage.fields.BooleanField(default=False)
+    message = poobrains.md.MarkdownField()

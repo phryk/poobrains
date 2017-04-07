@@ -32,6 +32,13 @@ except ImportError as e:
     config = False
 
 
+def is_renderable(x):
+
+    """ jinja test to check if a value can be rendered """
+
+    return hasattr(x, 'render') and callable(x.render) # not checking for inheritance here so MarkdownString matches, too.
+
+
 class FormDataParser(werkzeug.formparser.FormDataParser):
     
     def parse(self, *args, **kwargs):
@@ -301,7 +308,7 @@ class Poobrain(flask.Flask):
                 flask.g.user = cert_info.user
 
             except auth.ClientCert.DoesNotExist:
-                self.logger.error("httpd verified client certificate successfully, but it's not known at this site. certificate subject distinguished name is: %s" % flask.request.environ['SSL_CLIENT_S_DN'])
+                self.logger.error("httpd verified client certificate successfully, but it's not known at this site. CN: %s, digest: %s" % (cert.get_subject().CN, cert.digest('sha512')))
 
         if flask.g.user == None:
             try:
@@ -690,18 +697,20 @@ class Pooprint(flask.Blueprint):
 
 
 app = Poobrain(__name__) # TODO: Make app class configurable.
+app.jinja_env.tests['renderable'] = is_renderable
 
 # delayed internal imports which may depend on app
 import poobrains.helpers
+import poobrains.mailing
 import poobrains.rendering
 import poobrains.form
 import poobrains.storage
+import poobrains.md
 import poobrains.auth
 import poobrains.upload
 import poobrains.tagging
 import poobrains.commenting
 import poobrains.search
-import poobrains.mailing
 import poobrains.dashboard
 import poobrains.cli
 

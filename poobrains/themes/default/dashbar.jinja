@@ -1,0 +1,7 @@
+<section class="dashbar">
+{% block content %}
+{% for item in content.items %}
+    {{ item.render('full') }}
+{% endfor %}
+{% endblock %}
+</section>

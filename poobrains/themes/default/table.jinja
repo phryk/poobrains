@@ -10,7 +10,11 @@
     {% for row in content.rows %}
     <tr {% if row.classes %}class="{{ row.classes }}"{% endif %}>
         {% for column in row %}
-            <td>{{ column }}</td>
+            {% if column is renderable %}
+                <td>{{ column.render() }}</td>
+            {% else %}
+                <td>{{ column }}</td>
+            {% endif %}
         {% endfor %}
         </tr>
     {% endfor%}

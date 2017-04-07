@@ -7,6 +7,11 @@
     </head>
     
     <body>
+
+        {% if g.boxes.dashbar %}
+            {{ g.boxes.dashbar.render() }}
+        {% endif %}
+
         <header>
             <div class="sticky">
                 {% block menu_main %}
@@ -29,7 +34,7 @@
         <main>
             <header>
 
-                {% block breadcrumb %}{{ g.boxes['breadcrumb'].render() }}{% endblock %}
+                {% block breadcrumb %}{% if g.boxes['breadcrumb'] %}{{ g.boxes['breadcrumb'].render() }}{% endif %}{% endblock %}
 
                 <h1>{{ g.title }}</h1>
 

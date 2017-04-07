@@ -61,7 +61,8 @@ class Commentable(poobrains.tagging.Taggable):
 
     comments = None
     comments_threaded = None
-    comments_enabled = poobrains.storage.fields.BooleanField(default=0)
+    comments_enabled = poobrains.storage.fields.BooleanField(default=False)
+    notify_owner = poobrains.storage.fields.BooleanField(default=True)
 
     def __init__(self, *args, **kwargs):
 
@@ -163,6 +164,7 @@ class CommentForm(poobrains.form.Form):
         challenge.text = self.fields['text'].value
 
         challenge.save()
+
         return flask.redirect(challenge.url('full'))
 
 
@@ -279,8 +281,13 @@ class ChallengeForm(poobrains.form.Form):
 
             if comment.save():
                 flask.flash("Your comment has been saved.")
+
+                if instance.notify_owner:
+                    instance.owner.notify("New comment on [%s/%s] by %s." % (self.challenge.model, self.challenge.handle, self.challenge.author))
+                
+                self.challenge.delete_instance() # commit glorious seppuku
                 return flask.redirect(instance.url('full'))
- 
+
             flask.flash("Your comment could not be saved.", 'error')
 
         else:
