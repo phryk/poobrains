@@ -26,13 +26,12 @@ class Renderable(helpers.ChildAware):
 
 
     @classmethod
-    def url(cls, mode='teaser'):
-        return poobrains.app.get_url(cls, mode=mode)
+    def url(cls, mode='teaser', **url_params):
+        return poobrains.app.get_url(cls, mode=mode, **url_params)
 
 
-    def instance_url(self, mode='full'):
+    def instance_url(self, mode='full', **url_params):
         
-        url_params = {}
         if getattr(self, 'handle', False) and not isinstance(self, poobrains.form.Form): # FIXME: resolve name collision "handle" storable vs. form
             url_params['handle'] = self.handle
         return poobrains.app.get_url(self.__class__, mode=mode, **url_params)

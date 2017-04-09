@@ -18,7 +18,7 @@ class Dashbar(poobrains.rendering.Container):
         self.items.append(poobrains.rendering.RenderString("%s@%s" % (user.name, poobrains.app.config['SITE_NAME'])))
 
         menu = poobrains.rendering.Menu('dashbar-actions')
-        menu.append(PubkeyForm.url('full'), 'Manage PGP public key')
+        menu.append(PGPControl.url('full', handle=self.user.handle_string), 'PGP Management')
 
         self.items.append(menu)
 
@@ -29,15 +29,16 @@ def dashbar():
         return Dashbar(flask.g.user)
 
 
-class Dashboard(poobrains.auth.Protected):
+class CertControl(poobrains.auth.Protected):
 
     user = None
     cert_table = None
     pgp_update_url = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, handle=None, **kwargs):
 
-        self.user = flask.g.user
+        super(CertControl, self).__init__(**kwargs)
+        self.user = poobrains.auth.User.load(handle)
         self.title = self.user.name
 
         if len(flask.request.environ['SSL_CLIENT_CERT']):
@@ -58,26 +59,24 @@ class Dashboard(poobrains.auth.Protected):
 
             self.cert_table.append(cert_info.name, cert_info.fingerprint, actions,_classes=classes)
 
-        self.pgp_update_url = PubkeyForm.url('full')
+poobrains.app.site.add_view(CertControl, '/~<handle>/cert', endpoint='certcontrol', mode='full')
+poobrains.app.site.add_view(poobrains.auth.ClientCert, '/~<_>/cert/<handle>', mode='delete')
 
-poobrains.app.site.add_view(Dashboard, '/~', endpoint='dashboard', mode='full')
 
+class PGPControl(poobrains.form.Form):
 
-class PubkeyForm(poobrains.form.Form):
-
+    current_key = None
     pubkey = poobrains.form.fields.File()
     submit = poobrains.form.Button('submit', label='Update key')
 
-    def __init__(self, handle=None, user=None, **kwargs):
+    def __init__(self, handle=None, **kwargs):
 
-        super(PubkeyForm, self).__init__(**kwargs)
+        super(PGPControl, self).__init__(**kwargs)
+        self.user = poobrains.auth.User.load(handle)
+        self.current_key = poobrains.form.fields.Message(value="Your current key is: %s" % self.user.pgp_fingerprint)
+        self.fields.order = ['current_key', 'pubkey']
+   
 
-        if user is not None:
-            self.user = user
-        else:
-            self.user = flask.g.user
-
-    
     def handle(self, submit):
 
         poobrains.app.debugger.set_trace()
@@ -89,4 +88,4 @@ class PubkeyForm(poobrains.form.Form):
 
         return self
 
-poobrains.app.site.add_view(PubkeyForm, '/~/pgp', mode='full')
+poobrains.app.site.add_view(PGPControl, '/~<handle>/pgp', mode='full')

@@ -71,6 +71,38 @@ body {
     max-width: 55rem;
     min-height: 100vh;
 
+    section.dashbar {
+
+        position: fixed;
+        z-index: 9001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 3rem;
+        line-height: 3rem;
+        display: inherit;
+        background: $color_background_light;
+        color: $color_font_dark;
+        font-family: 'Ostrich Sans', sans;
+        font-size: 1.4rem;
+
+        & > * {
+            margin-left: 0.25rem;
+        }
+
+        a {
+            color: $color_font_dark;
+            text-shadow: 0 0 1rem $color_font_dark;
+            transition: text-shadow 0.3s ease-out;
+
+            &:hover,
+            &:focus,
+            &.active {
+                text-shadow: 0 0 0.25rem opacify($color_font_dark, 100%);
+            }
+        }
+
+    }
 
     & > header {
 
@@ -97,7 +129,11 @@ body {
         /*-webkit-clip-path: polygon(0 0, 0 calc(100% - 3rem), 50% 100%, 100% calc(100% - 3rem), 100% 0);*/
 
         overflow: hidden;
-        
+
+        &:nth-child(2) { /* means dashbar is rendered */
+            margin-top: 3rem;
+        }
+
         & > .sticky {
             overflow-y: auto;
             overflow-x: hidden;
@@ -160,40 +196,12 @@ body {
     }
 }
 
-section.dashbar {
-
-    position: sticky;
-    z-index: 9001;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 3rem;
-    line-height: 3rem;
-    display: inherit;
-    background: $color_background_light;
-    color: $color_font_dark;
-    font-family: 'Ostrich Sans', sans;
-    font-size: 1.4rem;
-
-    & > * {
-        margin-left: 0.25rem;
-    }
-
-    a {
-        color: $color_font_dark;
-        text-shadow: 0 0 1rem $color_font_dark;
-        transition: text-shadow 0.3s ease-out;
-
-        &:hover,
-        &:focus,
-        &.active {
-            text-shadow: 0 0 0.25rem opacify($color_font_dark, 100%);
-        }
-    }
-
-}
 
 main {
+
+    &:nth-child(3) { /* means dashbar is rendered */
+        margin-top: 3rem;
+    }
 
     /* Flex of main children */
     display: flex;

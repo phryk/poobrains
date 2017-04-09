@@ -572,11 +572,12 @@ class Pooprint(flask.Blueprint):
 
 
     def choose_endpoint(self, endpoints, **url_params):
-
+        self.app.debugger.set_trace()
         for rule in self.app.url_map.iter_rules():
             if rule.endpoint in endpoints:
                 endpoint = rule.endpoint
-                if sorted(rule.arguments) == sorted(url_params.keys()): # means url parameters match perfectly
+                #if sorted(rule.arguments) == sorted(url_params.keys()): # means url parameters match perfectly
+                if set(url_params.keys()).issubset(rule.arguments):
                     return endpoint
 
         raise ValueError("No fitting url rule found for all params: %s", ','.join(url_params.keys()))
@@ -711,7 +712,7 @@ import poobrains.upload
 import poobrains.tagging
 import poobrains.commenting
 import poobrains.search
-import poobrains.dashboard
+import poobrains.profile
 import poobrains.cli
 
 

@@ -131,9 +131,9 @@ class Storable(Model, rendering.Renderable):
         self.url = self.instance_url # make .url callable for class and instances
 
 
-    def instance_url(self, mode='full'):
+    def instance_url(self, mode='full', **url_params):
 
-        return app.get_url(self.__class__, handle=self.handle_string, mode=mode)
+        return app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
 
 
     @classmethod
@@ -179,8 +179,8 @@ class Named(Storable):
         super(Named, self).__init__(*args, **kwargs)
 
 
-    def instance_url(self, mode='full'):
-        return app.get_url(self.__class__, handle=self.name, mode=mode)
+    def instance_url(self, mode='full', **url_params):
+        return app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
 
 
 class Listing(rendering.Renderable):

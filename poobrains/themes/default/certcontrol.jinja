@@ -1,0 +1,10 @@
+{% extends "renderable.jinja" %}
+
+{% block header %}{% endblock %}
+
+{% block content %}
+    <div class="clientcerts">
+        <h2>TLS Client Certificates</h2>
+        {{ content.cert_table.render() }}
+    </div>
+{% endblock %}
