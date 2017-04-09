@@ -24,6 +24,7 @@ class Dashbar(poobrains.rendering.Container):
 
         self.items.append(menu)
 
+
 @poobrains.app.box('dashbar')
 def dashbar():
     user = flask.g.user
@@ -95,7 +96,6 @@ poobrains.app.site.add_view(CertControl, '/~<handle>/cert/<cert_handle>', mode='
 class PGPControl(poobrains.auth.Protected):
 
     user = None
-    cert_table = None
 
     def __init__(self, handle=None, **kwargs):
 
@@ -105,8 +105,9 @@ class PGPControl(poobrains.auth.Protected):
 
     def view(self, handle=None, **kwargs):
 
-        r = super(PGPControl, self).view(handle=handle, **kwargs)
-        return r
+        r = super(PGPControl, self).view(handle=handle, **kwargs) # checks permissions
+        return PGPForm(handle=handle).view(handle=handle, **kwargs)
+        #return r
 
 poobrains.app.site.add_view(PGPControl, '/~<handle>/pgp', mode='full')
 
@@ -118,7 +119,7 @@ class PGPForm(poobrains.form.Form):
 
     def __init__(self, handle=None, **kwargs):
 
-        super(PGPControl, self).__init__(**kwargs)
+        super(PGPForm, self).__init__(**kwargs)
         self.user = poobrains.auth.User.load(handle)
         self.current_key = poobrains.form.fields.Message(value="Your current key is: %s" % self.user.pgp_fingerprint)
         self.fields.order = ['current_key', 'pubkey']
