@@ -90,6 +90,14 @@ body {
             margin-left: 0.25rem;
         }
 
+        nav {
+            ul {
+                li {
+                    display: inline-block;
+                }
+            }
+        }
+
         a {
             color: $color_font_dark;
             text-shadow: 0 0 1rem $color_font_dark;

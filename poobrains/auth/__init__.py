@@ -384,6 +384,7 @@ class ClientCertForm(poobrains.form.Form):
 
                 return poobrains.rendering.RenderString("Client certificate creation failed.")
 
+            cert_info.keylength = client_cert.get_pubkey().size() * 8 # .size gives length in byte
             cert_info.fingerprint = client_cert.get_fingerprint('sha512')
 
             r = werkzeug.wrappers.Response(client_cert.as_pem())
@@ -400,7 +401,8 @@ class ClientCertForm(poobrains.form.Form):
 
             except Exception as e:
                 return poobrains.rendering.RenderString("Client certificate creation failed.")
-            
+
+            cert_info.keylength = pkcs12.get_certificate().get_pubkey().bits() 
             cert_info.fingerprint = pkcs12.get_certificate().digest('sha512').replace(':', '')
 
             if submit == 'ClientCertForm.tls_submit':
@@ -1379,6 +1381,7 @@ class ClientCert(Administerable):
     user = poobrains.storage.fields.ForeignKeyField(User, related_name="clientcerts")
     name = poobrains.storage.fields.CharField(null=False, max_length=32)
     #subject_name = poobrains.storage.fields.CharField()
+    keylength = poobrains.storage.fields.IntegerField()
     fingerprint = poobrains.storage.fields.CharField()
     
     
