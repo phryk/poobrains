@@ -18,11 +18,11 @@ class Tag(poobrains.auth.Named):
     class Meta:
 
         modes = collections.OrderedDict([
-            ('add', 'c'),
-            ('teaser', 'r'),
-            ('full', 'r'),
-            ('edit', 'u'),
-            ('delete', 'd')
+            ('add', 'create'),
+            ('teaser', 'read'),
+            ('full', 'read'),
+            ('edit', 'update'),
+            ('delete', 'delete')
         ])
 
 

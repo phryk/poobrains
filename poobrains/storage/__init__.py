@@ -122,8 +122,7 @@ class Storable(Model, rendering.Renderable):
 
     class Meta:
         abstract = True
-        ops = collections.OrderedDict([('r', 'read')])
-        modes = collections.OrderedDict([('full', 'r')])
+        modes = collections.OrderedDict([('full', 'read')])
 
     def __init__(self, *args, **kwargs):
 

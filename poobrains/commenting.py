@@ -173,7 +173,7 @@ class Challenge(poobrains.storage.Named):
 
     class Meta:
 
-        modes = collections.OrderedDict([('full', 'r'), ('raw', 'r')])
+        modes = collections.OrderedDict([('full', 'read'), ('raw', 'read')])
 
 
     title = 'Fuck bots, get bugs'

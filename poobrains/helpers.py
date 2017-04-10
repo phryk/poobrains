@@ -150,7 +150,6 @@ class FakeMetaOptions(object):
     abstract = None
     handle_fields = None
     modes = None
-    ops = None
     permission_class = None
     _additional_keys = None # Why did I put this in, again? something something peewee compatibility…
 
@@ -170,7 +169,7 @@ class MetaCompatibility(type):
 
     def __new__(cls, name, bases, attrs):
 
-        recognized_options = ['abstract', 'ops', 'modes', 'permission_class', 'handle_fields', 'clone_props'] # FIXME: Make this shit generic, like peewee ModelOptions
+        recognized_options = ['abstract', 'modes', 'permission_class', 'handle_fields', 'clone_props'] # FIXME: Make this shit generic, like peewee ModelOptions
 
         cls = super(MetaCompatibility, cls).__new__(cls, name, bases, attrs)
  

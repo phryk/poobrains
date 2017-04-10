@@ -104,13 +104,13 @@ class File(poobrains.auth.NamedOwned):
     class Meta:
 
         modes = collections.OrderedDict([
-            ('add', 'c'),
-            ('teaser', 'r'),
-            ('full', 'r'),
-            ('raw', 'r'),
-            ('inline', 'r'),
-            ('edit', 'u'),
-            ('delete', 'd')
+            ('add', 'create'),
+            ('teaser', 'read'),
+            ('full', 'read'),
+            ('raw', 'read'),
+            ('inline', 'read'),
+            ('edit', 'update'),
+            ('delete', 'delete')
         ])
 
     def __init__(self, *args, **kwargs):

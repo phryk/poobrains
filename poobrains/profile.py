@@ -36,14 +36,9 @@ class CertControl(poobrains.auth.Protected):
 
     class Meta:
 
-        ops = collections.OrderedDict([
-            ('r', 'read'),
-            ('d', 'delete')
-        ])
-
         modes = collections.OrderedDict([
-            ('full', 'r'),
-            ('delete', 'd')
+            ('full', 'read'),
+            ('delete', 'delete')
         ])
 
     user = None

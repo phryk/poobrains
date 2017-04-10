@@ -156,9 +156,9 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
         cls = super(PermissionInjection, cls).__new__(cls, name, bases, attrs)
         cls.permissions = collections.OrderedDict()
 
-        for op, op_name in cls._meta.ops.iteritems():
-            perm_name = "%s_%s" % (cls.__name__, op_name)
-            perm_label = "%s %s" % (op_name.capitalize(), cls.__name__)
+        for op in ['create', 'read', 'update', 'delete']:
+            perm_name = "%s_%s" % (cls.__name__, op)
+            perm_label = "%s %s" % (op.capitalize(), cls.__name__)
             #cls._meta.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
             perm_attrs = dict()
             perm_attrs['op'] = op
@@ -177,7 +177,7 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
 
                 perm_attrs['Meta'] = Meta
 
-            cls.permissions[op_name] = type(perm_name, (cls._meta.permission_class,), perm_attrs)
+            cls.permissions[op] = type(perm_name, (cls._meta.permission_class,), perm_attrs)
 
         return cls
 
@@ -319,14 +319,13 @@ def protected(func):
             raise AccessDenied("Unknown mode '%s' for accessing %s." % (mode, cls.__name__))
 
         op = cls._meta.modes[mode]
-        op_name = cls._meta.ops[op]
-        if not cls._meta.ops.has_key(op):
+        if not op in ['create', 'read', 'update', 'delete']:
             raise AccessDenied("Unknown access op '%s' for accessing %s." (op, cls.__name__))
-        if not cls_or_instance.permissions.has_key(op_name):
+        if not cls_or_instance.permissions.has_key(op):
             raise NotImplementedError("Did not find permission for op '%s' in cls_or_instance of class '%s'." % (op, cls.__name__))
         
 
-        cls_or_instance.permissions[op_name].check(user)
+        cls_or_instance.permissions[op].check(user)
 
         return func(cls_or_instance, mode=mode, *args, **kwargs)
 
@@ -454,6 +453,13 @@ class OwnedPermission(Permission):
         ('own', 'For own instances'),
         ('grant', 'For all instances')
     ]
+
+    op_abbreviations = {
+        'create': 'c',
+        'read': 'r',
+        'update': 'u',
+        'delete': 'd'
+    }
     
     class Meta:
         abstract = True
@@ -488,7 +494,9 @@ class OwnedPermission(Permission):
 
 
     def instance_check(self, user):
-        
+
+        op_abbr = self.op_abbreviations[self.op]
+
         if user.own_permissions.has_key(self.__class__.__name__):
 
             access = user.own_permissions[self.__class__.__name__]
@@ -497,19 +505,19 @@ class OwnedPermission(Permission):
                 raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own_instance':
-                if self.instance.owner == user and self.op in self.instance.access:
+                if self.instance.owner == user and op_abbr in self.instance.access:
                     return True
                 else:
                     raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'instance':
-                if self.op in self.instance.access:
+                if op_abbr in self.instance.access:
                     return True
                 else:
                     raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own':
-                if self.instance.owner == user and self.op in self.instance.access:
+                if self.instance.owner == user and op_abbr in self.instance.access:
                     return True
                 else:
                     raise AccessDenied("YOU SHALL NOT PASS!")
@@ -529,13 +537,13 @@ class OwnedPermission(Permission):
 
             elif 'own_instance' in group_access.keys():
                 allowed_groups = group_access['own_instance']
-                if self.instance.group in allowed_groups and self.op in self.instance.access:
+                if self.instance.group in allowed_groups and op_abbr in self.instance.access:
                     return True
                 else:
                     raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif 'instance' in group_access.keys():
-                if self.op in self.instance.access:
+                if op_abbr in self.instance.access:
                     return True
                 else:
                     raise AccessDenied("YOU SHALL NOT PASS!")
@@ -877,19 +885,13 @@ class Administerable(poobrains.storage.Storable, Protected):
         abstract = True
         related_use_form = False # Whether we want to use Administerable.related_form in related view for administration.
         permission_class = Permission
-        ops = collections.OrderedDict([
-            ('c', 'create'),
-            ('r', 'read'),
-            ('u', 'update'),
-            ('d', 'delete')
-        ])
 
         modes = collections.OrderedDict([
-            ('add', 'c'),
-            ('teaser', 'r'),
-            ('full', 'r'),
-            ('edit', 'u'),
-            ('delete', 'd')
+            ('add', 'create'),
+            ('teaser', 'read'),
+            ('full', 'read'),
+            ('edit', 'update'),
+            ('delete', 'delete')
         ])
    
 
@@ -908,10 +910,9 @@ class Administerable(poobrains.storage.Storable, Protected):
 
             try:
                 op = self._meta.modes[mode]
-                op_name = self._meta.ops[op]
 
-                if op_name != 'create':
-                    self.permissions[op_name].check(user)
+                if op != 'create':
+                    self.permissions[op].check(user)
                     actions.append(self.url(mode), mode)
 
             except AccessDenied:
@@ -978,7 +979,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         view function to be called in a flask request context
         """
         
-        if self._meta.modes[mode] in ['c', 'u', 'd']:
+        if self._meta.modes[mode] in ['create', 'update', 'delete']:
 
             f = self.form(mode)
             return poobrains.helpers.ThemedPassthrough(f.view('full'))
@@ -988,9 +989,8 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @classmethod
     def list(cls, op, user, handles=None):
-        op_name = cls._meta.ops[op]
         q = super(Administerable, cls).list(op, user, handles=handles)
-        return cls.permissions[op_name].list(cls, q, op, user)
+        return cls.permissions[op].list(cls, q, op, user)
 
 
     @classmethod
@@ -1196,7 +1196,7 @@ class UserPermission(Administerable):
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(max_length=4, null=False)
+    access = poobrains.storage.fields.CharField(null=False)
     access.form_class = poobrains.form.fields.TextChoice
 
     related_form = UserPermissionRelatedForm
@@ -1296,7 +1296,7 @@ class GroupPermission(Administerable):
 
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(max_length=4, null=False)
+    access = poobrains.storage.fields.CharField(null=False)
     access.form_class = poobrains.form.fields.TextChoice
 
     
@@ -1373,9 +1373,9 @@ class ClientCert(Administerable):
 
         permission_class = Permission
         modes = collections.OrderedDict([
-            ('teaser', 'r'),
-            ('full', 'r'),
-            ('delete', 'd')
+            ('teaser', 'read'),
+            ('full', 'read'),
+            ('delete', 'delete')
         ])
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name="clientcerts")
@@ -1402,7 +1402,7 @@ class ClientCert(Administerable):
         view function to be called in a flask request context
         """
         
-        if self._meta.modes[mode] in ['c', 'u', 'd']:
+        if self._meta.modes[mode] in ['create', 'update', 'delete']:
 
             f = self.form(mode)
             return poobrains.helpers.ThemedPassthrough(f.view('full'))
