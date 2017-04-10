@@ -147,13 +147,31 @@ class NotificationControl(poobrains.auth.Protected):
         super(NotificationControl, self).__init__(**kwargs)
         self.user = poobrains.auth.User.load(handle)
 
-        self.form = poobrains.form.Form(name='notification-form')
-        self.form.mark = poobrains.form.Button('submit', label='Mark as read')
-        self.form.delete = poobrains.form.Button('submit', label='Delete')
+        self.form = NotificationForm()
         self.table = poobrains.rendering.Table(columns=['Created', 'Message', 'Mark'])
 
         for notification in self.user.notifications_unread:
-            mark_checkbox = poobrains.form.fields.Checkbox(form=self.form, name='mark', label='', value=True)
+            mark_checkbox = poobrains.form.fields.Checkbox(form=self.form, name='mark', label='', value=notification.id)
             self.table.append(notification.created, notification.message, mark_checkbox)
 
+
+    def view(self, handle=None, **kwargs):
+
+        r = super(NotificationControl, self).view(handle=handle, **kwargs) # checks permissions
+
+        if flask.request.method in ['POST', 'DELETE']:
+            return self.form.view(**kwargs)
+        return r
+
+
 poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/', mode='full')
+
+
+class NotificationForm(poobrains.form.Form):
+
+    mark = poobrains.form.Button('submit', label='Mark as read')
+    delete = poobrains.form.Button('submit', label='Delete')
+
+    def handle(self, submit):
+
+        poobrains.app.debugger.set_trace()
