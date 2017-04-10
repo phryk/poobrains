@@ -151,7 +151,7 @@ class NotificationControl(poobrains.auth.Protected):
         self.table = poobrains.rendering.Table(columns=['Created', 'Message', 'Mark'])
 
         for notification in self.user.notifications_unread:
-            mark_checkbox = poobrains.form.fields.Checkbox(form=self.form, name='mark', label='', value=notification.id)
+            mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', value=notification.id)
             self.table.append(notification.created, notification.message, mark_checkbox)
 
 
@@ -175,3 +175,4 @@ class NotificationForm(poobrains.form.Form):
     def handle(self, submit):
 
         poobrains.app.debugger.set_trace()
+        return self

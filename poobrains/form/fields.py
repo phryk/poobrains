@@ -378,7 +378,7 @@ class ForeignKeyChoice(TextChoice):
         return None
 
 
-class Checkbox(MultiChoice):
+class Checkbox(RenderableField):
 
     empty_value = None
     default = False
@@ -388,6 +388,12 @@ class Checkbox(MultiChoice):
 
 class Radio(Checkbox):
     pass
+
+
+class MultiCheckbox(MultiChoice):
+
+    empty_value = None
+    default = False
 
 
 class Float(RenderableField):
