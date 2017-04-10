@@ -23,6 +23,7 @@ class Field(object):
 
     _created = None
     _empty = None # hint if value of this field was set to empty_value <- TODO: is this even used anymore? don't we just have .empty()?
+    form = None # only filled if this is a field rendered outside of the form
     errors = None
     prefix = None
     name = None
@@ -48,12 +49,12 @@ class Field(object):
 
         return instance
 
-    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None):
+    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None):
 
         self.errors = []
         self.name = name
         self.value = value
-        self.label = label if label else name
+        self.label = label if label is not None else name
         self.placeholder = placeholder if placeholder else self.label
         self.readonly = readonly
         self.required = required
@@ -63,6 +64,11 @@ class Field(object):
         
         if validator:
             self.validator = validator
+
+        
+        if form is not None:
+            self.form = form
+            self.form._add_external_field(self)
 
 
     def __getattr__(self, name):
@@ -372,12 +378,16 @@ class ForeignKeyChoice(TextChoice):
         return None
 
 
-class Checkbox(RenderableField):
+class Checkbox(MultiChoice):
 
     empty_value = None
     default = False
     coercer = coercers.coerce_bool
     validator = validators.is_bool
+
+
+class Radio(Checkbox):
+    pass
 
 
 class Float(RenderableField):

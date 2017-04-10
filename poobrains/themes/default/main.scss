@@ -84,7 +84,7 @@ body {
         background: $color_background_light;
         color: $color_font_dark;
         font-family: 'Ostrich Sans', sans;
-        font-size: 1.4rem;
+        font-size: 1.5rem;
 
         & > * {
             margin-left: 0.25rem;
@@ -94,6 +94,12 @@ body {
             ul {
                 li {
                     display: inline-block;
+                    border-right: 1px solid $color_background_dark;
+
+                    a {
+                        padding: 0 0.25rem;
+                        font-size: 1.5rem;
+                    }
                 }
             }
         }

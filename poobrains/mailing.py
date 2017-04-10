@@ -34,8 +34,6 @@ class Mail(MIMEMultipart):
 
     def as_string(self, unixfrom=False):
 
-        poobrains.app.debugger.set_trace()
-
         fingerprint = str(self.fingerprint) # TODO: enforce str by implementing __setattr__?
 
         wrapper_msg = MIMEMultipart(_subtype='encrypted', protocol='application/pgp-encrypted')

@@ -1,6 +1,5 @@
 <label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
 <select
-    id="{{ content.prefix }}.{{ content.name }}"
     name="{{ content.prefix }}.{{ content.name }}"
     {% if content.readonly %}disabled{% endif %}
     class="{% if content.errors %}invalid{% endif %}"

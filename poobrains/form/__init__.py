@@ -33,6 +33,8 @@ class BaseForm(poobrains.rendering.Renderable):
     class Meta:
         abstract = True
 
+    _external_fields = None
+
     fields = None
     controls = None
     
@@ -52,7 +54,7 @@ class BaseForm(poobrains.rendering.Renderable):
             attr = getattr(instance, attr_name)
             if isinstance(attr, fields.Field) or isinstance(attr, Fieldset) or isinstance(attr, Button): # FIXME: This should be doable with just one check
                 clone_attributes.append((attr_name, attr))
-               
+
         for (attr_name, attr) in sorted(clone_attributes, key=lambda x: getattr(x[1], '_created')):
 
                 kw = {}
@@ -72,7 +74,8 @@ class BaseForm(poobrains.rendering.Renderable):
     
     
     def __init__(self, prefix=None, name=None, title=None):
-        
+
+        self._external_fields = []
         super(BaseForm, self).__init__()
         self.name = name if name else self.__class__.__name__
 
@@ -120,8 +123,27 @@ class BaseForm(poobrains.rendering.Renderable):
         """
 
         for field in self.fields.itervalues():
-            if isinstance(field, (fields.RenderableField, Fieldset)):
+            if isinstance(field, (fields.RenderableField, Fieldset)) and field.name not in self._external_fields:
                 yield field
+
+    
+    def _add_external_field(self, field):
+
+        """
+        Add a field which is to be rendered outside of this form, but handled by it.
+        Fields like this can be created by passing a Form object to the Field constructor.
+        """
+
+        if isinstance(field, fields.Checkbox) and self.fields.has_key(field.name) and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
+            self.fields[field.name].choices.extend(field.choices)
+        else:
+            if self.prefix:
+                field.prefix = "%s.%s" % (self.prefix, self.name)
+            else:
+                field.prefix = self.name
+
+            self._external_fields.append(field.name)
+            self.fields[field.name] = field
 
 
     @property
@@ -135,6 +157,12 @@ class BaseForm(poobrains.rendering.Renderable):
 
         return [field for field in self if isinstance(field, Fieldset)]
 
+
+    @property
+    def ref_id(self):
+        if self.prefix:
+            return "%s-%s" % (self.prefix, self.name)
+        return self.name
 
     def empty(self): # TODO: find out why I didn't make this @property
         for field in self:

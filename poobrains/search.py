@@ -99,7 +99,7 @@ class Search(poobrains.auth.Protected):
             queries = collections.OrderedDict()
             for administerable in readable_administerables:
 
-                q = administerable.list('r', flask.g.user)
+                q = administerable.list('read', flask.g.user)
                 clauses = []
 
                 term = '*%s*' % self.handle.lower()

@@ -156,7 +156,8 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
         cls = super(PermissionInjection, cls).__new__(cls, name, bases, attrs)
         cls.permissions = collections.OrderedDict()
 
-        for op in ['create', 'read', 'update', 'delete']:
+        #for op in ['create', 'read', 'update', 'delete']:
+        for op in set(cls._meta.modes.itervalues()):
             perm_name = "%s_%s" % (cls.__name__, op)
             perm_label = "%s %s" % (op.capitalize(), cls.__name__)
             #cls._meta.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
@@ -350,7 +351,6 @@ class ClientCertForm(poobrains.form.Form):
 
     def handle(self, submit):
 
-        poobrains.app.debugger.set_trace()
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
@@ -1015,7 +1015,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         else:
             return poobrains.storage.Listing(
                 cls=related_model,
-                query=related_model.list('r', flask.g.user).where(related_field == instance)
+                query=related_model.list('read', flask.g.user).where(related_field == instance)
             ).view()
 
 
@@ -1161,7 +1161,7 @@ class User(Named):
 
 
     def notify(self, message):
-        poobrains.app.debugger.set_trace()
+        
         n = Notification(to=self, message=message)
 
         if self.mail_notifications:
@@ -1177,7 +1177,7 @@ class User(Named):
 
 
     @property
-    def unread_notifications(self):
+    def notifications_unread(self):
         return self.notifications.where(Notification.read == 0)
 
 poobrains.app.site.add_view(User, '/~<handle>/', 'full')

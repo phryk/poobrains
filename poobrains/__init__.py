@@ -576,8 +576,12 @@ class Pooprint(flask.Blueprint):
         for rule in self.app.url_map.iter_rules():
             if rule.endpoint in endpoints:
                 endpoint = rule.endpoint
+                not_too_many_params = set(url_params.keys()).issubset(rule.arguments)
+                missing_params = rule.arguments - set(url_params.keys())
+                missing_all_optional = all([param in rule.defaults.keys() for param in missing_params])
                 #if sorted(rule.arguments) == sorted(url_params.keys()): # means url parameters match perfectly
-                if set(url_params.keys()).issubset(rule.arguments):
+                #if set(url_params.keys()).issubset(rule.arguments):
+                if not_too_many_params and missing_all_optional:
                     return endpoint
 
         raise ValueError("No fitting url rule found for all params: %s", ','.join(url_params.keys()))

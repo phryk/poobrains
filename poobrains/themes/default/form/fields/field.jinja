@@ -1,14 +1,18 @@
 <input
-        class="{{ content.prefix }}-{{ content.name }}"
-        type="{% block type %}text{% endblock %}"
-        name="{{content.prefix}}.{{ content.name }}"
-        {% if content.readonly %}readonly{% endif %}
+    class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
+    type="{% block type %}text{% endblock %}"
+    name="{{content.prefix}}.{{ content.name }}"
+    {% if content.readonly %}readonly{% endif %}
 
-        {% if content.placeholder %}
-            placeholder="{{ content.placeholder }}"
-        {% endif %}
+    {% if content.form %}
+        form="{{ content.form.ref_id }}"
+    {% endif %}
 
-        {% if content.value %}
-        value="{% block value %}{{ content.value }}{% endblock %}"
-        {% endif %}
+    {% if content.placeholder %}
+        placeholder="{{ content.placeholder }}"
+    {% endif %}
+
+    {% if content.value %}
+    value="{% block value %}{{ content.value }}{% endblock %}"
+    {% endif %}
 >

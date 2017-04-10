@@ -85,7 +85,7 @@ class Tag(poobrains.auth.Named):
                 continue
 
             handles = [model.string_handle(binding.handle) for binding in bindings]
-            queries[model] = model.list('r', user=flask.g.user, handles=handles)
+            queries[model] = model.list('read', user=flask.g.user, handles=handles)
 
 
         pagination = poobrains.storage.Pagination(queries, self.offset, 'site.tag_handle_offset')

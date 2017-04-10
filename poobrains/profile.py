@@ -22,6 +22,13 @@ class Dashbar(poobrains.rendering.Container):
         menu.append(PGPControl.url('full', handle=self.user.handle_string), 'PGP Management')
         menu.append(CertControl.url('full', handle=self.user.handle_string), 'Certificate Management')
 
+        notification_count = self.user.notifications_unread.count()
+        if notification_count == 1:
+            menu.append(NotificationControl.url('full', handle=self.user.handle_string), '1 unread notification')
+        
+        else:
+            menu.append(NotificationControl.url('full', handle=self.user.handle_string), '%d unread notifications' % notification_count)
+
         self.items.append(menu)
 
 
@@ -129,3 +136,24 @@ class PGPForm(poobrains.form.Form):
 
         return self
 
+
+
+class NotificationControl(poobrains.auth.Protected):
+
+    user = None
+
+    def __init__(self, handle=None, **kwargs):
+
+        super(NotificationControl, self).__init__(**kwargs)
+        self.user = poobrains.auth.User.load(handle)
+
+        self.form = poobrains.form.Form(name='notification-form')
+        self.form.mark = poobrains.form.Button('submit', label='Mark as read')
+        self.form.delete = poobrains.form.Button('submit', label='Delete')
+        self.table = poobrains.rendering.Table(columns=['Created', 'Message', 'Mark'])
+
+        for notification in self.user.notifications_unread:
+            mark_checkbox = poobrains.form.fields.Checkbox(form=self.form, name='mark', label='', value=True)
+            self.table.append(notification.created, notification.message, mark_checkbox)
+
+poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/', mode='full')
