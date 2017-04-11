@@ -3,7 +3,9 @@
 import collections
 import OpenSSL as openssl
 
+import werkzeug
 import flask
+
 import poobrains
 
 
@@ -168,7 +170,13 @@ class NotificationControl(poobrains.auth.Protected):
         r = super(NotificationControl, self).view(handle=handle, **kwargs) # checks permissions
 
         if flask.request.method in ['POST', 'DELETE']:
-            return self.form.view(**kwargs)
+            #return self.form.view(**kwargs)
+           
+            #values = flask.request.form[self.name] if flask.request.form.has_key(self.name) else werkzeug.datastructures.MultiDict()
+            values = flask.request.form.get(self.form.name, werkzeug.datastructures.MultiDict())
+            submit = flask.request.form['submit'] if flask.request.form.has_key('submit') else None
+            self.form.bind(values, werkzeug.datastructures.MultiDict())
+            self.form.handle(submit)
         return r
 
 

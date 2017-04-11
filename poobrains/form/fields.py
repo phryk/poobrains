@@ -395,13 +395,28 @@ class MultiCheckbox(MultiChoice):
     coercers = coercers.coerce_string
     validator = validators.is_string
 
-    def bind(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
-        return super(MultiCheckbox, self).bind(*args, **kwargs)
+        if kwargs.has_key('choices'):
+            choices = kwargs.pop('choices')
+        else:
+            choices = []
 
-    def coerce(self, *args, **kwargs):
+        super(MultiCheckbox, self).__init__(*args, **kwargs)
+
+        self.choices = choices
+
+
+    def bind(self, values):
         poobrains.app.debugger.set_trace()
-        return super(MultiCheckbox, self).coerce(*args, **kwargs)
+        super(MultiCheckbox, self).bind(values)
+
+
+    def validate(self):
+ 
+        for value in self.value:
+            if value != '' and not value in self.choices:
+                raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
 class Float(RenderableField):

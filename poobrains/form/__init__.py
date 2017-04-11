@@ -305,10 +305,11 @@ class Form(BaseForm):
         """
 
         if flask.request.method == self.method:
-
+            poobrains.app.debugger.set_trace()
             validation_error = None
             binding_error = None
             values = flask.request.form[self.name] if flask.request.form.has_key(self.name) else werkzeug.datastructures.MultiDict()
+            avalues = flask.request.form.get(self.name, werkzeug.datastructures.MultiDict())
             files = flask.request.files[self.name] if flask.request.files.has_key(self.name) else werkzeug.datastructures.FileMultiDict()
             submit = flask.request.form['submit'] if flask.request.form.has_key('submit') else None
             #FIXME: filter self.readonly in here instead of .bind and .handle?
