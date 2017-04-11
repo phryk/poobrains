@@ -392,8 +392,16 @@ class Radio(Checkbox):
 
 class MultiCheckbox(MultiChoice):
 
-    empty_value = None
-    default = False
+    coercers = coercers.coerce_string
+    validator = validators.is_string
+
+    def bind(self, *args, **kwargs):
+
+        return super(MultiCheckbox, self).bind(*args, **kwargs)
+
+    def coerce(self, *args, **kwargs):
+        poobrains.app.debugger.set_trace()
+        return super(MultiCheckbox, self).coerce(*args, **kwargs)
 
 
 class Float(RenderableField):

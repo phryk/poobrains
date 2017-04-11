@@ -215,7 +215,11 @@ class TableRow(object):
     def __setitem__(self, key, value):
 
         idx = self._get_idx(key)
-        self._data[idx] = value
+
+        if len(self._data) > idx:
+            self._data[idx] = value
+        else:
+            self._data.insert(idx, value)
 
 
     def __delitem__(self, key):
@@ -289,9 +293,10 @@ class RowIterator(object):
 
 
     def next(self):
+        
         self.current_idx += 1
 
-        if self.current_idx >= len(self.row._columns):
+        if self.current_idx >= len(self.row._data):
             raise StopIteration()
 
         return self.row._data[self.current_idx]
@@ -354,8 +359,9 @@ class Table(Renderable):
 
     def _columns_updated(self):
 
-        for row in self.rows:
-            row._columns = list(self.columns)
+        if len(self.columns):
+            for row in self.rows:
+                row._columns = list(self.columns)
 
 
     def append(self, *data, **kwdata):

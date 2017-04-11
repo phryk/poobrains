@@ -96,7 +96,7 @@ class Search(poobrains.auth.Protected):
                 except poobrains.auth.AccessDenied:
                     pass
 
-            queries = collections.OrderedDict()
+            queries = []
             for administerable in readable_administerables:
 
                 q = administerable.list('read', flask.g.user)
@@ -123,7 +123,7 @@ class Search(poobrains.auth.Protected):
                         clauses.append((peewee.fn.Lower(administerable.text) % term)) # LIKE clause
 
                 if len(clauses):
-                    queries[administerable] = q.where(reduce(peewee.operator.or_, clauses))
+                    queries.append = q.where(reduce(peewee.operator.or_, clauses))
                 else:
                     continue
 

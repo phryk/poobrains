@@ -182,11 +182,14 @@ class BaseForm(poobrains.rendering.Renderable):
     
 
     def bind(self, values, files):
-        
+
         if not values is None:
             compound_error = errors.CompoundError()
 
-            for field in self: # magic iteration yielding only renderable fields
+            actionable_fields = [f for f in self]
+            actionable_fields += [self.fields[name] for name in self._external_fields]
+
+            for field in actionable_fields:
 
                 if not field.readonly:
                     

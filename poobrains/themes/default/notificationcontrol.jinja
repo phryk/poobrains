@@ -6,3 +6,7 @@
     {{ content.table.render() }}
     {{ content.form.render() }}
 {% endblock %}
+
+{% block footer %}
+{{ content.pagination.render() }}
+{% endblock %}

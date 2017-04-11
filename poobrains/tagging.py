@@ -65,7 +65,7 @@ class Tag(poobrains.auth.Named):
 
         bindings = TagBinding.select().where(TagBinding.tag == self).limit(poobrains.app.config['PAGINATION_COUNT'])
         bindings_by_model = collections.OrderedDict()
-        queries = collections.OrderedDict()
+        queries = []
 
         for binding in bindings:
 
@@ -85,7 +85,7 @@ class Tag(poobrains.auth.Named):
                 continue
 
             handles = [model.string_handle(binding.handle) for binding in bindings]
-            queries[model] = model.list('read', user=flask.g.user, handles=handles)
+            queries.append(model.list('read', user=flask.g.user, handles=handles))
 
 
         pagination = poobrains.storage.Pagination(queries, self.offset, 'site.tag_handle_offset')

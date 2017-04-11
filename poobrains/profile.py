@@ -140,23 +140,31 @@ class PGPForm(poobrains.form.Form):
 
 class NotificationControl(poobrains.auth.Protected):
 
-    user = None
+    results = None
+    pagination = None
 
-    def __init__(self, handle=None, **kwargs):
+    def __init__(self, handle=None, offset=0, **kwargs):
 
         super(NotificationControl, self).__init__(**kwargs)
-        self.user = poobrains.auth.User.load(handle)
+        user = poobrains.auth.User.load(handle)
 
         self.form = NotificationForm()
-        self.table = poobrains.rendering.Table(columns=['Created', 'Message', 'Mark'])
 
-        for notification in self.user.notifications_unread:
+        pagination = poobrains.storage.Pagination([user.notifications_unread, user.notifications.where(poobrains.auth.Notification.read == True)], offset, 'notification_offset')
+
+        self.results = pagination.results
+        self.pagination = pagination.menu
+
+        self.table = poobrains.rendering.Table()
+
+        for notification in pagination.results:
             mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', value=notification.id)
-            self.table.append(notification.created, notification.message, mark_checkbox)
+            self.table.append(notification, mark_checkbox)
 
 
     def view(self, handle=None, **kwargs):
 
+        poobrains.app.debugger.set_trace()
         r = super(NotificationControl, self).view(handle=handle, **kwargs) # checks permissions
 
         if flask.request.method in ['POST', 'DELETE']:
@@ -165,11 +173,12 @@ class NotificationControl(poobrains.auth.Protected):
 
 
 poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/', mode='full')
+poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/<int:offset>', mode='full', endpoint='notification_offset')
 
 
 class NotificationForm(poobrains.form.Form):
 
-    mark = poobrains.form.Button('submit', label='Mark as read')
+    mark_read = poobrains.form.Button('submit', label='Mark as read')
     delete = poobrains.form.Button('submit', label='Delete')
 
     def handle(self, submit):
