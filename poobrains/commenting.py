@@ -125,7 +125,7 @@ class CommentForm(poobrains.form.Form):
             self.action += "/%d" % reply_to.id
 
 
-    def handle(self, submit):
+    def handle(self):
 
         self.instance.permissions['read'].check(flask.g.user)
 #        Comment.permissions['create'].check(flask.g.user)
@@ -255,7 +255,7 @@ class ChallengeForm(poobrains.form.Form):
         self.challenge = challenge
 
 
-    def handle(self, submit):
+    def handle(self):
 
         if self.fields['response'].value == self.challenge.captcha:
 

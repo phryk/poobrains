@@ -349,7 +349,7 @@ class ClientCertForm(poobrains.form.Form):
         flask.session['key_challenge'] = self.key.challenge
 
 
-    def handle(self, submit):
+    def handle(self):
 
         try:
             # creation time older than this means token is dead.
@@ -369,8 +369,9 @@ class ClientCertForm(poobrains.form.Form):
         cert_info = ClientCert()
         cert_info.user = token.user
         cert_info.name = token.cert_name
-
-        if submit == 'ClientCertForm.keygen_submit':
+        poobrains.app.debugger.set_trace()
+        #if submit == 'ClientCertForm.keygen_submit':
+        if self.controls['keygen_submit'].value:
 
             try:
                 client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, flask.session['key_challenge'])
@@ -389,7 +390,8 @@ class ClientCertForm(poobrains.form.Form):
             r = werkzeug.wrappers.Response(client_cert.as_pem())
             r.mimetype = 'application/x-x509-user-cert'
 
-        elif submit in ('ClientCertForm.pgp_submit', 'ClientCertForm.tls_submit'):
+        #elif submit in ('ClientCertForm.pgp_submit', 'ClientCertForm.tls_submit'):
+        elif self.controls['pgp_submit'].value or self.controls['tls_submit'].value:
 
             passphrase = poobrains.helpers.random_string_light()
 
@@ -404,7 +406,8 @@ class ClientCertForm(poobrains.form.Form):
             cert_info.keylength = pkcs12.get_certificate().get_pubkey().bits() 
             cert_info.fingerprint = pkcs12.get_certificate().digest('sha512').replace(':', '')
 
-            if submit == 'ClientCertForm.tls_submit':
+            #if submit == 'ClientCertForm.tls_submit':
+            if self.controls['tls_submit'].value:
                 r = werkzeug.wrappers.Response(pkcs12.export(passphrase=passphrase))
                 r.mimetype = 'application/pkcs-12'
                 flask.flash("The passphrase for this delicious bundle of crypto is '%s'" % passphrase)
@@ -681,12 +684,12 @@ class RelatedForm(poobrains.form.Form):
         self.related_field = related_field
 
    
-    def handle(self, submit):
+    def handle(self):
         if not self.readonly:
             for field in self.fields.itervalues():
                 if isinstance(field, poobrains.form.Fieldset):
                     try:
-                        field.handle(submit)
+                        field.handle()
                     except Exception as e:
                         flask.flash("Failed to handle fieldset '%s.%s'." % (field.prefix, field.name))
                         poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
@@ -708,7 +711,7 @@ class UserPermissionAddForm(poobrains.form.AddForm):
         return f
 
 
-    def handle(self, submit):
+    def handle(self):
 
         self.instance.user = self.fields['user'].value
         self.instance.permission = self.fields['permission'].value[0]
@@ -790,7 +793,7 @@ class GroupPermissionAddForm(poobrains.form.AddForm):
         return f
 
 
-    def handle(self, submit):
+    def handle(self):
 
         self.instance.group = self.fields['group'].value
         self.instance.permission = self.fields['permission'].value[0]

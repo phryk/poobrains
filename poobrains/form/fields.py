@@ -68,6 +68,10 @@ class Field(object):
         
         if form is not None:
             self.form = form
+            if self.form.prefix:
+                self.prefix = "%s.%s" % (self.form.prefix, self.form.name)
+            else:
+                self.prefix = self.form.name
             self.form._add_external_field(self)
 
 
@@ -238,15 +242,17 @@ class Choice(RenderableField):
     choices = None
     empty_label = 'Please choose'
     
-    def __init__(self, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):
 
         if kwargs.has_key('choices'):
             choices = kwargs.pop('choices')
         else:
             choices = []
 
-        super(Choice, self).__init__(*args, **kwargs)
-        self.choices = choices
+        instance = super(Choice, cls).__new__(cls, *args, **kwargs)
+        instance.choices = choices
+
+        return instance
 
 
     def validate(self):
@@ -395,16 +401,15 @@ class MultiCheckbox(MultiChoice):
     coercers = coercers.coerce_string
     validator = validators.is_string
 
-    def __init__(self, *args, **kwargs):
+    def __new__(cls, value=None, **kwargs):
+        poobrains.app.debugger.set_trace()
+        if not kwargs.has_key('choices'):
+            kwargs['choices'] = []
 
-        if kwargs.has_key('choices'):
-            choices = kwargs.pop('choices')
-        else:
-            choices = []
+        if value is not None:
+            kwargs['choices'].append(coercers.coerce_string(None, value))
 
-        super(MultiCheckbox, self).__init__(*args, **kwargs)
-
-        self.choices = choices
+        return super(MultiCheckbox, cls).__new__(cls, value=value, **kwargs)
 
 
     def bind(self, values):
@@ -413,7 +418,7 @@ class MultiCheckbox(MultiChoice):
 
 
     def validate(self):
- 
+        poobrains.app.debugger.set_trace() 
         for value in self.value:
             if value != '' and not value in self.choices:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))

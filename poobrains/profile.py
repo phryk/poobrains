@@ -129,7 +129,7 @@ class PGPForm(poobrains.form.Form):
         self.fields.order = ['current_key', 'pubkey']
    
 
-    def handle(self, submit):
+    def handle(self):
 
         pubkey = self.fields['pubkey'].value.read()
         crypto = poobrains.mailing.getgpg()
@@ -160,24 +160,34 @@ class NotificationControl(poobrains.auth.Protected):
         self.table = poobrains.rendering.Table()
 
         for notification in pagination.results:
+
+            classes = 'read inactive' if notification.read else 'unread active'
             mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', value=notification.id)
-            self.table.append(notification, mark_checkbox)
+
+            self.table.append(notification, mark_checkbox, _classes=classes)
 
 
+    @poobrains.helpers.themed
     def view(self, handle=None, **kwargs):
 
         poobrains.app.debugger.set_trace()
-        r = super(NotificationControl, self).view(handle=handle, **kwargs) # checks permissions
+        #r = super(NotificationControl, self).view(handle=handle, **kwargs) # checks permissions
 
         if flask.request.method in ['POST', 'DELETE']:
             #return self.form.view(**kwargs)
-           
+
             #values = flask.request.form[self.name] if flask.request.form.has_key(self.name) else werkzeug.datastructures.MultiDict()
             values = flask.request.form.get(self.form.name, werkzeug.datastructures.MultiDict())
-            submit = flask.request.form['submit'] if flask.request.form.has_key('submit') else None
-            self.form.bind(values, werkzeug.datastructures.MultiDict())
-            self.form.handle(submit)
-        return r
+
+            try:
+                self.form.bind(values, werkzeug.datastructures.MultiDict())
+            except poobrains.form.errors.CompoundError as e:
+                for error in e.errors:
+                    flask.flash(e.message, 'error')
+
+            self.form.handle()
+
+        return self
 
 
 poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/', mode='full')
@@ -189,7 +199,19 @@ class NotificationForm(poobrains.form.Form):
     mark_read = poobrains.form.Button('submit', label='Mark as read')
     delete = poobrains.form.Button('submit', label='Delete')
 
-    def handle(self, submit):
+    def handle(self):
 
         poobrains.app.debugger.set_trace()
+
+        for handle in self.fields['mark'].value:
+
+            instance = poobrains.auth.Notification.load(handle)
+
+            if self.controls['mark_read'].value:
+                instance.read = True
+                instance.save()
+
+            elif self.controls['delete'].value:
+                instance.delete_instance()
+
         return self

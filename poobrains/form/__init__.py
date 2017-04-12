@@ -133,9 +133,11 @@ class BaseForm(poobrains.rendering.Renderable):
         Add a field which is to be rendered outside of this form, but handled by it.
         Fields like this can be created by passing a Form object to the Field constructor.
         """
+        poobrains.app.debugger.set_trace()
 
-        if isinstance(field, fields.Checkbox) and self.fields.has_key(field.name) and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
+        if isinstance(field, fields.MultiCheckbox) and self.fields.has_key(field.name) and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
             self.fields[field.name].choices.extend(field.choices)
+
         else:
             if self.prefix:
                 field.prefix = "%s.%s" % (self.prefix, self.name)
@@ -182,6 +184,7 @@ class BaseForm(poobrains.rendering.Renderable):
     
 
     def bind(self, values, files):
+        poobrains.app.debugger.set_trace()
 
         if not values is None:
             compound_error = errors.CompoundError()
@@ -212,6 +215,10 @@ class BaseForm(poobrains.rendering.Renderable):
 
                     except errors.ValidationError as e:
                         compound_error.append(e)
+
+            for name, control in self.controls.iteritems():
+                if isinstance(control, Button):
+                    control.value = values.get(name, False)
 
             if len(compound_error):
                 raise compound_error
@@ -270,7 +277,7 @@ class BaseForm(poobrains.rendering.Renderable):
         return tpls
 
 
-    def handle(self, submit):
+    def handle(self):
 
         raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
 
@@ -308,16 +315,14 @@ class Form(BaseForm):
             poobrains.app.debugger.set_trace()
             validation_error = None
             binding_error = None
-            values = flask.request.form[self.name] if flask.request.form.has_key(self.name) else werkzeug.datastructures.MultiDict()
-            avalues = flask.request.form.get(self.name, werkzeug.datastructures.MultiDict())
-            files = flask.request.files[self.name] if flask.request.files.has_key(self.name) else werkzeug.datastructures.FileMultiDict()
-            submit = flask.request.form['submit'] if flask.request.form.has_key('submit') else None
-            #FIXME: filter self.readonly in here instead of .bind and .handle?
+            values = flask.request.form.get(self.name, werkzeug.datastructures.MultiDict())
+            files = flask.request.files.get(self.name, werkzeug.datastructures.FileMultiDict())
+            #TODO: filter self.readonly in here instead of .bind and .handle?
             try:
                 self.bind(values, files)
 
                 try:
-                    return self.handle(submit)
+                    return self.handle()
 
                 except errors.CompoundError as handling_error:
                     for error in handling_error.errors:
@@ -440,7 +445,7 @@ class AddForm(BoundForm):
                     pass
  
 
-    def handle(self, submit, exceptions=False):
+    def handle(self, exceptions=False):
 
         if not self.readonly:
             
@@ -467,7 +472,7 @@ class AddForm(BoundForm):
 
                     for fieldset in self.fieldsets:
                         try:
-                            fieldset.handle(submit, self.instance)
+                            fieldset.handle(self.instance)
                         except Exception as e:
                             if exceptions:
                                 raise
@@ -532,7 +537,7 @@ class DeleteForm(BoundForm):
                 self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._get_pk_value()))
 
     
-    def handle(self, submit):
+    def handle(self):
 
         if hasattr(self.instance, 'title') and self.instance.title:
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
@@ -579,7 +584,7 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
-    def handle(self, submit):
+    def handle(self):
 
         raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
 
