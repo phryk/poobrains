@@ -49,7 +49,7 @@ class Field(object):
 
         return instance
 
-    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None):
+    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None, **kwargs):
 
         self.errors = []
         self.name = name
