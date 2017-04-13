@@ -369,8 +369,7 @@ class ClientCertForm(poobrains.form.Form):
         cert_info = ClientCert()
         cert_info.user = token.user
         cert_info.name = token.cert_name
-        poobrains.app.debugger.set_trace()
-        #if submit == 'ClientCertForm.keygen_submit':
+        
         if self.controls['keygen_submit'].value:
 
             try:
@@ -1330,7 +1329,7 @@ class ClientCertToken(Administerable, Protected):
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
-    cert_name = poobrains.storage.fields.CharField(null=False, max_length=32, constraints=[poobrains.storage.RegexpConstraint('name', '^[a-zA-Z0-9_\- ]+$')])
+    cert_name = poobrains.storage.fields.CharField(null=False, max_length=32, constraints=[poobrains.storage.RegexpConstraint('cert_name', '^[a-zA-Z0-9_\- ]+$')])
     token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
     token.form_class = poobrains.form.fields.Value
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.

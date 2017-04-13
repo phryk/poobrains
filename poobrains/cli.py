@@ -53,7 +53,7 @@ class Shell(object):
         #for child in storage.Storable.children():
         #    self.storables[child.__name__.lower()] = child
         
-        self.db = connect(self.config['DATABASE'])
+        self.db = connect(self.config['DATABASE'], autocommit=True, autorollback=True)
 
         self.commands = {}
         classes = Command.children()
@@ -295,7 +295,7 @@ class Install(Command):
 
             anon = poobrains.auth.User()
             anon.name = 'anonymous'
-            anon.id = 1 # Should theoretically always happen, but let's make sure anyways
+            #anon.id = 1 # Should theoretically always happen, but let's make sure anyways; This fucks up postgresql's stupid SERIAL sequence thing
             anon.groups.append(anons)
             if not anon.save(force_insert=True):
                 raise ShellException("Failed creating User 'anonymous'!")

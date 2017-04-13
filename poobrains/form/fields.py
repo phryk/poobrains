@@ -402,7 +402,7 @@ class MultiCheckbox(MultiChoice):
     validator = validators.is_string
 
     def __new__(cls, value=None, **kwargs):
-        poobrains.app.debugger.set_trace()
+        
         if not kwargs.has_key('choices'):
             kwargs['choices'] = []
 
@@ -412,13 +412,8 @@ class MultiCheckbox(MultiChoice):
         return super(MultiCheckbox, cls).__new__(cls, value=value, **kwargs)
 
 
-    def bind(self, values):
-        poobrains.app.debugger.set_trace()
-        super(MultiCheckbox, self).bind(values)
-
-
     def validate(self):
-        poobrains.app.debugger.set_trace() 
+        
         for value in self.value:
             if value != '' and not value in self.choices:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))

@@ -21,15 +21,28 @@ class Dashbar(poobrains.rendering.Container):
         self.items.append(poobrains.rendering.RenderString("%s@%s" % (user.name, poobrains.app.config['SITE_NAME'])))
 
         menu = poobrains.rendering.Menu('dashbar-actions')
-        menu.append(PGPControl.url('full', handle=self.user.handle_string), 'PGP Management')
-        menu.append(CertControl.url('full', handle=self.user.handle_string), 'Certificate Management')
 
-        notification_count = self.user.notifications_unread.count()
-        if notification_count == 1:
-            menu.append(NotificationControl.url('full', handle=self.user.handle_string), '1 unread notification')
-        
-        else:
-            menu.append(NotificationControl.url('full', handle=self.user.handle_string), '%d unread notifications' % notification_count)
+        try:
+            PGPControl.permissions['read'].check(flask.g.user)
+            menu.append(PGPControl.url('full', handle=self.user.handle_string), 'PGP Management')
+        except poobrains.auth.AccessDenied:
+            pass
+
+        try:
+            CertControl.permissions['read'].check(flask.g.user)
+            menu.append(CertControl.url('full', handle=self.user.handle_string), 'Certificate Management')
+        except poobrains.auth.AccessDenied:
+            pass
+
+        try:
+            NotificationControl.permissions['read'].check(flask.g.user)
+            notification_count = self.user.notifications_unread.count()
+            if notification_count == 1:
+                menu.append(NotificationControl.url('full', handle=self.user.handle_string), '1 unread notification')
+            else:
+                menu.append(NotificationControl.url('full', handle=self.user.handle_string), '%d unread notifications' % notification_count)
+        except poobrains.auth.AccessDenied:
+            pass
 
         self.items.append(menu)
 
@@ -170,13 +183,8 @@ class NotificationControl(poobrains.auth.Protected):
     @poobrains.helpers.themed
     def view(self, handle=None, **kwargs):
 
-        poobrains.app.debugger.set_trace()
-        #r = super(NotificationControl, self).view(handle=handle, **kwargs) # checks permissions
-
         if flask.request.method in ['POST', 'DELETE']:
-            #return self.form.view(**kwargs)
 
-            #values = flask.request.form[self.name] if flask.request.form.has_key(self.name) else werkzeug.datastructures.MultiDict()
             values = flask.request.form.get(self.form.name, werkzeug.datastructures.MultiDict())
 
             try:
@@ -200,8 +208,6 @@ class NotificationForm(poobrains.form.Form):
     delete = poobrains.form.Button('submit', label='Delete')
 
     def handle(self):
-
-        poobrains.app.debugger.set_trace()
 
         for handle in self.fields['mark'].value:
 

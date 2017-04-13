@@ -123,7 +123,7 @@ class TaggingField(poobrains.form.fields.MultiChoice):
                 for tag in Tag.select():
                     choices.append((tag.name, tag.name))
 
-            except peewee.OperationalError as e:
+            except (peewee.OperationalError, peewee.ProgrammingError) as e:
                 poobrains.app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
 
         self.choices = choices

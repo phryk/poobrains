@@ -179,7 +179,7 @@ class Poobrain(flask.Flask):
         self.site_path = os.getcwd()
         self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'js', 'jpg']
 
-        self.db = db_url.connect(self.config['DATABASE'])
+        self.db = db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True)
 
         self.add_url_rule('/theme/<path:resource>', 'serve_theme_resources', self.serve_theme_resources)
 

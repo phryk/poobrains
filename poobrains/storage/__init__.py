@@ -32,7 +32,9 @@ def RegexpConstraint(field_name, regexp):
             peewee.Expression(
                 QuotedSQL(field_name),
                 peewee.OP.REGEXP,
-                QuotedSQL(regexp),
+                #QuotedSQL(regexp), # works on sqlite, not on postgres
+                #"'%s'" % regexp, # err? kind of works in postgres, but not really?
+                regexp, # works for postgres, not tested for sqlite
                 flat=True
             ),
             peewee.SQL(')'),

@@ -133,7 +133,6 @@ class BaseForm(poobrains.rendering.Renderable):
         Add a field which is to be rendered outside of this form, but handled by it.
         Fields like this can be created by passing a Form object to the Field constructor.
         """
-        poobrains.app.debugger.set_trace()
 
         if isinstance(field, fields.MultiCheckbox) and self.fields.has_key(field.name) and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
             self.fields[field.name].choices.extend(field.choices)
@@ -184,7 +183,6 @@ class BaseForm(poobrains.rendering.Renderable):
     
 
     def bind(self, values, files):
-        poobrains.app.debugger.set_trace()
 
         if not values is None:
             compound_error = errors.CompoundError()
@@ -312,7 +310,7 @@ class Form(BaseForm):
         """
 
         if flask.request.method == self.method:
-            poobrains.app.debugger.set_trace()
+            
             validation_error = None
             binding_error = None
             values = flask.request.form.get(self.name, werkzeug.datastructures.MultiDict())
