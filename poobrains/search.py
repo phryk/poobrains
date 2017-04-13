@@ -97,12 +97,13 @@ class Search(poobrains.auth.Protected):
                     pass
 
             queries = []
+            
             for administerable in readable_administerables:
 
                 q = administerable.list('read', flask.g.user)
                 clauses = []
 
-                term = '*%s*' % self.handle.lower()
+                term = '%%%s%%' % self.handle.lower()
 
                 if hasattr(administerable._meta, 'search_fields'):
 
@@ -123,7 +124,7 @@ class Search(poobrains.auth.Protected):
                         clauses.append((peewee.fn.Lower(administerable.text) % term)) # LIKE clause
 
                 if len(clauses):
-                    queries.append = q.where(reduce(peewee.operator.or_, clauses))
+                    queries.append(q.where(reduce(peewee.operator.or_, clauses)))
                 else:
                     continue
 

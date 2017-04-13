@@ -4,6 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.application import MIMEApplication
+from email.utils import formatdate
 
 import smtplib
 import gnupg
@@ -30,6 +31,7 @@ class Mail(MIMEMultipart):
         self.fingerprint = fingerprint
         self.crypto = getgpg()
         self['From'] = poobrains.app.config['SMTP_FROM']
+        self['Date'] = formatdate() 
 
 
     def as_string(self, unixfrom=False):
@@ -37,8 +39,10 @@ class Mail(MIMEMultipart):
         fingerprint = str(self.fingerprint) # TODO: enforce str by implementing __setattr__?
 
         wrapper_msg = MIMEMultipart(_subtype='encrypted', protocol='application/pgp-encrypted')
+        wrapper_msg['From'] = self['From']
         wrapper_msg['To'] = self['To']
         wrapper_msg['Subject'] = self['Subject']
+        wrapper_msg['Date'] = self['Date']
 
         pgp_info = MIMEApplication(b"Version: 1\n", _subtype='pgp-encrypted', _encoder=lambda x: str(x))
         pgp_info['Content-Disposition'] = 'attachment'
