@@ -199,7 +199,7 @@ class NotificationControl(poobrains.auth.Protected):
 
 
 poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/', mode='full')
-poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/<int:offset>', mode='full', endpoint='notification_offset')
+poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/+<int:offset>', mode='full', endpoint='notification_offset')
 
 
 class NotificationForm(poobrains.form.Form):

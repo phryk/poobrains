@@ -180,7 +180,7 @@ class Challenge(poobrains.storage.Named):
     captcha = poobrains.storage.fields.CharField(default=functools.partial(poobrains.helpers.random_string_light, 6))
     model = poobrains.storage.fields.CharField()
     handle = poobrains.storage.fields.CharField()
-    reply_to = poobrains.storage.fields.ForeignKeyField('self', null=True)
+    reply_to = poobrains.storage.fields.ForeignKeyField(Comment, null=True)
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     author = poobrains.storage.fields.CharField()
     text = poobrains.storage.fields.TextField()

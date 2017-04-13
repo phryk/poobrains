@@ -155,9 +155,12 @@ class MenuItem(object):
         if active is not None:
             self.active = 'active' if active is True else active
         else:
-            if self.url == flask.request.path:
+            check_request = werkzeug.urls.url_fix(flask.request.path)
+            check_self = werkzeug.urls.url_fix(self.url)
+
+            if check_self == check_request:
                 self.active = 'active'
-            elif flask.request.path.startswith(os.path.join(self.url, '')):
+            elif check_request.startswith(os.path.join(check_self, '')):
                 self.active = 'trace'
 
 

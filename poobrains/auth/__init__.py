@@ -579,8 +579,10 @@ class OwnedPermission(Permission):
 
     @classmethod
     def list(cls, protected, q, op, user): # FIXME: should op be implied, not directly passed?
-
+        
         cls.check(user) # make sure the user is permitted to get a listing
+
+        op_abbr = op[0]
 
         if user.own_permissions.has_key(cls.__name__):
 
@@ -589,10 +591,10 @@ class OwnedPermission(Permission):
                 raise AccessDenied("YOU SHALL NOT PASS!")
 
             elif access == 'own_instance':
-                return q.where(protected.owner == user, protected.access.contains(op))
+                return q.where(protected.owner == user, protected.access.contains(op_abbr))
 
             elif access == 'instance':
-                return q.where(protected.access.contains(op))
+                return q.where(protected.access.contains(op_abbr))
 
             elif access == 'own':
                 return q.where(protected.owner == user)
@@ -609,10 +611,10 @@ class OwnedPermission(Permission):
 
             elif 'own_instance' in group_access.keys():
                 allowed_groups = group_access['own_instance']
-                return q.where(protected.group.in_(allowed_groups), protected.access.contains(op))
+                return q.where(protected.group.in_(allowed_groups), protected.access.contains(op_abbr))
 
             elif 'instance' in group_access.keys():
-                return q.where(protected.access.contains(op))
+                return q.where(protected.access.contains(op_abbr))
 
             elif 'own' in group_access.keys():
                 allowed_groups = group_access['own']
