@@ -20,7 +20,7 @@ md = poobrains.app.config['MARKDOWN_CLASS'](output_format=poobrains.app.config['
 md.references.set_loader(magic_markdown_loader)
 
 
-class MarkdownString(str):
+class MarkdownString(unicode):
 
     def render(self, mode='inline'): # mode is ignored anyways
         return jinja2.Markup(md.convert(self))
