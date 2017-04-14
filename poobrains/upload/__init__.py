@@ -24,15 +24,16 @@ class UploadForm(poobrains.form.AddForm):
 
 
     def bind(self, values, files):
-        
-        super(UploadForm, self).bind(values, files)
 
+        super(UploadForm, self).bind(values, files)
+        
         upload_file = self.fields['upload'].value
         self.fields['filename'].value = werkzeug.utils.secure_filename(upload_file.filename)
 
         extension = self.fields['filename'].value.split('.')[-1]
 
         if  not '*' in self.instance.extension_whitelist and\
+        upload_file.filename != '' and\
         not extension in self.instance.extension_whitelist:
             raise poobrains.form.errors.CompoundError(
                 [poobrains.form.errors.ValidationError(

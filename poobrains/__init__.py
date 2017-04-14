@@ -580,7 +580,7 @@ class Pooprint(flask.Blueprint):
 
 
     def choose_endpoint(self, endpoints, **url_params):
-        import pudb; pudb.set_trace() 
+        
         for rule in self.app.url_map.iter_rules():
             if rule.endpoint in endpoints:
                 endpoint = rule.endpoint
@@ -637,7 +637,7 @@ class Pooprint(flask.Blueprint):
 
 
     def get_listing_url(self, cls, handle=None, mode=None, offset=0, quiet=False, **url_params):
-        import pudb; pudb.set_trace() 
+        
         if mode == None:
             mode = 'teaser'
 

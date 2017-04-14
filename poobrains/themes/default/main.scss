@@ -480,7 +480,8 @@ article {
         margin-top: 0;
     }
 
-    img {
+    img,
+    video {
         max-width: 100%;
         opacity: 0.8;
         transition: opacity 0.3s ease-in;
