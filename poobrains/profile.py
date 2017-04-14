@@ -23,6 +23,12 @@ class Dashbar(poobrains.rendering.Container):
         menu = poobrains.rendering.Menu('dashbar-actions')
 
         try:
+            poobrains.auth.AccessAdminArea.check(flask.g.user)
+            menu.append(flask.url_for('admin.admin_index'), 'Admin Area')
+        except poobrains.auth.AccessDenied:
+            pass
+
+        try:
             PGPControl.permissions['read'].check(flask.g.user)
             menu.append(PGPControl.url('full', handle=self.user.handle_string), 'PGP Management')
         except poobrains.auth.AccessDenied:
