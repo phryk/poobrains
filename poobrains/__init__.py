@@ -558,6 +558,7 @@ class Pooprint(flask.Blueprint):
         self.add_url_rule(offset_rule, endpoint=offset_endpoint, view_func=view_func, **options)
 
         self.listings[cls][mode].append(endpoint)
+        #self.listings[cls][mode].append(offset_endpoint)
     
 
     def listing(self, cls, rule, mode='teaser', title=None, **options):
@@ -579,7 +580,7 @@ class Pooprint(flask.Blueprint):
 
 
     def choose_endpoint(self, endpoints, **url_params):
-        
+        import pudb; pudb.set_trace() 
         for rule in self.app.url_map.iter_rules():
             if rule.endpoint in endpoints:
                 endpoint = rule.endpoint
@@ -636,7 +637,7 @@ class Pooprint(flask.Blueprint):
 
 
     def get_listing_url(self, cls, handle=None, mode=None, offset=0, quiet=False, **url_params):
-
+        import pudb; pudb.set_trace() 
         if mode == None:
             mode = 'teaser'
 
@@ -673,6 +674,7 @@ class Pooprint(flask.Blueprint):
         kw = copy.copy(url_params)
         if offset > 0:
             kw['offset'] = offset
+            endpoint = "%s_offset" % endpoint
 
         if quiet:
             try:

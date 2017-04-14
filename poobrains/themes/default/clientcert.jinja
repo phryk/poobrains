@@ -1,11 +1,11 @@
-{% extends "renderable.jinja" %}
+{% extends "administerable.jinja" %}
+
+{% block header %}
+{% if mode == 'teaser' %}
+<h2>{{ content.name }}</h2>
+{% endif %}
+{% endblock %}
 
 {% block content %}
 {{ content.fingerprint }}
-{% endblock %}
-
-{% block footer %}
-<footer>
-    <a href="{{ content.url('delete') }}">Kill me!</a>
-</footer>
 {% endblock %}
