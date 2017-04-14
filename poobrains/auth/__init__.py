@@ -998,7 +998,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
 
     @classmethod
-    def related_view(cls, related_field=None, handle=None):
+    def related_view(cls, related_field=None, handle=None, offset=0):
 
         if related_field is None:
             raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
@@ -1019,7 +1019,9 @@ class Administerable(poobrains.storage.Storable, Protected):
         else:
             return poobrains.storage.Listing(
                 cls=related_model,
-                query=related_model.list('read', flask.g.user).where(related_field == instance)
+                query=related_model.list('read', flask.g.user).where(related_field == instance),
+                handle=handle,
+                offset=offset
             ).view()
 
 

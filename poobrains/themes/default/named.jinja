@@ -1,0 +1,7 @@
+{% extends "administerable.jinja" %}
+
+{% block header %}
+{% if mode == 'teaser' %}
+    <h2><a href="{{ content.url('full', quiet=True) or content.url('edit', quiet=True) }}">{{ content.name }}</a></h2>
+{% endif %}
+{% endblock %}

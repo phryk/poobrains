@@ -231,6 +231,7 @@ class ChildAware(object):
 
         return reported_children
 
+
     @classmethod
     def children_keyed(cls):
 

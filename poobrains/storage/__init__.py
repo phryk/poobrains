@@ -132,9 +132,9 @@ class Storable(Model, rendering.Renderable):
         self.url = self.instance_url # make .url callable for class and instances
 
 
-    def instance_url(self, mode='full', **url_params):
+    def instance_url(self, mode='full', quiet=None, **url_params):
 
-        return app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
+        return app.get_url(self.__class__, handle=self.handle_string, mode=mode, quiet=quiet, **url_params)
 
 
     @classmethod
@@ -180,8 +180,8 @@ class Named(Storable):
         super(Named, self).__init__(*args, **kwargs)
 
 
-    def instance_url(self, mode='full', **url_params):
-        return app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
+    def instance_url(self, mode='full', quiet=None, **url_params):
+        return app.get_url(self.__class__, handle=self.name, mode=mode, quiet=quiet, **url_params)
 
 
 class Listing(rendering.Renderable):
@@ -200,7 +200,7 @@ class Listing(rendering.Renderable):
     current_page = None
     menu_actions = None
 
-    def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None):
+    def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None, **pagination_options):
 
         super(Listing, self).__init__()
         self.cls = cls
@@ -227,7 +227,7 @@ class Listing(rendering.Renderable):
         if not endpoint.endswith('_offset'):
             endpoint = '%s_offset' % (endpoint,)
         
-        pagination = Pagination([query], offset, endpoint)
+        pagination = Pagination([query], offset, endpoint, **pagination_options)
 
         self.items = pagination.results
         self.pagination = pagination.menu
@@ -267,7 +267,7 @@ class Pagination(object):
 
 
     def __init__(self, queries, offset, endpoint, limit=None, **options):
-       
+        
         self.queries = queries
         self.offset = offset
         self.endpoint = endpoint

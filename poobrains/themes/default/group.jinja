@@ -1,0 +1,10 @@
+{% extends "named.jinja" %}
+
+{% block content %}
+<p>Members of this group:</p>
+<ul>
+{% for ug in content._users %}
+    <li>{{ ug.user.name }}</li>
+{% endfor %}
+</ul>
+{% endblock %}
