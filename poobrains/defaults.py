@@ -19,4 +19,5 @@ GPG_SIGNKEY = None # str, a gpg key fingerprint
 GPG_PASSPHRASE = None # str, gpg key passphrase for signing
 
 MARKDOWN_CLASS = md_default.pooMarkdown
+MARKDOWN_EXTENSIONS = []
 MARKDOWN_OUTPUT = 'html5'

@@ -16,7 +16,11 @@ def magic_markdown_loader(storable, handle):
     return cls.load(handle)
 
 
-md = poobrains.app.config['MARKDOWN_CLASS'](output_format=poobrains.app.config['MARKDOWN_OUTPUT'])
+md = poobrains.app.config['MARKDOWN_CLASS'](
+    output_format=poobrains.app.config['MARKDOWN_OUTPUT'],
+    extensions=poobrains.app.config['MARKDOWN_EXTENSIONS']
+)
+
 md.references.set_loader(magic_markdown_loader)
 
 
