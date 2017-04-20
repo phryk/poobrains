@@ -46,3 +46,40 @@ class MarkdownField(poobrains.storage.fields.TextField):
 
         super(MarkdownField, self).add_to_class(model_class, name)
         setattr(model_class, name, MarkdownFieldDescriptor(self))
+
+
+class DisplayRenderable(markdown.inlinepatterns.Pattern):
+
+    def handleMatch(self, match):
+
+        if match:
+
+            cls_name = match.group(1).lower()
+            handle = match.group(2)
+
+            renderables = collections.OrderedDict([(k.lower(), v) for k, v in poobrains.rendering.Renderable.children_keyed().iteritems])
+
+            if cls_name in renderables:
+
+                cls = renderables[cls_name]
+                try:
+
+                    if issubclass(cls, poobrains.storage.Storable):
+                        instance = cls.load(handle)
+
+                    else:
+                        instance = cls(handle=handle)
+
+                except Exception:
+                    pass # fall back to default handling (giving shit back unchanged)
+
+            return match.group(0)
+
+        return super(DisplayRenderable, self).handleMatch(match)
+
+
+class DisplayRenderableExtension(markdown.Extension):
+
+    def extendMarkdown(self, md, md_globals):
+
+        md.inlinePatterns.add(self.__class__.__name__, DisplayRenderable('!\[(.*?):(.*?)]', self.__class__.__name__, '<reference')
