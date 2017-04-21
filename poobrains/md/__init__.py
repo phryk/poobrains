@@ -48,7 +48,7 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
     def handleMatch(self, match):
 
         if match:
-            poobrains.app.debugger.set_trace()
+
             cls_name = match.group(2).lower()
             handle = match.group(3)
 
