@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import peewee
 import jinja2
+import markdown
 
+import flask
 import poobrains
 
 
@@ -14,14 +17,6 @@ def magic_markdown_loader(storable, handle):
 
     cls = storables[storable]
     return cls.load(handle)
-
-
-md = poobrains.app.config['MARKDOWN_CLASS'](
-    output_format=poobrains.app.config['MARKDOWN_OUTPUT'],
-    extensions=poobrains.app.config['MARKDOWN_EXTENSIONS']
-)
-
-md.references.set_loader(magic_markdown_loader)
 
 
 class MarkdownString(unicode):
@@ -53,11 +48,11 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
     def handleMatch(self, match):
 
         if match:
+            poobrains.app.debugger.set_trace()
+            cls_name = match.group(2).lower()
+            handle = match.group(3)
 
-            cls_name = match.group(1).lower()
-            handle = match.group(2)
-
-            renderables = collections.OrderedDict([(k.lower(), v) for k, v in poobrains.rendering.Renderable.children_keyed().iteritems])
+            renderables = collections.OrderedDict([(k.lower(), v) for k, v in poobrains.rendering.Renderable.children_keyed().iteritems()])
 
             if cls_name in renderables:
 
@@ -69,6 +64,18 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
 
                     else:
                         instance = cls(handle=handle)
+
+                    if isinstance(instance, poobrains.auth.Protected):
+                        instance.permissions['read'].check(flask.g.user)
+
+                    if instance._meta.modes.has_key('inline'):
+                        return instance.render('inline')
+                    elif instance._meta.modes.has_key('teaser'):
+                        return instance.render('teaser')
+                    elif instance._meta.modes.has_key('full'):
+                        return instance.render('full')
+                    else:
+                        return instance.render()
 
                 except Exception:
                     pass # fall back to default handling (giving shit back unchanged)
@@ -82,4 +89,16 @@ class DisplayRenderableExtension(markdown.Extension):
 
     def extendMarkdown(self, md, md_globals):
 
-        md.inlinePatterns.add(self.__class__.__name__, DisplayRenderable('!\[(.*?):(.*?)]', self.__class__.__name__, '<reference')
+        md.inlinePatterns.add(
+            self.__class__.__name__,
+            DisplayRenderable('!\[(.*?)/(.*?)]'),
+            '<reference'
+        )
+
+
+md = poobrains.app.config['MARKDOWN_CLASS'](
+    output_format=poobrains.app.config['MARKDOWN_OUTPUT'],
+    extensions=[DisplayRenderableExtension()] + poobrains.app.config['MARKDOWN_EXTENSIONS']
+)
+
+md.references.set_loader(magic_markdown_loader)
