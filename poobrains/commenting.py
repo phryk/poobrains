@@ -44,14 +44,24 @@ class Comment(poobrains.auth.Administerable):
 
     def reply_form(self):
 
-        try:
-            self.permissions['create'].check(flask.g.user)
-            return CommentForm(self.model, self.handle, reply_to=self)
+        children = Commentable.children_keyed()
+        if children.has_key(self.model):
 
-        except poobrains.auth.AccessDenied:
-            return False
+            model = Commentable.children_keyed()[self.model]
+            comments_enabled = model.load(self.handle).select(model.comments_enabled).scalar()
 
+            if comments_enabled:
 
+                try:
+                    self.permissions['create'].check(flask.g.user)
+                    return CommentForm(self.model, self.handle, reply_to=self)
+
+                except poobrains.auth.AccessDenied:
+                    return False
+
+            return poobrains.rendering.RenderString("Commenting is disabled.")
+
+        raise Exception("Bork")
 
 
 class Commentable(poobrains.tagging.Taggable):
@@ -88,12 +98,16 @@ class Commentable(poobrains.tagging.Taggable):
 
     def comment_form(self, reply_to=None):
 
-        try:
-            Comment.permissions['create'].check(flask.g.user) # no form for users who aren't allowed to comment
-            return CommentForm(self.__class__.__name__, self.handle_string, reply_to=reply_to)
+        if self.comments_enabled:
 
-        except poobrains.auth.AccessDenied:
-            return poobrains.rendering.RenderString("You are not allowed to post comments.")
+            try:
+                Comment.permissions['create'].check(flask.g.user) # no form for users who aren't allowed to comment
+                return CommentForm(self.__class__.__name__, self.handle_string, reply_to=reply_to)
+
+            except poobrains.auth.AccessDenied:
+                return poobrains.rendering.RenderString("You are not allowed to post comments.")
+
+        return poobrains.rendering.RenderString("Commenting is disabled.")
 
 
 
