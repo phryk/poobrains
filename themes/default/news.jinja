@@ -1,6 +1,10 @@
 {% extends "commentable.jinja" %}
 
-{% block header %}{% endblock %}
+{% block header %}
+{% if mode == 'teaser' %}
+    <h2><a href="{{ content.url('full', quiet=True) or content.url('edit', quiet=True) }}">{{ content.title }}</a></h2>
+{% endif %}
+{% endblock %}
 
 {% block content %}
 {{ content.text.render() }}

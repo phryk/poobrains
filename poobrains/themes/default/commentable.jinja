@@ -1,6 +1,7 @@
-{% extends "owned.jinja" %}
+{% extends "named.jinja" %}
 
 {% block post %}
+{% if mode == 'full' %}
 <div class="comments">
     <div class="direct-reply">
         {{ content.comment_form().render('full') }}
@@ -9,4 +10,5 @@
         {{ comment.render('full') }}
     {% endfor %}
 </div>
+{% endif %}
 {% endblock %}
