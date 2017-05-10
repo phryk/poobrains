@@ -78,7 +78,7 @@ class UploadForm(poobrains.form.AddForm):
             except IOError as e:
 
                 flask.flash(u"Failed saving file '%s'." % filename, 'error')
-                poobrains.app.logger.error(u"Failed saving file: %s\n%s: %s" % (filename, type(e).__name__, e.message))
+                poobrains.app.logger.error(u"Failed saving file: %s\n%s: %s / %s / %s" % (filename, type(e).__name__, e.message, e.strerror, e.filename))
                 return self # stop handling, show form within same request
 
         try:
