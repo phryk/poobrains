@@ -9,3 +9,7 @@ ssl
 gnupg
 upload
 config.py
+bin
+include
+lib
+pip-selfcheck.json

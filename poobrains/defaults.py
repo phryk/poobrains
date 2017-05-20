@@ -19,5 +19,5 @@ GPG_SIGNKEY = None # str, a gpg key fingerprint
 GPG_PASSPHRASE = None # str, gpg key passphrase for signing
 
 MARKDOWN_CLASS = md_default.pooMarkdown
-MARKDOWN_EXTENSIONS = ['markdown.extensions.codehilite']
+MARKDOWN_EXTENSIONS = ['markdown.extensions.codehilite', 'markdown.extensions.fenced_code', 'markdown.extensions.tables']
 MARKDOWN_OUTPUT = 'html5'
