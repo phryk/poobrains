@@ -131,8 +131,13 @@ class File(poobrains.auth.NamedOwned):
     def view(self, mode=None, handle=None):
 
         if mode == 'raw':
+            
             response = flask.send_from_directory(self.path, self.filename)
             response.headers['Content-Disposition'] = u'filename="%s"' % self.filename
+            
+            # Disable "public" mode caching downstream (nginx, varnish) in order to hopefully not leak restricted content
+            response.cache_control.public = False
+            response.cache_control.private = True
 
             return response
         

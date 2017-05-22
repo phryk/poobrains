@@ -27,14 +27,17 @@ if isinstance(poobrains.app.db, peewee.SqliteDatabase):
 
 def RegexpConstraint(field_name, regexp):
 
+    if 'sqlite' in poobrains.app.db.__class__.__name__.lower():
+        regexp_compat = QuotedSQL(regexp)
+    else:
+        regexp_compat = regexp
+
     return peewee.Clause(
             peewee.SQL('CHECK('),
             peewee.Expression(
                 QuotedSQL(field_name),
                 peewee.OP.REGEXP,
-                #QuotedSQL(regexp), # works on sqlite, not on postgres
-                #"'%s'" % regexp, # err? kind of works in postgres, but not really?
-                regexp, # works for postgres, not tested for sqlite
+                regexp_compat,
                 flat=True
             ),
             peewee.SQL(')'),
