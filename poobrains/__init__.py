@@ -295,11 +295,18 @@ class Poobrain(flask.Flask):
         
         flask.g.boxes = {}
         flask.g.forms = {}
-        self.db.close()
+        #self.db.close() # fails first request and thus always on sqlite
         self.db.connect()
         connection = self.db.get_conn()
 
         flask.g.user = None
+
+        if not flask.request.environ.has_key('SSL_CLIENT_VERIFY'):
+            if self.debug:
+                flask.request.environ['SSL_CLIENT_VERIFY'] = 'FAILURE'
+            else:
+                raise werkzeug.exceptions.InternalServerError("httpd configuration problem. SSL_CLIENT_VERIFY not set in request environment.")
+
         if flask.request.environ['SSL_CLIENT_VERIFY'] == 'SUCCESS':
  
             try:
