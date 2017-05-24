@@ -296,8 +296,10 @@ class Poobrain(flask.Flask):
         flask.g.boxes = {}
         flask.g.forms = {}
         #self.db.close() # fails first request and thus always on sqlite
-        self.db.connect()
-        connection = self.db.get_conn()
+        if self.db.is_closed():
+            self.db.connect()
+
+        #connection = self.db.get_conn()
 
         flask.g.user = None
 
