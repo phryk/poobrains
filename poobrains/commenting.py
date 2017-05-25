@@ -7,7 +7,8 @@ import datetime
 import peewee
 import flask
 
-from wand import image, drawing, color
+import io
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 import poobrains
 
@@ -208,46 +209,107 @@ class Challenge(poobrains.storage.Named):
 
         if mode == 'raw':
 
+#            colors = [
+#                color.Color('#aaff00'),
+#                color.Color('#ffaa00'),
+#                color.Color('#ff00aa'),
+#                color.Color('#aa00ff'),
+#                color.Color('#99ffaa'),
+#                color.Color('#00aaff')
+#            ]
+#
+#            img = image.Image(width=210, height=70)
+#            x_jitter = (-5, 5)
+#            y_jitter = (-10, 10)
+#
+#            x = (img.width / 2) #+ random.randint(x_jitter[0], x_jitter[1])
+#            y = (img.width / 2) #+ random.randint(y_jitter[0], y_jitter[1])
+#            x = 10
+#            y = 50
+#            baseline = y
+#
+#            for char in self.captcha:
+#
+#                draw = drawing.Drawing()
+#                draw.font = os.path.join(poobrains.app.poobrain_path, 'knewave-outline.otf')
+#                c = colors[random.randint(0, len(colors) -1)]
+#                draw.stroke_color = c
+#                draw.fill_color = c
+#                draw.font_size = 40
+#                draw.translate(x, y)
+#                draw.rotate(random.randint(-20, 20))
+#                draw.text(0,0 , char)
+#                draw(img)
+#
+#                x += 30 + random.randint(x_jitter[0], x_jitter[1])
+#                y = baseline + random.randint(y_jitter[0], y_jitter[1])
+#            fg = img.clone()    
+#            img.gaussian_blur(3, 3)
+#            img.composite(fg, left=0, top=0)
+
             colors = [
-                color.Color('#aaff00'),
-                color.Color('#ffaa00'),
-                color.Color('#ff00aa'),
-                color.Color('#aa00ff'),
-                color.Color('#99ffaa'),
-                color.Color('#00aaff')
+                (0,128,255),
+                (0,255,128),
+                (128,0,255),
+                (128,255,0),
+                (255,0,128),
+                (255,128,0)
             ]
 
-            img = image.Image(width=210, height=70)
-            x_jitter = (-5, 5)
-            y_jitter = (-10, 10)
+            font_path = os.path.join(poobrains.app.poobrain_path, 'themes/default/fonts/knewave/knewave-outline.otf')
+            print "FLORB: ", font_path
+            image = Image.new('RGBA', (250, 80), (255,255,255,0))
+            font = ImageFont.truetype(font_path, 42)
+            #font = ImageFont.truetype('Orbitron Medium.ttf', 40)
 
-            x = (img.width / 2) #+ random.randint(x_jitter[0], x_jitter[1])
-            y = (img.width / 2) #+ random.randint(y_jitter[0], y_jitter[1])
-            x = 10
-            y = 50
-            baseline = y
+
+            #x_jitter = ((image.width/10) * -1, 0)
+            #y_jitter = ((image.height/10) * -1, image.height/10)
+            x_jitter = (-5, 5)
+            y_jitter = (-5, 5)
+
+            textsize = font.getsize(' '.join(self.captcha))
+            print textsize
+            centered = (image.width / 2 - textsize[0] / 2, image.height / 2 - textsize[1] / 2)
+
+            x = centered[0] + random.randint(x_jitter[0], x_jitter[1])
+            y = centered[1] + random.randint(y_jitter[0], y_jitter[1])
+            baseline = centered[1]
 
             for char in self.captcha:
 
-                draw = drawing.Drawing()
-                draw.font = os.path.join(poobrains.app.poobrain_path, 'knewave-outline.otf')
                 c = colors[random.randint(0, len(colors) -1)]
-                draw.stroke_color = c
-                draw.fill_color = c
-                draw.font_size = 40
-                draw.translate(x, y)
-                draw.rotate(random.randint(-20, 20))
-                draw.text(0,0 , char)
-                draw(img)
+                c = tuple(list(c) + [random.randint(255,255)])
 
-                x += 30 + random.randint(x_jitter[0], x_jitter[1])
+
+                char_size = font.getsize(char)
+
+                char_wrapped = ' %s ' % char
+                char_wrapped_size = font.getsize(char_wrapped)
+
+                char_layer = Image.new('RGBA', char_wrapped_size, (0,0,0,0))
+                char_draw = ImageDraw.Draw(char_layer)
+
+                char_draw.text((0,0), char_wrapped, c, font=font)
+                char_layer = char_layer.rotate(random.randint(-15, 15), expand=True, resample=Image.BICUBIC)
+
+                image.paste(
+                    char_layer,
+                    (x, y),
+                    mask=char_layer,
+                )
+
+                x += char_size[0] + random.randint(x_jitter[0], x_jitter[1])
                 y = baseline + random.randint(y_jitter[0], y_jitter[1])
-            fg = img.clone()    
-            img.gaussian_blur(3, 3)
-            img.composite(fg, left=0, top=0)
+
+            shine = image.filter(ImageFilter.GaussianBlur(radius=8))
+            image = Image.alpha_composite(image, shine)
+
+            out = io.BytesIO()
+            image.save(out, format='PNG')
 
             return flask.Response(
-                img.make_blob('png'),
+                out.getvalue(),
                 mimetype='image/png'
             )
 

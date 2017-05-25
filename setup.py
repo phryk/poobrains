@@ -7,7 +7,7 @@ setup(
         'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python :: 2.7',
     ],
-    install_requires=['flask', 'peewee', 'pyspkac', 'pyScss', 'wand', 'markdown'],
+    install_requires=['flask', 'peewee', 'pyspkac', 'pyScss', 'pillow', 'markdown'],
     extras_require={
         'dev': ['pudb'], 
     },
