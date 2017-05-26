@@ -1457,7 +1457,7 @@ class Notification(poobrains.storage.Storable):
 
 class Page(Owned):
 
-    path = poobrains.storage.fields.CharField(unique=True)
+    path = poobrains.storage.fields.CharField(unique=True, default='')
     title = poobrains.storage.fields.CharField()
     content = poobrains.md.MarkdownField()
 
