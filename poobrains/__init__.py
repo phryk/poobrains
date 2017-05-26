@@ -769,6 +769,12 @@ import poobrains.profile
 import poobrains.cli
 
 
+error_descriptions = {
+        403: werkzeug.exceptions.Forbidden.description,
+        404: werkzeug.exceptions.NotFound.description,
+        500: werkzeug.exceptions.InternalServerError.description
+}
+
 class ErrorPage(poobrains.rendering.Renderable):
 
     error = None
@@ -795,7 +801,15 @@ class ErrorPage(poobrains.rendering.Renderable):
         if isinstance(self.error, werkzeug.exceptions.HTTPException):
             self.message = error.description
         else:
-            self.message = error.message
+            if app.debug:
+                self.message = error.message # verbatim error messages in debug mode
+
+            elif error_descriptions.has_key(self.code):
+                self.message = error_descriptions[self.code]
+
+            else:
+                self.message = "Weasels on PCP gnawed through our server internals."
+
 
 
 @poobrains.helpers.themed

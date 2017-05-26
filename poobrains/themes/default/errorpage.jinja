@@ -1,4 +1,8 @@
 <div class="error">
+    {% if content.description %}
+    <em>{{ content.description }}</em>
+    {% else %}
     <em>{{ content.message }}</em>
+    {% endif %}
     {{ content.error.__class__.__name__ }}
 </div>

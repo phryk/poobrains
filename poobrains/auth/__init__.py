@@ -66,7 +66,9 @@ def checkAAA():
 
 
 class AccessDenied(werkzeug.exceptions.Forbidden):
+
     status_code = 403
+    description = "YOU SHALL NOT PASS!"
 
 
 class CryptoError(werkzeug.exceptions.InternalServerError):
@@ -78,7 +80,10 @@ class Permission(poobrains.helpers.ChildAware):
     instance = None
     op = None
     label = None
-    choices = [('grant', 'Grant'), ('deny', 'Explicitly deny')]
+    choices = [
+        ('grant', 'Grant'),
+        ('deny', 'Explicitly deny')
+    ]
 
     class Meta:
         abstract = True
@@ -289,8 +294,6 @@ def access(permission):
 
         @functools.wraps(func)
         def substitute(*args, **kwargs):
-
-            print "ACCESS SUB", args, kwargs 
 
             return func(*args, **kwargs)
 
@@ -969,7 +972,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         else:
             try:
                 instance = cls.load(cls.string_handle(handle))
-            except ValueError:
+            except ValueError as e:
                 raise cls.DoesNotExist("This isn't even the right type!")
 
         return instance.view(mode=mode, handle=handle, **kwargs)
@@ -1186,7 +1189,7 @@ class User(Named):
     def notifications_unread(self):
         return self.notifications.where(Notification.read == 0)
 
-poobrains.app.site.add_view(User, '/~<handle>/', 'full')
+poobrains.app.site.add_view(User, '/~<handle>/', mode='full')
 
 class UserPermission(Administerable):
 
@@ -1450,3 +1453,23 @@ class Notification(poobrains.storage.Storable):
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     read = poobrains.storage.fields.BooleanField(default=False)
     message = poobrains.md.MarkdownField()
+
+
+class Page(Owned):
+
+    path = poobrains.storage.fields.CharField(unique=True)
+    title = poobrains.storage.fields.CharField()
+    content = poobrains.md.MarkdownField()
+
+    class Meta:
+        handle_fields = ['path']
+
+    @property
+    def handle_string(self):
+        return self.path
+
+    @classmethod
+    def string_handle(cls, string):
+        return string
+
+poobrains.app.site.add_view(Page, '/<path:handle>', mode='full')
