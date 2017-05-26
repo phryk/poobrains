@@ -102,6 +102,13 @@ class Request(flask.Request):
                 f.close()
 
 
+# Enable URL parameters like regex("[a-z]+")
+class RegexConverter(werkzeug.routing.BaseConverter):
+    def __init__(self, url_map, *items):
+        super(RegexConverter, self).__init__(url_map)
+        self.regex = items[0]
+
+
 class Poobrain(flask.Flask):
 
     request_class = Request
@@ -752,6 +759,7 @@ class Pooprint(flask.Blueprint):
 
 app = Poobrain(__name__) # TODO: Make app class configurable.
 app.jinja_env.tests['renderable'] = is_renderable
+app.url_map.converters['regex'] = RegexConverter
 
 # delayed internal imports which may depend on app
 import poobrains.helpers

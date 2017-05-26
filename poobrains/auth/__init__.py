@@ -1472,4 +1472,4 @@ class Page(Owned):
     def string_handle(cls, string):
         return string
 
-poobrains.app.site.add_view(Page, '/<path:handle>', mode='full')
+poobrains.app.site.add_view(Page, '/<regex(".*"):handle>', mode='full')
