@@ -716,11 +716,12 @@ class UserPermissionAddForm(poobrains.form.AddForm):
 
 
     def handle(self):
+        op = self.instance._meta.modes[self.mode]
 
         self.instance.user = self.fields['user'].value
         self.instance.permission = self.fields['permission'].value[0]
         self.instance.access = self.fields['permission'].value[1]
-        if self.mode == 'add':
+        if op == 'create':
             self.instance.save(force_insert=True)
             return flask.redirect(self.instance.url('edit'))
         else:
@@ -799,10 +800,12 @@ class GroupPermissionAddForm(poobrains.form.AddForm):
 
     def handle(self):
 
+        op = self._meta.modes[mode]
+
         self.instance.group = self.fields['group'].value
         self.instance.permission = self.fields['permission'].value[0]
         self.instance.access = self.fields['permission'].value[1]
-        if self.mode == 'add':
+        if op == 'create':
             self.instance.save(force_insert=True)
             return flask.redirect(self.instance.url('edit'))
         else:
@@ -966,8 +969,10 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @classmethod
     def class_view(cls, mode=None, handle=None, **kwargs):
+        
+        op = cls._meta.modes[mode]
        
-        if mode == 'add':
+        if op == 'create':
             instance = cls()
         else:
             try:
@@ -1237,9 +1242,10 @@ class UserPermission(Administerable):
     
     def form(self, mode=None):
 
+        op = self._meta.modes[mode]
         f = super(UserPermission, self).form(mode=mode)
 
-        if mode == 'edit':
+        if op == 'update':
             f.fields['access'].choices = self.permission_class.choices 
 
         return f
@@ -1323,9 +1329,10 @@ class GroupPermission(Administerable):
 
     def form(self, mode=None):
 
+        op = self._meta.modes[mode]
         f = super(GroupPermission, self).form(mode=mode)
 
-        if mode == 'edit':
+        if op == 'update':
             f.fields['access'].choices = self.permission_class.choices 
 
         return f
@@ -1432,9 +1439,10 @@ class Owned(Administerable):
 
     def form(self, mode=None):
 
+        op = self._meta.modes[mode]
         f = super(Owned, self).form(mode)
 
-        if mode == 'add':
+        if op == 'create':
             f.fields['owner'].value = flask.g.user
             f.fields['group'].value = flask.g.user.groups[0]
 
@@ -1457,19 +1465,41 @@ class Notification(poobrains.storage.Storable):
 
 class Page(Owned):
 
-    path = poobrains.storage.fields.CharField(unique=True, default='')
+    path = poobrains.storage.fields.CharField(unique=True)
     title = poobrains.storage.fields.CharField()
     content = poobrains.md.MarkdownField()
 
-    class Meta:
-        handle_fields = ['path']
+    
+    def instance_url(self, mode='full', quiet=None, **url_params):
+        
+        if mode == 'full':
 
-    @property
-    def handle_string(self):
-        return self.path
+            return poobrains.app.site.get_view_url(self.__class__, mode=mode, quiet=quiet, path=self.path[1:], **url_params)
+
+        return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, quiet=quiet, **url_params)
+
 
     @classmethod
-    def string_handle(cls, string):
-        return string
+    def class_view(cls, mode='teaser', handle=None, **kwargs):
+        
+        op = cls._meta.modes[mode]
 
-poobrains.app.site.add_view(Page, '/<regex(".*"):handle>', mode='full')
+        if op == 'create':
+            print "CREATE!"
+            instance = cls()
+
+        elif op == 'read' and kwargs.has_key('path'):
+
+            path = '/%s' % kwargs['path']
+            instance = cls.get(cls.path == path)
+
+        else:
+            try:
+                instance = cls.load(cls.string_handle(handle))
+            except ValueError as e:
+                raise cls.DoesNotExist("This isn't even the right type!")
+
+        return instance.view(mode=mode, handle=handle, **kwargs)
+
+
+poobrains.app.site.add_view(Page, '/<regex(".*"):path>', mode='full')
