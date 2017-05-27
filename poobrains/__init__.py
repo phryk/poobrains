@@ -388,9 +388,19 @@ class Poobrain(flask.Flask):
     def get_url(self, cls, mode=None, quiet=None, **url_params):
 
         if flask.request.blueprint is not None:
-            blueprint = self.blueprints[flask.request.blueprint]
+
+            try:
+                if flask.request.blueprint == 'admin':
+                    auth.AccessAdminArea.check(flask.g.user)
+
+            except auth.AccessDenied:
+                blueprint = self.site
+
+            else:
+                blueprint = self.blueprints[flask.request.blueprint]
         else:
             blueprint = self.site
+
        
         try:
             return blueprint.get_url(cls, mode=mode, quiet=quiet, **url_params)
@@ -406,6 +416,12 @@ class Poobrain(flask.Flask):
 
             for bp_name in blueprint_names:
                 if bp_name != flask.request.blueprint:
+
+                    if bp_name == 'admin':
+                        try:
+                            auth.AccessAdminArea.check(flask.g.user)
+                        except auth.AccessDenied:
+                            continue
 
                     blueprint = self.blueprints[bp_name]
 
