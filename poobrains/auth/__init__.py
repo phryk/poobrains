@@ -800,7 +800,7 @@ class GroupPermissionAddForm(poobrains.form.AddForm):
 
     def handle(self):
 
-        op = self._meta.modes[mode]
+        op = self._meta.modes[self.mode]
 
         self.instance.group = self.fields['group'].value
         self.instance.permission = self.fields['permission'].value[0]
