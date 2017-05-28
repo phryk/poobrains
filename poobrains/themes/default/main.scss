@@ -481,6 +481,7 @@ article {
     line-height: 1.5;
     font-weight: lighter;
     font-size: 1.2rem;
+    text-align: justify;
 
     p:first-child {
         margin-top: 0;
@@ -575,25 +576,6 @@ form {
 
 }
 
-#search {
-
-
-        input {
-                display: inline-block;
-                font-weight: bold;
-                width: 50%;
-
-                &:focus {
-                    width: 70%;
-                }
-        }
-        button {
-                display: inline;
-                width: 30%;
-        }
-
-}
-
 h1,
 h2,
 h3,
@@ -670,4 +652,30 @@ div.comment {
 pre {
     font-size: 0.8rem;
     overflow-x: auto;
+}
+
+
+.text-center {
+    
+    display: block;
+    text-align: center;
+}
+
+#search {
+
+
+        input {
+                display: inline-block;
+                font-weight: bold;
+                width: 50%;
+
+                &:focus {
+                    width: 70%;
+                }
+        }
+        button {
+                display: inline;
+                width: 30%;
+        }
+
 }
