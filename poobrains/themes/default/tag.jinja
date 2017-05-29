@@ -1,13 +1,22 @@
 {% extends "named.jinja" %}
 
-{% block content %}
+{% block header %}
 
-    <div class="description">{{ content.description }}</div>
+    {{ super() }}
 
     {% if mode == 'full' %}
-        <div class="tree">
-            {{ content.tree() }}
-        </div>
+        <h2>Tag hierarchy:</h2>
+        {{ content.tree().render('full') }}
+    {% endif %}
+
+{% endblock %}
+
+
+{% block content %}
+
+    <div class="description">{{ content.description.render() }}</div>
+
+    {% if mode == 'full' %}
 
         <div class="posts">
         {% with tagged_posts = content.list_tagged() %}
@@ -30,4 +39,10 @@
 
     {% endif %}
 
+{% endblock %}
+
+{% block footer %}
+{% if mode != 'full' %}
+This tag has {{ content.list_tagged().results|length }} posts associated with it.
+{% endif %}
 {% endblock %}

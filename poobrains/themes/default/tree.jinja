@@ -1,0 +1,13 @@
+<div class="tree">
+    <div class="root">{{ content.root.render(content.mode) }}</div>
+    {% if content.children|length %}
+        <details>
+            <summary>children</summary>
+            <ul class="branch">
+                {% for child_tree in content.children %}
+                <li class="leaf">{{ child_tree.render('full') }}</li>
+                {% endfor %}
+            </ul>
+        </details>
+    {% endif %}
+</div>

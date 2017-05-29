@@ -9,7 +9,7 @@ import poobrains
 #@poobrains.app.expose('/tag/', mode='full')
 class Tag(poobrains.auth.Named):
 
-    description = poobrains.storage.fields.TextField()
+    description = poobrains.md.MarkdownField()
     parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')])
 
     offset = None
@@ -20,6 +20,7 @@ class Tag(poobrains.auth.Named):
         modes = collections.OrderedDict([
             ('add', 'create'),
             ('teaser', 'read'),
+            ('inline', 'read'),
             ('full', 'read'),
             ('edit', 'update'),
             ('delete', 'delete')
@@ -34,8 +35,8 @@ class Tag(poobrains.auth.Named):
 
     @classmethod
     def class_tree(cls, root=None, current_depth=0):
-
-        tree = collections.OrderedDict()
+        
+        tree = poobrains.rendering.Tree(root=root, mode='inline')
 
         if current_depth > 100:
 
@@ -50,7 +51,8 @@ class Tag(poobrains.auth.Named):
         tags = cls.select().where(cls.parent == root)
 
         for tag in tags:
-            tree[tag] = tag.tree(current_depth=current_depth+1)
+            tree.children.append(tag.tree(current_depth=current_depth+1))
+
 
         return tree
 

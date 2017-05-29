@@ -1,9 +1,12 @@
-<article class="content-type-{{ content.__class__.__name__.lower() }}">
-    {% block header %}
-    <header>
-        <h2>Missing template!</h2>
-    </header>
-    {% endblock %}
+<article class="content-type-{{ content.__class__.__name__.lower() }} mode-{{ mode }}">
+    
+    {% if self.header() %}
+        <header>
+        {% block header %}
+            <h2>Missing template!</h2>
+        {% endblock %}
+        </header>
+    {% endif %}
 
     {% block content %}
     <div>
@@ -16,7 +19,11 @@
     </div>
     {% endblock %}
 
-    {% block footer %}{% endblock %}
+    {% if self.footer() %}
+    <footer>
+        {% block footer %}{% endblock %}
+    </footer>
+    {% endif %}
 </article>
 
 {% block post %}{% endblock %}

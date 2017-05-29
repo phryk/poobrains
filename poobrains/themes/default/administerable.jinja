@@ -1,7 +1,7 @@
 {% extends "renderable.jinja" %}
 
 {% block footer %}
-<footer>
+{% if mode != 'inline' %}
     {{ content.menu_actions.render() }}
-</footer>
+{% endif %}
 {% endblock %}

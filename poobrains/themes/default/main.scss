@@ -454,6 +454,7 @@ a {
 }
 
 table {
+
     table-layout: fixed;
     width: 100%;
     overflow-wrap: break-word;
@@ -473,6 +474,45 @@ table {
     tr.active {
         background: opacify(lighten($color_highlight, 10%), -0.4);
         color: $color_font_dark;
+    }
+}
+
+div.tree {
+            
+    
+    details {
+
+        margin-bottom: 0.5rem;
+        padding-left: 0.5rem;
+
+        transition: max-height 0.3s, background 0.3s;
+
+        summary {
+            &:focus {
+                outline: none;
+                text-decoration: underline;
+            }
+        }
+
+        &[open] {
+            background: rgba(255,255,255, 0.03);
+            border-left: 2px solid $color_highlight;
+
+            ul.branch {
+                max-height: 100%;
+            }
+        }
+
+        ul.branch {
+            max-height: 0;
+        }
+    }
+
+    ul {
+    
+        li {
+            list-style: none;
+        }
     }
 }
 
@@ -499,9 +539,11 @@ article {
         }
     }
 
+    header,
     footer {
 
         border-bottom: 1px solid opacify(opacify($color_font_light, 1), -0.8);
+        margin-bottom: 0.5rem;
 
         nav {
             font-weight: normal;
