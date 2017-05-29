@@ -1,24 +1,33 @@
-<div class="tag">
+{% extends "named.jinja" %}
+
+{% block content %}
 
     <div class="description">{{ content.description }}</div>
 
-    <div class="posts">
-    {% with tagged_posts = content.list_tagged() %}
+    {% if mode == 'full' %}
+        <div class="tree">
+            {{ content.tree() }}
+        </div>
 
-        {% if not tagged_posts.results|length %}
-            <p>No associated content.</p>
-        {% else %}
-            <ul class="tagged-posts">
-            {% for post in tagged_posts.results %}
-                <li>{{ post.render('teaser') }}</li>
-            {% endfor %}
-            </ul>
+        <div class="posts">
+        {% with tagged_posts = content.list_tagged() %}
 
-            {% if tagged_posts.menu %}
-                {{ tagged_posts.menu.render() }}
+            {% if not tagged_posts.results|length %}
+                <p>No associated content.</p>
+            {% else %}
+                <ul class="tagged-posts">
+                {% for post in tagged_posts.results %}
+                    <li>{{ post.render('teaser') }}</li>
+                {% endfor %}
+                </ul>
+
+                {% if tagged_posts.menu %}
+                    {{ tagged_posts.menu.render() }}
+                {% endif %}
             {% endif %}
-        {% endif %}
 
-    {% endwith %}
+        {% endwith %}
 
-</div>
+    {% endif %}
+
+{% endblock %}
