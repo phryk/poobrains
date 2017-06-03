@@ -241,18 +241,18 @@ class Choice(RenderableField):
 
     choices = None
     empty_label = 'Please choose'
+    multi = None
     
-    def __new__(cls, *args, **kwargs):
+    def __init__(self, choices=None, multi=False, **kwargs):
 
-        if kwargs.has_key('choices'):
-            choices = kwargs.pop('choices')
+        if not choices is None:
+            self.choices = choices
         else:
-            choices = []
+            self.choices = []
 
-        instance = super(Choice, cls).__new__(cls, *args, **kwargs)
-        instance.choices = choices
+        self.multi = multi
 
-        return instance
+        super(Choice, self).__init__(**kwargs)
 
 
     def validate(self):
@@ -270,7 +270,9 @@ class MultiChoice(Choice):
 
     def __init__(self, *args, **kwargs):
         super(MultiChoice, self).__init__(*args, **kwargs)
-        self.value = []
+
+        if self.value is None:
+            self.value = []
 
     
     def empty(self):
@@ -390,6 +392,14 @@ class Checkbox(RenderableField):
     default = False
     coercer = coercers.coerce_bool
     validator = validators.is_bool
+    checked = None
+
+    def __init__(self, *args, **kwargs):
+
+        if kwargs.has_key('checked'):
+            self.checked = kwargs.pop('checked')
+
+        super(Checkbox, self).__init__(*args, **kwargs)
 
 
 class Radio(Checkbox):
@@ -400,20 +410,33 @@ class MultiCheckbox(MultiChoice):
 
     coercers = coercers.coerce_string
     validator = validators.is_string
+    checked = None
 
-    def __new__(cls, value=None, **kwargs):
+    
+    def __init__(self, *args, **kwargs):
+
+        poobrains.app.debugger.set_trace()
+        if kwargs.has_key('checked'):
+            self.checked = kwargs.pop('checked')
         
         if not kwargs.has_key('choices'):
             kwargs['choices'] = []
+        
+        if kwargs.has_key('value'):
 
-        if value is not None:
-            kwargs['choices'].append(coercers.coerce_string(None, value))
+            if not isinstance(kwargs['value'], list) and not isinstance(kwargs['value'], tuple):
+                kwargs['value'] = [kwargs['value']]
+       
+            for subvalue in kwargs['value']:
+                #kwargs['choices'].append(coercers.coerce_string(None, subvalue))
+                kwargs['choices'].append(subvalue)
 
-        return super(MultiCheckbox, cls).__new__(cls, value=value, **kwargs)
+        super(MultiCheckbox, self).__init__(*args, **kwargs)
 
 
     def validate(self):
         
+        poobrains.app.debugger.set_trace()
         for value in self.value:
             if value != '' and not value in self.choices:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
