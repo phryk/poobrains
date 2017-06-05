@@ -139,6 +139,10 @@ class Field(object):
 
     
     def bind(self, value):
+
+        if isinstance(self, MultiCheckbox):
+            poobrains.app.debugger.set_trace()
+
         if isinstance(value, errors.MissingValue):
             self.value = self._default
 
@@ -415,7 +419,6 @@ class MultiCheckbox(MultiChoice):
     
     def __init__(self, *args, **kwargs):
 
-        poobrains.app.debugger.set_trace()
         if kwargs.has_key('checked'):
             self.checked = kwargs.pop('checked')
         
@@ -429,7 +432,8 @@ class MultiCheckbox(MultiChoice):
        
             for subvalue in kwargs['value']:
                 #kwargs['choices'].append(coercers.coerce_string(None, subvalue))
-                kwargs['choices'].append(subvalue)
+                kwargs['choices'].append(self.coercer(subvalue))
+                #kwargs['choices'].append(subvalue)
 
         super(MultiCheckbox, self).__init__(*args, **kwargs)
 

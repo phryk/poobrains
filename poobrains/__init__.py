@@ -43,7 +43,7 @@ def is_renderable(x):
 class FormDataParser(werkzeug.formparser.FormDataParser):
     
     def parse(self, *args, **kwargs):
-        
+        app.debugger.set_trace()
         stream, form_flat, files_flat = super(FormDataParser, self).parse(*args, **kwargs)
         
         flat_data = {
