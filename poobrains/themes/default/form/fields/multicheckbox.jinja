@@ -1,1 +1,25 @@
-{% extends "form/fields/checkbox.jinja" %}
+<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
+
+{% for value in content.choices %}
+<input
+    type="checkbox"
+    name="{{content.prefix}}.{{ content.name }}"
+    {% if content.errors %}class="invalid"{% endif %}
+
+    {% if content.readonly %}readonly{% endif %}
+
+    {% if content.form %}
+        form="{{ content.form.ref_id }}"
+    {% endif %}
+
+    {% if content.placeholder %}
+        placeholder="{{ content.placeholder }}"
+    {% endif %}
+
+    value="{{ value }}"
+
+    {% if value in content.value %}
+        checked
+    {% endif %}
+>
+{% endfor %}

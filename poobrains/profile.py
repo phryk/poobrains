@@ -181,7 +181,7 @@ class NotificationControl(poobrains.auth.Protected):
         for notification in pagination.results:
 
             classes = 'read inactive' if notification.read else 'unread active'
-            mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', value=notification.id)
+            mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', choices=[notification.id])
 
             self.table.append(notification, mark_checkbox, _classes=classes)
 
@@ -226,5 +226,8 @@ class NotificationForm(poobrains.form.Form):
 
             elif self.controls['delete'].value:
                 instance.delete_instance()
+            
+        if len(self.fields['mark']): # means we modified stuff and NotificationControl's table is out of date
+            return flask.redirect('')
 
         return self
