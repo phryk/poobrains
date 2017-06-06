@@ -436,8 +436,7 @@ class MultiCheckbox(MultiChoice):
 
     
     def validate(self):
-        
-        poobrains.app.debugger.set_trace()
+
         for value in self.value:
             if value != '' and not value in self.choices:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))

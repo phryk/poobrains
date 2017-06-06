@@ -8,6 +8,7 @@ import flask
 
 import poobrains
 
+import time
 
 class Dashbar(poobrains.rendering.Container):
 
@@ -177,7 +178,7 @@ class NotificationControl(poobrains.auth.Protected):
         self.pagination = pagination.menu
 
         self.table = poobrains.rendering.Table()
-#        poobrains.app.debugger.set_trace()
+
         for notification in pagination.results:
 
             classes = 'read inactive' if notification.read else 'unread active'
@@ -198,8 +199,11 @@ class NotificationControl(poobrains.auth.Protected):
             except poobrains.form.errors.CompoundError as e:
                 for error in e.errors:
                     flask.flash(e.message, 'error')
+        
+            if len(self.form.fields['mark'].value): # means we have to issue a query
+                self.form.handle()
+                return flask.redirect(flask.request.path)
 
-            self.form.handle()
 
         return self
 
@@ -215,20 +219,18 @@ class NotificationForm(poobrains.form.Form):
     delete = poobrains.form.Button('submit', label='Delete')
 
     def handle(self):
-        poobrains.app.debugger.set_trace()
+
         for handle in self.fields['mark'].value:
 
             instance = poobrains.auth.Notification.load(handle)
 
             if self.controls['mark_read'].value:
+                flask.flash("Marking notification %d as read." % instance.id)
                 instance.read = True
                 instance.save()
 
             elif self.controls['delete'].value:
+                flask.flash("Deleting notification %d." % instance.id)
                 instance.delete_instance()
-            
-        if len(self.fields['mark'].value): # means we modified stuff and NotificationControl's table is out of date; FIXME: still not shown up updated, wtf?
-            flask.flash("DID THINGS!")
-            return flask.redirect(flask.request.path)
 
         return self
