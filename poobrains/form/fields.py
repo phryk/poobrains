@@ -140,9 +140,6 @@ class Field(object):
     
     def bind(self, value):
 
-        if isinstance(self, MultiCheckbox):
-            poobrains.app.debugger.set_trace()
-
         if isinstance(value, errors.MissingValue):
             self.value = self._default
 
@@ -417,7 +414,7 @@ class MultiCheckbox(MultiChoice):
     checked = None
 
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
 
         if kwargs.has_key('checked'):
             self.checked = kwargs.pop('checked')
@@ -435,15 +432,21 @@ class MultiCheckbox(MultiChoice):
                 kwargs['choices'].append(self.coercer(subvalue))
                 #kwargs['choices'].append(subvalue)
 
-        super(MultiCheckbox, self).__init__(*args, **kwargs)
+        super(MultiCheckbox, self).__init__(**kwargs)
 
-
+    
     def validate(self):
         
         poobrains.app.debugger.set_trace()
         for value in self.value:
             if value != '' and not value in self.choices:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
+
+
+class IntegerMultiCheckbox(MultiCheckbox):
+
+    coercer = coercers.coerce_int
+    validator = validators.is_integer
 
 
 class Float(RenderableField):

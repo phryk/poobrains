@@ -143,8 +143,9 @@ class BaseForm(poobrains.rendering.Renderable):
             else:
                 field.prefix = self.name
 
-            self._external_fields.append(field.name)
             self.fields[field.name] = field
+
+        self._external_fields.append(field.name)
 
 
     @property

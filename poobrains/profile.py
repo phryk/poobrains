@@ -181,7 +181,7 @@ class NotificationControl(poobrains.auth.Protected):
         for notification in pagination.results:
 
             classes = 'read inactive' if notification.read else 'unread active'
-            mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', choices=[notification.id])
+            mark_checkbox = poobrains.form.fields.IntegerMultiCheckbox(form=self.form, name='mark', label='', choices=[notification.id])
 
             self.table.append(notification, mark_checkbox, _classes=classes)
 
@@ -210,12 +210,12 @@ poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/+<int
 
 class NotificationForm(poobrains.form.Form):
 
-    mark = poobrains.form.fields.MultiCheckbox()
+    mark = poobrains.form.fields.IntegerMultiCheckbox()
     mark_read = poobrains.form.Button('submit', label='Mark as read')
     delete = poobrains.form.Button('submit', label='Delete')
 
     def handle(self):
-
+        poobrains.app.debugger.set_trace()
         for handle in self.fields['mark'].value:
 
             instance = poobrains.auth.Notification.load(handle)
@@ -227,7 +227,8 @@ class NotificationForm(poobrains.form.Form):
             elif self.controls['delete'].value:
                 instance.delete_instance()
             
-        if len(self.fields['mark']): # means we modified stuff and NotificationControl's table is out of date
-            return flask.redirect('')
+        if len(self.fields['mark'].value): # means we modified stuff and NotificationControl's table is out of date; FIXME: still not shown up updated, wtf?
+            flask.flash("DID THINGS!")
+            return flask.redirect(flask.request.path)
 
         return self
