@@ -78,7 +78,7 @@ class Search(poobrains.auth.Protected):
                 self.handle = flask.session['search_pattern']
                 return flask.redirect(self.url('full'))
 
-        administerables = poobrains.auth.Administerable.children_keyed()
+        administerables = poobrains.auth.Administerable.class_children_keyed()
         readable_administerables = []
 
         if len(self.handle) >= 3:

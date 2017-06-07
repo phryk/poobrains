@@ -11,7 +11,7 @@ import poobrains
 
 def magic_markdown_loader(storable, handle):
 
-    storables = poobrains.storage.Storable.children_keyed()
+    storables = poobrains.storage.Storable.class_children_keyed()
     for k, v in storables.iteritems():
         storables[k.lower()] = v # Allows us to use the correct case, or just lowercase
 
@@ -52,7 +52,7 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
             cls_name = match.group(2).lower()
             handle = match.group(3)
 
-            renderables = collections.OrderedDict([(k.lower(), v) for k, v in poobrains.rendering.Renderable.children_keyed().iteritems()])
+            renderables = collections.OrderedDict([(k.lower(), v) for k, v in poobrains.rendering.Renderable.class_children_keyed().iteritems()])
 
             if cls_name in renderables:
 

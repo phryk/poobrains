@@ -45,10 +45,10 @@ class Comment(poobrains.auth.Administerable):
 
     def reply_form(self):
 
-        children = Commentable.children_keyed()
+        children = Commentable.class_children_keyed()
         if children.has_key(self.model):
 
-            model = Commentable.children_keyed()[self.model]
+            model = Commentable.class_children_keyed()[self.model]
             comments_enabled = model.load(self.handle).select(model.comments_enabled).scalar()
 
             if comments_enabled:
@@ -129,7 +129,7 @@ class CommentForm(poobrains.form.Form):
             reply_to = Comment.load(reply_to)
         super(CommentForm, self).__init__(**kwargs)
 
-        cls = Commentable.children_keyed()[model]
+        cls = Commentable.class_children_keyed()[model]
         instance = cls.load(handle)
 
         self.instance = instance
@@ -337,7 +337,7 @@ class ChallengeForm(poobrains.form.Form):
 
             try:
 
-                cls = Commentable.children_keyed()[self.challenge.model]
+                cls = Commentable.class_children_keyed()[self.challenge.model]
                 instance = cls.load(self.challenge.handle)
 
             except KeyError:

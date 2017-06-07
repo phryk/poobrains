@@ -56,7 +56,7 @@ class Shell(object):
         self.db = connect(self.config['DATABASE'], autocommit=True, autorollback=True)
 
         self.commands = {}
-        classes = Command.children()
+        classes = Command.class_children()
 
         for cls in classes:
             self.commands[cls.__name__.lower()] = cls
@@ -259,7 +259,7 @@ class Install(Command):
 
             stdout.write("Installing now...\n")
 
-            self.shell.db.create_tables(poobrains.storage.Model.children())
+            self.shell.db.create_tables(poobrains.storage.Model.class_children())
             stdout.write("Database tables created!\n")
 
 
@@ -276,7 +276,7 @@ class Install(Command):
             admins = poobrains.auth.Group()
             admins.name = 'administrators'
             
-            for cls in poobrains.auth.Permission.children():
+            for cls in poobrains.auth.Permission.class_children():
                 choice_values = [x[0] for x in cls.choices]
                 if 'grant' in choice_values:
                     access = 'grant'
@@ -394,7 +394,7 @@ class Help(Command):
         super(Help, self).__init__(shell, **params)
 
         self.commands = collections.OrderedDict()
-        classes = Command.children()
+        classes = Command.class_children()
 
         for cls in classes:
             self.commands[cls.__name__.lower()] = cls
@@ -458,7 +458,7 @@ class StorableParam(StringParam):
 
     def parse(self, value):
 
-        accepted_storables = collections.OrderedDict([(k.lower(), v) for k, v in self.cls.children_keyed().iteritems()])
+        accepted_storables = collections.OrderedDict([(k.lower(), v) for k, v in self.cls.class_children_keyed().iteritems()])
 
         if self.optional and value is None:
             return None

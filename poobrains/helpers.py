@@ -217,7 +217,7 @@ class ChildAware(object):
     __metaclass__ = MetaCompatibility
 
     @classmethod
-    def children(cls, abstract=False):
+    def class_children(cls, abstract=False):
 
         reported_children = []
         children = cls.__subclasses__()
@@ -227,17 +227,17 @@ class ChildAware(object):
             if abstract or not hasattr(child._meta, 'abstract') or not child._meta.abstract:
                 reported_children.append(child)
 
-            reported_children += child.children()
+            reported_children += child.class_children()
 
         return reported_children
 
 
     @classmethod
-    def children_keyed(cls):
+    def class_children_keyed(cls):
 
         children_keyed = OrderedDict()
 
-        for child in cls.children():
+        for child in cls.class_children():
             children_keyed[child.__name__] = child
 
         return children_keyed

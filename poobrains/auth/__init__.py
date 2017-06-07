@@ -23,7 +23,7 @@ def admin_setup():
 
     if not poobrains.app._got_first_request:
 
-        administerables = Administerable.children_keyed()
+        administerables = Administerable.class_children_keyed()
 
         for key in sorted(administerables):
 
@@ -197,7 +197,7 @@ class FormPermissionField(poobrains.form.fields.Choice):
 
         self.choices = []
 
-        permissions = Permission.children_keyed()
+        permissions = Permission.class_children_keyed()
         for perm_name in sorted(permissions):
             perm = permissions[perm_name]
             self.choices.append(([('%s.%s' % (perm_name, value), label) for (value, label) in perm.choices], perm_name))
@@ -206,10 +206,10 @@ class FormPermissionField(poobrains.form.fields.Choice):
     def validate(self):
         permission, access = self.value
 
-        if not permission in Permission.children_keyed().keys():
+        if not permission in Permission.class_children_keyed().keys():
             raise poobrains.form.errors.ValidationError('Unknown permission: %s' % permission)
 
-        perm_class = Permission.children_keyed()[permission]
+        perm_class = Permission.class_children_keyed()[permission]
         choice_values = [t[0] for t in perm_class.choices]
         if not access in choice_values:
             raise poobrains.form.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
@@ -755,7 +755,7 @@ class UserPermissionRelatedForm(RelatedForm):
         f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
 
         f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
-        for name, perm in Permission.children_keyed().iteritems():
+        for name, perm in Permission.class_children_keyed().iteritems():
 
             try:
                 perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
@@ -1221,7 +1221,7 @@ class UserPermission(Administerable):
         super(UserPermission, self).prepared()
 
         try:
-            self.permission_class = Permission.children_keyed()[self.permission]
+            self.permission_class = Permission.class_children_keyed()[self.permission]
 
         except KeyError:
             poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
@@ -1231,7 +1231,7 @@ class UserPermission(Administerable):
     def save(self, *args, **kwargs):
 
         valid_permission_names = []
-        for cls in Permission.children():
+        for cls in Permission.class_children():
             valid_permission_names.append(cls.__name__)
 
         if self.permission not in valid_permission_names:
@@ -1320,7 +1320,7 @@ class GroupPermission(Administerable):
         super(GroupPermission, self).prepared()
 
         try:
-            self.permission_class = Permission.children_keyed()[self.permission]
+            self.permission_class = Permission.class_children_keyed()[self.permission]
 
         except KeyError:
             poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.group_id)) # can't use self.group.name because dat recursion

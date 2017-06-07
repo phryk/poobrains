@@ -97,7 +97,7 @@ class Tag(poobrains.auth.Named):
         for model_name, bindings in bindings_by_model.iteritems():
 
             try:
-                model = poobrains.storage.Storable.children_keyed()[model_name]
+                model = poobrains.storage.Storable.class_children_keyed()[model_name]
             except KeyError:
                 poobrains.app.logger.error("TagBinding for unknown model: %s" % model_name)
                 continue
