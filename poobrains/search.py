@@ -135,7 +135,7 @@ class Search(poobrains.auth.Protected):
 
 
         elif len(self.handle) > 0:
-            flask.flash("Search pattern has to be at least 3 characters long.", 'error')
+            flask.flash(u"Search pattern has to be at least 3 characters long.", 'error')
 
         return self
 

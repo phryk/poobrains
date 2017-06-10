@@ -67,7 +67,7 @@ class UploadForm(poobrains.form.AddForm):
 
                     except self.model.DoesNotExist:
                         
-                        flask.flash('A file unknown to this site already exists at the same place on the filesystem. /dev/null has been informed.')
+                        flask.flash(u'A file unknown to this site already exists at the same place on the filesystem. /dev/null has been informed.')
                         poobrains.app.logger.error('Unknown file clutter: %s/upload/%s/%s' % (poobrains.app.root_path, self.instance.path, filename))
 
                     return self
@@ -151,7 +151,7 @@ class File(poobrains.auth.NamedOwned):
             try:
                 os.remove(os.path.join(self.path, self.filename))
             except OSError as e:
-                flask.flash("Could not delete %s '%s'." % (self.__class__.__name__, self.filename))
+                flask.flash(u"Could not delete %s '%s'." % (self.__class__.__name__, self.filename))
 
 
 class Image(File):

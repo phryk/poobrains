@@ -144,23 +144,6 @@ class CommentForm(poobrains.form.Form):
     def handle(self):
 
         self.instance.permissions['read'].check(flask.g.user)
-#        Comment.permissions['create'].check(flask.g.user)
-#
-#        comment = Comment()
-#        comment.model = self.instance.__class__.__name__
-#        comment.handle = self.instance.handle_string
-#        comment.reply_to = self.fields['reply_to'].value
-#        comment.author = self.fields['author'].value
-#        comment.text = self.fields['text'].value
-#
-#        try:
-#            comment.save()
-#            flask.flash("Comment saved!")
-#        except peewee.PeeweeException as e:
-#            flask.flash("Could not save your comment!", 'error')
-#            poobrains.app.logger.error("Could not save a comment. %s: %s" % (e.__class__.__name__, e.message))
-#
-#        return flask.redirect(self.instance.url('full'))
 
         iteration_limit = 10
         for i in range(0, iteration_limit):
@@ -168,7 +151,7 @@ class CommentForm(poobrains.form.Form):
             if not Challenge.select().where(Challenge.name == name).count():
                 break
             elif i == iteration_limit - 1: # means loop ran through without finding a free challenge name
-                flask.flash("I'm sorry Dave. I'm afraid I can't do that.")
+                flask.flash(u"I'm sorry Dave. I'm afraid I can't do that.")
                 return flask.redirect(self.instance.url('full'))
 
         challenge = Challenge()
@@ -342,11 +325,11 @@ class ChallengeForm(poobrains.form.Form):
                 instance = cls.load(self.challenge.handle)
 
             except KeyError:
-                flask.flash("WRONG!1!!", 'error')
+                flask.flash(u"WRONG!1!!", 'error')
                 return flask.redirect('/')
 
             except peewee.DoesNotExist:
-                flask.flash("The thing you wanted to comment on does not exist anymore.")
+                flask.flash(u"The thing you wanted to comment on does not exist anymore.")
                 return flask.redirect(cls.url('teaser'))
 
             comment = Comment()
@@ -357,7 +340,7 @@ class ChallengeForm(poobrains.form.Form):
             comment.text = self.challenge.text
 
             if comment.save():
-                flask.flash("Your comment has been saved.")
+                flask.flash(u"Your comment has been saved.")
 
                 if instance.notify_owner:
                     instance.owner.notify("New comment on [%s/%s] by %s." % (self.challenge.model, self.challenge.handle, self.challenge.author))
@@ -365,11 +348,11 @@ class ChallengeForm(poobrains.form.Form):
                 self.challenge.delete_instance() # commit glorious seppuku
                 return flask.redirect(instance.url('full'))
 
-            flask.flash("Your comment could not be saved.", 'error')
+            flask.flash(u"Your comment could not be saved.", 'error')
 
         else:
 
-            flask.flash("WRONG.", 'error')
+            flask.flash(u"WRONG.", 'error')
             self.challenge.captcha = self.challenge.__class__.captcha.default()
             self.challenge.save()
             return flask.redirect(self.challenge.url('full'))

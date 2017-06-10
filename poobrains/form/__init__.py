@@ -467,7 +467,7 @@ class AddForm(BoundForm):
                     saved = self.instance.save()
 
                 if saved:
-                    flask.flash("Saved %s %s." % (self.model.__name__, self.instance.handle_string))
+                    flask.flash(u"Saved %s %s." % (self.model.__name__, self.instance.handle_string))
 
                     for fieldset in self.fieldsets:
                         try:
@@ -475,7 +475,7 @@ class AddForm(BoundForm):
                         except Exception as e:
                             if exceptions:
                                 raise
-                            flask.flash("Failed to handle fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
+                            flask.flash(u"Failed to handle fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
                             poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
 
                     try:
@@ -483,16 +483,16 @@ class AddForm(BoundForm):
                     except LookupError:
                         return self
                 else:
-                    flask.flash("Couldn't save %s." % self.model.__name__)
+                    flask.flash(u"Couldn't save %s." % self.model.__name__)
 
             except peewee.IntegrityError as e:
 
                 if exceptions:
                     raise
-                flask.flash('Integrity error: %s' % e.message, 'error')
+                flask.flash(u'Integrity error: %s' % e.message, 'error')
 
         else:
-            flask.flash("Not handling readonly form '%s'." % self.name)
+            flask.flash(u"Not handling readonly form '%s'." % self.name)
 
         return self
 

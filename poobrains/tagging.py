@@ -165,7 +165,7 @@ class TaggingFieldset(poobrains.form.Fieldset):
             try:
                 tag = Tag.load(value)
             except Tag.DoesNotExist:
-                flask.flash("No such tag: %s" % unicode(value))
+                flask.flash(u"No such tag: %s" % unicode(value))
                 return # TODO: We want to raise a type of exception we know is okay to print (preventing infoleak)
 
             binding = TagBinding()

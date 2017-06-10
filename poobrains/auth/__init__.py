@@ -366,7 +366,7 @@ class ClientCertForm(poobrains.form.Form):
 
         except peewee.DoesNotExist as e:
             
-            flask.flash("No such token.", 'error')
+            flask.flash(u"No such token.", 'error')
             return flask.redirect(self.url())
             
         cert_info = ClientCert()
@@ -412,7 +412,7 @@ class ClientCertForm(poobrains.form.Form):
             if self.controls['tls_submit'].value:
                 r = werkzeug.wrappers.Response(pkcs12.export(passphrase=passphrase))
                 r.mimetype = 'application/pkcs-12'
-                flask.flash("The passphrase for this delicious bundle of crypto is '%s'" % passphrase)
+                flask.flash(u"The passphrase for this delicious bundle of crypto is '%s'" % passphrase)
 
             else: # means pgp
 
@@ -428,7 +428,7 @@ class ClientCertForm(poobrains.form.Form):
 
                 mail.send()
 
-                flask.flash("Your private key and client certificate have been send to '%s'." % token.user.mail)
+                flask.flash(u"Your private key and client certificate have been send to '%s'." % token.user.mail)
 
                 r = self
 
@@ -695,7 +695,7 @@ class RelatedForm(poobrains.form.Form):
                     try:
                         field.handle()
                     except Exception as e:
-                        flask.flash("Failed to handle fieldset '%s.%s'." % (field.prefix, field.name))
+                        flask.flash(u"Failed to handle fieldset '%s.%s'." % (field.prefix, field.name))
                         poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
                         
             #return flask.redirect(flask.request.url)
@@ -1100,7 +1100,7 @@ class User(Named):
 
             poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
             poobrains.app.logger.debug(e)
-            flask.flash("Plumbing issue. Invalid CA_KEY or CA_CERT.")
+            flask.flash(u"Plumbing issue. Invalid CA_KEY or CA_CERT.")
             raise e
 
         common_name = '%s:%s@%s' % (self.name, name, poobrains.app.config['SITE_NAME'])

@@ -154,7 +154,7 @@ class PGPForm(poobrains.form.Form):
         pubkey = self.fields['pubkey'].value.read()
         crypto = poobrains.mailing.getgpg()
         x = crypto.import_keys(pubkey)
-        flask.flash("Imported new key!")
+        flask.flash(u"Imported new key!")
 
         return self
 
@@ -225,12 +225,12 @@ class NotificationForm(poobrains.form.Form):
             instance = poobrains.auth.Notification.load(handle)
 
             if self.controls['mark_read'].value:
-                flask.flash("Marking notification %d as read." % instance.id)
+                flask.flash(u"Marking notification %d as read." % instance.id)
                 instance.read = True
                 instance.save()
 
             elif self.controls['delete'].value:
-                flask.flash("Deleting notification %d." % instance.id)
+                flask.flash(u"Deleting notification %d." % instance.id)
                 instance.delete_instance()
 
         return self
