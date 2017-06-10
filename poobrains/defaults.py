@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import md_default
 
 SITE_NAME = 'poobrains'
