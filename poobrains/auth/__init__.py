@@ -343,9 +343,9 @@ class ClientCertForm(poobrains.form.Form):
     title = "Be safe, certificatisize yourself!"
     token = poobrains.form.fields.ObfuscatedText(label='Token')
     key = poobrains.form.fields.Keygen()
-    keygen_submit = poobrains.form.Button('submit', label='Generate certificate with <keygen>')
-    pgp_submit = poobrains.form.Button('submit', label="Generate keypair + certificate and send it via PGP-mail")
-    tls_submit = poobrains.form.Button('submit', label="Generate keypair + certificate and send it via HTTPS")
+    keygen_submit = poobrains.form.Button('submit', label='Client-side: Keygen')
+    pgp_submit = poobrains.form.Button('submit', label="Server-side: PGP-mail")
+    tls_submit = poobrains.form.Button('submit', label="Server-side: HTTPS")
 
     def __init__(self, *args, **kwargs):
         super(ClientCertForm, self).__init__(*args, **kwargs)

@@ -582,7 +582,7 @@ form {
         line-height: 150%;
         color: $color_font_dark;
         outline: none;
-        transition: background 0.3s ease-in-out;
+        transition: background 0.3s ease-in-out, width 0.3s ease-in-out;
 
         &:hover,
         &:focus {
@@ -593,6 +593,24 @@ form {
     button {
         white-space: nowrap; /* avoides forms jumping in height when animating their width */
         overflow: hidden;
+        font-family: 'Ostrich Sans', sans;
+        font-weight: 800;
+        font-size: 1.4rem;
+        min-height: 1.8rem;
+        padding-top: 0.3rem;
+        margin-right: 0.5rem;
+        width: 33%;
+
+        &:last-child {
+            margin-right: 0;
+        }
+
+        &:focus,
+        &:hover {
+            width: 100%;
+            max-width: 100%;
+        }
+
     }
 
     textarea {
@@ -600,7 +618,7 @@ form {
         width: 100%;
         resize: vertical;
         background: $color_background_form;
-        min-height: 5rem;
+        min-height: 8rem;
     }
 
     select {
@@ -615,6 +633,13 @@ form {
         margin: 0;
         border: 0;
         padding: 0;
+    }
+
+    footer {
+        margin-top: 0.5rem;
+        display: flex;
+        flex-direction: row;
+        justify-content: right;
     }
 
 }
