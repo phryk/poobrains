@@ -591,6 +591,8 @@ form {
     }
 
     button {
+
+        cursor: pointer; /* no clue why this isn't the default */
         white-space: nowrap; /* avoides forms jumping in height when animating their width */
         overflow: hidden;
         font-family: 'Ostrich Sans', sans;
