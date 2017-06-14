@@ -489,7 +489,7 @@ class AddForm(BoundForm):
 
                 if exceptions:
                     raise
-                flask.flash(u'Integrity error: %s' % e.message, 'error')
+                flask.flash(u'Integrity error: %s' % e.message.decode('utf-8'), 'error')
 
         else:
             flask.flash(u"Not handling readonly form '%s'." % self.name)
