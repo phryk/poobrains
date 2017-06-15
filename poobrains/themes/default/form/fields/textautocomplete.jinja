@@ -12,8 +12,8 @@
 >
 
 <datalist id="{{ list_id }}">
-{% for choice in content.choices %}
-    <option value="{{ choice }}">
+{% for choice, label in content.choices %}
+    <option value="{{ choice }}" label="{{ label }}">
 {% endfor %}
 </datalist>
 
