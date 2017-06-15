@@ -1,0 +1,20 @@
+{% with list_id = "list-%s-%s"|format(content.prefix, content.name)|replace('.', '-') %}
+
+<input
+    class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
+    type="text"
+    name="{{ content.prefix }}.{{ content.name }}"
+    list="{{ list_id }}"
+
+    {% if content.value %}
+    value="{{ content.value }}"
+    {% endif %}
+>
+
+<datalist id="{{ list_id }}">
+{% for choice in content.choices %}
+    <option value="{{ choice }}">
+{% endfor %}
+</datalist>
+
+{% endwith %}

@@ -209,6 +209,23 @@ class Text(RenderableField):
     pass
 
 
+class TextAutoComplete(Text):
+    
+    class Meta:
+        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices']
+
+    choices = None
+
+    def __init__(self, choices=None, **kwargs):
+        
+        super(TextAutoComplete, self).__init__(**kwargs)
+
+        if choices is None:
+            self.choices = []
+        else:
+            self.choices = choices
+
+
 class ObfuscatedText(Text):
     pass
 
@@ -243,6 +260,9 @@ class Choice(RenderableField):
     choices = None
     empty_label = 'Please choose'
     multi = None
+    
+    class Meta:
+        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices', 'empty_label', 'multi']
     
     def __init__(self, choices=None, multi=False, **kwargs):
 
@@ -388,6 +408,9 @@ class ForeignKeyChoice(TextChoice):
 
 
 class Checkbox(RenderableField):
+
+    class Meta:
+        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'empty_value', 'checked']
 
     empty_value = None
     default = False
