@@ -368,7 +368,7 @@ class MultiIntegerChoice(MultiChoice):
     coercer = coercers.coerce_int
 
 
-class ForeignKeyChoice(TextChoice):
+class ForeignKeyChoice(TextAutoComplete):
 
     """
     Warning: this field expects to be bound to a ForeignKeyField.

@@ -4,14 +4,12 @@
 import peewee
 
 # parent imports
-from poobrains import helpers
-from poobrains import form
 import poobrains
 
 
-class Field(helpers.ChildAware):
+class Field(poobrains.helpers.ChildAware):
 
-    form_class = form.fields.Text
+    form_class = poobrains.form.fields.Text
 
     def __init__(self, *args, **kwargs):
 
@@ -42,11 +40,11 @@ class DateTimeField(Field, peewee.DateTimeField):
 
 
 class ForeignKeyField(Field, peewee.ForeignKeyField):
-    form_class = form.fields.ForeignKeyChoice
+    form_class = poobrains.form.fields.ForeignKeyChoice
 
 
 class BooleanField(Field, peewee.BooleanField):
-    form_class = form.fields.Checkbox
+    form_class = poobrains.form.fields.Checkbox
 
 
 class FileField(ForeignKeyField):
