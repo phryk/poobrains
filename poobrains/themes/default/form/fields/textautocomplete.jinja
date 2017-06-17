@@ -5,6 +5,10 @@
     type="text"
     name="{{ content.prefix }}.{{ content.name }}"
     list="{{ list_id }}"
+    
+    {% if content.placeholder %}
+    placeholder="{% block placeholder %}{{ content.placeholder }}{% endblock %}"
+    {% endif %}
 
     {% if content.value %}
     value="{% block value %}{{ content.value }}{% endblock %}"
