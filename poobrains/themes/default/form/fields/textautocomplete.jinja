@@ -7,7 +7,7 @@
     list="{{ list_id }}"
 
     {% if content.value %}
-    value="{{ content.value }}"
+    value="{% block value %}{{ content.value }}{% endblock %}"
     {% endif %}
 >
 
