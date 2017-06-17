@@ -12,8 +12,12 @@ class CompoundError(Exception):
 
     errors = None
 
-    def __init__(self, errors=[]):
-        self.errors = errors
+    def __init__(self, errors=None):
+
+        if not errors is None:
+            self.errors = errors
+        else:
+            self.errors = []
 
 
     @property
