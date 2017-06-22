@@ -345,7 +345,7 @@ class Install(Command):
             stdout.write("GPG home (relative to project root): ")
             gpg_home = raw_input()
 
-            gpg = gnupg.GPG(homedir=gpg_home)
+            gpg = gnupg.GPG(binary=poobrains.app.config['GPG_BINARY'], homedir=gpg_home)
             config_addendum['GPG_HOME'] = gpg_home
             
             stdout.write("Site PGP passphrase :")
