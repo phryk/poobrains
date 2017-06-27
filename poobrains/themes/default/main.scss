@@ -209,18 +209,6 @@ body {
             max-height: 7.5rem;
         }
     }
-
-    & > footer {
-
-        width: 100%;
-
-        div.footer-wrapper {
-
-            float: right;
-            padding: 0.5rem;
-            background: $color_background_dark;
-        }
-    }
 }
 
 
@@ -408,6 +396,18 @@ main {
 
         a {
             text-decoration: underline;
+        }
+    }
+
+    & > footer {
+
+        width: 100%;
+
+        div.footer-wrapper {
+
+            float: right;
+            padding: 0.5rem;
+            background: $color_background_dark;
         }
     }
 }
