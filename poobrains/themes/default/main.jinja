@@ -1,10 +1,7 @@
 <!doctype html>
 <html>
     <head>
-        <meta charset="utf-8" />
-        <title>{{ g.title }}</title>
-        <link rel="icon" href="/theme/poobrains-logo-animooted.svg">
-        <link rel="stylesheet" type="text/css" href="/theme/main.scss">
+        {% include 'head.jinja' %}
     </head>
     
     <body>
@@ -15,21 +12,7 @@
 
         <header>
             <div class="sticky">
-                {% block menu_main %}
-                {% if g.boxes.menu_main %}
-                    {{ g.boxes.menu_main.render() }}
-                {% endif %}
-                {% endblock %}
-
-                {% for n in g.forms.keys() %}
-                  FORM: {{ n.__class__ }}
-                {% endfor %}
-
-                {% block search %}
-                {% if g.boxes.search %}
-                    {{ g.boxes.search.render() }}
-                {% endif %}
-                {% endblock %}
+                {% include 'header.jinja' %}
             </div>
         </header>
         <main>
@@ -62,5 +45,8 @@
                 {{ content.render(mode) }}
             </section>
         </main>
+        <footer>
+            {% include 'footer.jinja' %}
+        </footer>
     </body>
 </html>
