@@ -13,7 +13,7 @@ import flask
 import poobrains
 
 def getgpg():
-    return gnupg.GPG(homedir=poobrains.app.config['GPG_HOME'])
+    return gnupg.GPG(binary=poobrains.app.config['GPG_BINARY'], homedir=poobrains.app.config['GPG_HOME'])
 
 
 class MailError(Exception):

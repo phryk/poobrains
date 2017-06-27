@@ -899,6 +899,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         modes = collections.OrderedDict([
             ('add', 'create'),
             ('teaser', 'read'),
+            ('inline', 'read'),
             ('full', 'read'),
             ('edit', 'update'),
             ('delete', 'delete')

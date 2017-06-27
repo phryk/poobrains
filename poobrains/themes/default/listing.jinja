@@ -24,8 +24,6 @@
 
 {% block footer %}
     {% if content.pagination %}
-        <footer>
-            {{ content.pagination.render(content.mode) }}
-        </footer>
+        {{ content.pagination.render(content.mode) }}
     {% endif %}
 {% endblock %}

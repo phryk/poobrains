@@ -16,8 +16,6 @@
 
 {% block footer %}
     {% if content.pagination %}
-        <footer>
-            {{ content.pagination.render() }}
-        </footer>
+        {{ content.pagination.render() }}
     {% endif %}
 {% endblock %}

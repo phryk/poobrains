@@ -878,6 +878,28 @@ def menu_breadcrumb():
 
     return m
 
+
+@app.route('/robots.txt')
+def robots_txt():
+
+    """
+    Supply robots.txt for crawlers.
+    
+    Allow everything by default, lets you add a custom
+    robots.txt to a projects' root directory.
+
+    """
+
+    if os.path.exists(os.path.join(app.root_path, 'robots.txt')):
+        response = flask.send_from_directory(app.root_path, 'robots.txt')
+    else:
+        response = flask.Response("User-agent: *\nAllow: /")
+
+    response.cache_control.max_age = 604800
+
+    return response
+
+
 app.register_error_handler(400, errorpage)
 app.register_error_handler(403, errorpage)
 app.register_error_handler(404, errorpage)

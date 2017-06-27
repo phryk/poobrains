@@ -16,6 +16,7 @@ SMTP_STARTTLS = True
 SMTP_ACCOUNT = None # str
 SMTP_PASSWORD = None # str
 SMTP_FROM = None
+GPG_BINARY = None
 GPG_HOME = None # str, path
 GPG_SIGNKEY = None # str, a gpg key fingerprint
 GPG_PASSPHRASE = None # str, gpg key passphrase for signing
