@@ -401,13 +401,18 @@ main {
 
     & > footer {
 
-        width: 100%;
+        padding: 0.5rem;
+        border-top: 1px solid opacify($color_background_light, -0.3);
+        background: $color_background_dark;
+
+        &, a {
+            color: opacify($color_font_light, -0.3);
+        }
 
         div.footer-wrapper {
 
-            float: right;
-            padding: 0.5rem;
-            background: $color_background_dark;
+            text-align: right;
+            font-size: 80%;
         }
     }
 }
