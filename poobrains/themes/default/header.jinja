@@ -1,15 +1,19 @@
-{% block menu_main %}
-{% if g.boxes.menu_main %}
-    {{ g.boxes.menu_main.render() }}
-{% endif %}
-{% endblock %}
+<div class="sticky">
 
-{% for n in g.forms.keys() %}
-  FORM: {{ n.__class__ }}
-{% endfor %}
+    {% block menu_main %}
+    {% if g.boxes.menu_main %}
+        {{ g.boxes.menu_main.render() }}
+    {% endif %}
+    {% endblock %}
 
-{% block search %}
-{% if g.boxes.search %}
-    {{ g.boxes.search.render() }}
-{% endif %}
-{% endblock %}
+    {% for n in g.forms.keys() %}
+      FORM: {{ n.__class__ }}
+    {% endfor %}
+
+    {% block search %}
+    {% if g.boxes.search %}
+        {{ g.boxes.search.render() }}
+    {% endif %}
+    {% endblock %}
+
+</div>
