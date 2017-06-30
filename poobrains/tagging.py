@@ -110,7 +110,7 @@ class Tag(poobrains.auth.Named):
 
         return pagination
 
-poobrains.app.site.add_listing(Tag, '/tag/', mode='full', endpoint='tag')
+poobrains.app.site.add_listing(Tag, '/tag/', mode='teaser', endpoint='tag')
 poobrains.app.site.add_view(Tag, '/tag/<handle>/', mode='full', endpoint='tag_handle')
 poobrains.app.site.add_view(Tag, '/tag/<handle>/+<int:offset>', mode='full', endpoint='tag_handle_offset')
 

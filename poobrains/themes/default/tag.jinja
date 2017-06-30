@@ -1,12 +1,12 @@
 {% extends "named.jinja" %}
 
 {% block header %}
-
+    
     {{ super() }}
 
     {% if mode == 'full' %}
         <h2>Tag hierarchy:</h2>
-        {{ content.tree().render('full') }}
+        {{ content.tree().render('teaser') }}
     {% endif %}
 
 {% endblock %}
@@ -15,7 +15,6 @@
 {% block content %}
 
     <div class="description">{{ content.description.render() }}</div>
-
     {% if mode == 'full' %}
 
         <div class="posts">

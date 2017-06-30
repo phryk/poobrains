@@ -193,13 +193,11 @@ class Tree(Renderable):
     mode = None
 
     def __init__(self, root, name=None, mode=None, **kwargs):
-
+        
         super(Tree, self).__init__(name=name, **kwargs)
         self.root = root if root is not None else RenderString('tree root')
         self.children = []
         self.mode = mode if mode is not None else 'teaser'
-
-
 
 
 class TableRow(object):
