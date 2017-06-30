@@ -132,17 +132,14 @@ class TaggingField(poobrains.form.fields.MultiChoice):
 
         super(TaggingField, self).__init__(*args, **kwargs)
 
-        if kwargs.has_key('choices'):
-            choices = kwargs.pop('choices')
-        else:
-            choices = []
+        choices = []
 
-            try:
-                for tag in Tag.select():
-                    choices.append((tag.name, tag.name))
+        try:
+            for tag in Tag.select():
+                choices.append((tag.name, tag.name))
 
-            except (peewee.OperationalError, peewee.ProgrammingError) as e:
-                poobrains.app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
+        except (peewee.OperationalError, peewee.ProgrammingError) as e:
+            poobrains.app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
 
         self.choices = choices
 
@@ -189,6 +186,7 @@ class Taggable(poobrains.auth.NamedOwned):
         self.tags = []
 
     def form(self, mode=None):
+
         f = super(Taggable, self).form(mode=mode)
         if mode != 'delete':
             setattr(f, 'tags', TaggingFieldset(self))
