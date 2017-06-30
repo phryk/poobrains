@@ -259,19 +259,17 @@ class Choice(RenderableField):
 
     choices = None
     empty_label = 'Please choose'
-    multi = None
+    multi = False
     
     class Meta:
         clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices', 'empty_label', 'multi']
     
-    def __init__(self, choices=None, multi=False, **kwargs):
+    def __init__(self, choices=None, **kwargs):
 
         if not choices is None:
             self.choices = choices
         else:
             self.choices = []
-
-        self.multi = multi
 
         super(Choice, self).__init__(**kwargs)
 
