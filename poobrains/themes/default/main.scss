@@ -33,6 +33,7 @@
             width: 13rem;
             overflow-wrap: break-word;
             top: 11.5rem !important; /* 7.5rem logo height + 2rem space at top and bottom */
+            margin-bottom: 4rem; /* needed at least in firefox, to avoid vertical cutoff. should be the same as vertical padding for logo */
         }
     }
 
