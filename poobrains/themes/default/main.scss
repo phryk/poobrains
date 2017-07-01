@@ -32,7 +32,7 @@
         .sticky { 
             width: 13rem;
             overflow-wrap: break-word;
-            top: 0; /* remove space for the logo, which isn't shown in mobile view */
+            top: 11.5rem; /* 7.5rem logo height + 2rem space at top and bottom */
         }
     }
 
@@ -154,7 +154,7 @@ body {
             overflow-y: auto;
             overflow-x: hidden;
             position: sticky;
-            top: 11.5rem;
+            top: 0;
             margin-top: -50%;
             flex-shrink: 1;
         }
