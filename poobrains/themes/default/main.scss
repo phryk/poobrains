@@ -32,6 +32,7 @@
         .sticky { 
             width: 13rem;
             overflow-wrap: break-word;
+            top: 0; /* remove space for the logo, which isn't shown in mobile view */
         }
     }
 
@@ -153,7 +154,8 @@ body {
             overflow-y: auto;
             overflow-x: hidden;
             position: sticky;
-            top: 0;
+            top: 11.5rem;
+            margin-top: -50%;
             flex-shrink: 1;
         }
 
@@ -207,6 +209,8 @@ body {
             align-self: center;
             justify-self: flex-end;
             max-height: 7.5rem;
+            position: sticky;
+            bottom: calc(100% - 9.5rem);
         }
     }
 }
