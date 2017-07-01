@@ -32,7 +32,7 @@
         .sticky { 
             width: 13rem;
             overflow-wrap: break-word;
-            top: 11.5rem; /* 7.5rem logo height + 2rem space at top and bottom */
+            top: 11.5rem !important; /* 7.5rem logo height + 2rem space at top and bottom */
         }
     }
 
