@@ -39,6 +39,10 @@
     main {
         padding-left: 1rem;
         max-width: 40rem;
+
+        &:nth-child(3) { /* means dashbar is rendered */
+            margin-top: 3rem;
+        }
     }
 }
 
@@ -217,10 +221,6 @@ body {
 
 
 main {
-
-    &:nth-child(3) { /* means dashbar is rendered */
-        margin-top: 3rem;
-    }
 
     /* Flex of main children */
     display: flex;
