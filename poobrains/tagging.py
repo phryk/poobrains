@@ -35,8 +35,11 @@ class Tag(poobrains.auth.Named):
 
     @classmethod
     def class_tree(cls, root=None, current_depth=0):
-        
-        tree = poobrains.rendering.Tree(root=root, mode='inline')
+       
+        if current_depth == 0:
+            tree = poobrains.rendering.Tree(root=poobrains.rendering.RenderString(root.name), mode='inline')
+        else:
+            tree = poobrains.rendering.Tree(root=root, mode='inline')
 
         if current_depth > 100:
 
