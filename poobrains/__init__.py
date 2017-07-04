@@ -185,7 +185,7 @@ class Poobrain(flask.Flask):
         self.boxes = {}
         self.poobrain_path = os.path.dirname(os.path.realpath(__file__))
         self.site_path = os.getcwd()
-        self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'js', 'jpg']
+        self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'woff', 'js', 'jpg']
 
         self.db = db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True)
 
@@ -236,6 +236,7 @@ class Poobrain(flask.Flask):
 
     
     def serve_theme_resources(self, resource):
+
         paths = []
 
         extension = resource.split('.')

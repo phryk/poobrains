@@ -153,10 +153,24 @@ class PGPForm(poobrains.form.Form):
 
         pubkey = self.fields['pubkey'].value.read()
         crypto = poobrains.mailing.getgpg()
-        x = crypto.import_keys(pubkey)
-        flask.flash(u"Imported new key!")
+        result = crypto.import_keys(pubkey)
 
-        return self
+        if len(result.fingerprints) == 1:
+
+            self.user.pgp_fingerprint = result.fingerprints[0]
+            self.user.save()
+            flask.flash(u"Imported new key and assigned it to you.")
+
+        elif len(result.fingerprints) > 1:
+
+            flask.flash(u"Keyfile may only hold a single key.")
+
+        else:
+            # Fun fact: I'm more proud of this error message than half my code.
+            flask.flash(u"Something went wrong when importing your new key. A pack of lazy raccoons has been dispatched to look at your plight in disinterested amusement.")
+            poobrains.app.logger.error("GPG key import error: %s" % result.stderr)
+
+        return flask.redirect(flask.request.path) # reload page to show flash()es
 
 
 
