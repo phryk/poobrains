@@ -356,3 +356,15 @@ class ChallengeForm(poobrains.form.Form):
             self.challenge.captcha = self.challenge.__class__.captcha.default()
             self.challenge.save()
             return flask.redirect(self.challenge.url('full'))
+
+
+@poobrains.app.cron
+def bury_orphaned_challenges():
+
+    deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
+
+    q = Challenge.delete().where(Challenge.created <= deathwall)
+
+    count = q.execute()
+
+    poobrains.app.logger.info("Deleted %d orphaned comment challenges." % count)

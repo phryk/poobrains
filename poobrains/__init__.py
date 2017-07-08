@@ -125,6 +125,8 @@ class Poobrain(flask.Flask):
         peewee.DoesNotExist: 404
     }
 
+    cronjobs = None
+
 
     def __init__(self, *args, **kwargs):
 
@@ -133,6 +135,7 @@ class Poobrain(flask.Flask):
 
         super(Poobrain, self).__init__(*args, **kwargs)
 
+        self.cronjobs = []
         self.cli = flask.cli.FlaskGroup(create_app=lambda x:self)
 
         if config:
@@ -442,6 +445,21 @@ class Poobrain(flask.Flask):
         blueprint = self.blueprints[flask.request.blueprint]
         return blueprint.get_related_view_url(cls, handle, related_field, quiet=quiet)
 
+
+    def cron(self, func):
+
+        self.cronjobs.append(func)
+        return func
+
+
+    def cron_run(self):
+            
+        self.logger.info("Starting cron run.")
+
+        for func in self.cronjobs:
+            func()
+        
+        self.logger.info("Finished cron run.")
 
 #    def run(self, *args, **kw):
 #

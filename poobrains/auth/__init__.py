@@ -1504,3 +1504,18 @@ class Page(Owned):
 
 
 poobrains.app.site.add_view(Page, '/<regex(".*"):path>', mode='full')
+
+
+@poobrains.app.cron
+def bury_tokens():
+
+
+    deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
+
+    q = ClientCertToken.delete().where(
+        ClientCertToken.created <= deathwall or ClientCertToken.redeemed == 1
+    )
+
+    count = q.execute()
+
+    poobrains.app.logger.info("Deleted %d dead client certificate tokens." % count)

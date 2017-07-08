@@ -147,3 +147,8 @@ def add(storable):
                     setattr(instance, field.name, value) # TODO type enforcement
 
         instance.save(force_insert=True)
+
+@poobrains.app.cli.command()
+def cron():
+
+    poobrains.app.cron_run()
