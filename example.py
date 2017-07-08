@@ -107,4 +107,5 @@ def list_nonexposed(listing):
 
 if __name__ == '__main__':
 
-    app.run()
+    #app.run()
+    poobrains.app.cli()

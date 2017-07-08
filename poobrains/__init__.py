@@ -9,6 +9,7 @@ import pathlib # only needed to pass a pathlib.Path to scss compiler
 import logging
 import OpenSSL as openssl
 import werkzeug
+import click
 import flask
 
 #from flask.signals import appcontext_pushed # TODO: needed?
@@ -131,6 +132,8 @@ class Poobrain(flask.Flask):
             kwargs['root_path'] = str(pathlib.Path('.').absolute()) #TODO: pathlib probably isn't really needed here
 
         super(Poobrain, self).__init__(*args, **kwargs)
+
+        self.cli = flask.cli.FlaskGroup(create_app=lambda x:self)
 
         if config:
             for name in dir(config):
@@ -440,14 +443,14 @@ class Poobrain(flask.Flask):
         return blueprint.get_related_view_url(cls, handle, related_field, quiet=quiet)
 
 
-    def run(self, *args, **kw):
-
-        if len(sys.argv) > 1 and sys.argv[1] == 'shell':
-            shell = poobrains.cli.Shell(config=self.config)
-            shell.start()
-
-        else:
-            return super(Poobrain, self).run(*args, **kw)
+#    def run(self, *args, **kw):
+#
+#        if len(sys.argv) > 1 and sys.argv[1] == 'shell':
+#            shell = poobrains.cli.Shell(config=self.config)
+#            shell.start()
+#
+#        else:
+#            return super(Poobrain, self).run(*args, **kw)
 
 
 class Pooprint(flask.Blueprint):
@@ -851,6 +854,7 @@ def errorpage(error):
         app.logger.debug(traceback.format_exc())
     return ErrorPage(error)
 
+    
 
 @app.box('breadcrumb')
 def menu_breadcrumb():
