@@ -193,44 +193,6 @@ class Challenge(poobrains.storage.Named):
 
         if mode == 'raw':
 
-#            colors = [
-#                color.Color('#aaff00'),
-#                color.Color('#ffaa00'),
-#                color.Color('#ff00aa'),
-#                color.Color('#aa00ff'),
-#                color.Color('#99ffaa'),
-#                color.Color('#00aaff')
-#            ]
-#
-#            img = image.Image(width=210, height=70)
-#            x_jitter = (-5, 5)
-#            y_jitter = (-10, 10)
-#
-#            x = (img.width / 2) #+ random.randint(x_jitter[0], x_jitter[1])
-#            y = (img.width / 2) #+ random.randint(y_jitter[0], y_jitter[1])
-#            x = 10
-#            y = 50
-#            baseline = y
-#
-#            for char in self.captcha:
-#
-#                draw = drawing.Drawing()
-#                draw.font = os.path.join(poobrains.app.poobrain_path, 'knewave-outline.otf')
-#                c = colors[random.randint(0, len(colors) -1)]
-#                draw.stroke_color = c
-#                draw.fill_color = c
-#                draw.font_size = 40
-#                draw.translate(x, y)
-#                draw.rotate(random.randint(-20, 20))
-#                draw.text(0,0 , char)
-#                draw(img)
-#
-#                x += 30 + random.randint(x_jitter[0], x_jitter[1])
-#                y = baseline + random.randint(y_jitter[0], y_jitter[1])
-#            fg = img.clone()    
-#            img.gaussian_blur(3, 3)
-#            img.composite(fg, left=0, top=0)
-
             colors = [
                 (0,128,255),
                 (0,255,128),
@@ -241,10 +203,8 @@ class Challenge(poobrains.storage.Named):
             ]
 
             font_path = os.path.join(poobrains.app.poobrain_path, 'themes/default/fonts/knewave/knewave-outline.otf')
-            print "FLORB: ", font_path
             image = Image.new('RGBA', (250, 80), (255,255,255,0))
             font = ImageFont.truetype(font_path, 42)
-            #font = ImageFont.truetype('Orbitron Medium.ttf', 40)
 
 
             #x_jitter = ((image.width/10) * -1, 0)
@@ -253,7 +213,6 @@ class Challenge(poobrains.storage.Named):
             y_jitter = (-5, 5)
 
             textsize = font.getsize(' '.join(self.captcha))
-            print textsize
             centered = (image.width / 2 - textsize[0] / 2, image.height / 2 - textsize[1] / 2)
 
             x = centered[0] + random.randint(x_jitter[0], x_jitter[1])

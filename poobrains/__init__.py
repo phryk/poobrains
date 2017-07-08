@@ -461,15 +461,6 @@ class Poobrain(flask.Flask):
         
         self.logger.info("Finished cron run.")
 
-#    def run(self, *args, **kw):
-#
-#        if len(sys.argv) > 1 and sys.argv[1] == 'shell':
-#            shell = poobrains.cli.Shell(config=self.config)
-#            shell.start()
-#
-#        else:
-#            return super(Poobrain, self).run(*args, **kw)
-
 
 class Pooprint(flask.Blueprint):
 

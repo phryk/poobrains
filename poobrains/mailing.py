@@ -94,25 +94,3 @@ class Mail(MIMEMultipart):
         smtp.ehlo()
         smtp.login(poobrains.app.config['SMTP_ACCOUNT'], poobrains.app.config['SMTP_PASSWORD'])
         smtp.sendmail(self['From'], self['To'], self.as_string())
-
-
-#@poobrains.app.site.route('/testmail')
-#def testmail():
-#
-#    user = poobrains.auth.User.load('administrator')
-#
-#    mail = Mail()
-#    mail['To'] = user.mail
-#    mail.fingerprint = user.pgp_fingerprint
-#    mail['Subject'] = 'Testmail'
-#    mail.attach(MIMEText(u'Jurbn Schnörbn\nFlörb'.encode('utf-8'), 'plain', 'utf-8'))
-#    
-#    fd = open('upload/image/poobrains.gif', 'rb')
-#    attachment = MIMEImage(fd.read()) 
-#    fd.close()
-#
-#    mail.attach(attachment)
-#
-#    mail.send()
-#
-#    return "Florb sent?"

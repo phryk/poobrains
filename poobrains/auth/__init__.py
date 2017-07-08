@@ -51,10 +51,6 @@ def admin_setup():
                 if issubclass(related_model, Administerable):
                     poobrains.app.admin.add_related_view(cls, related_field, rule, force_secure=True)
 
-        
-
-        #poobrains.app.register_blueprint(poobrains.app.admin, url_prefix='/admin/')
-
 
 @poobrains.app.admin.before_request
 def checkAAA():

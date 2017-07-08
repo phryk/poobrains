@@ -266,19 +266,6 @@ class TableRow(object):
 
         super(TableRow, self).__setattr__(name, value)
 
-#            columns_old = self._columns
-#            columns_new = value
-#
-#            columns_removed = []
-#            for column in columns_old:
-#                if column not in columns_new:
-#                    columns_removed.append((column, columns_old.index(column)))
-#
-#            columns_added = []
-#            for column in columns_new:
-#                if column not in columns_old:
-#                    columns_added.append((column, columns_new.index(columns)))
-
 
     def _get_idx(self, key):
 
