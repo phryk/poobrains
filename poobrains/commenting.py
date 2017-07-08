@@ -97,6 +97,9 @@ class Commentable(poobrains.tagging.Taggable):
         except poobrains.auth.AccessDenied:
             pass # No point loading shit this user isn't allowed to render anyways.
 
+        except Exception as e:
+            poobrains.app.logger.warning("Can't load comments associated to %r" % self)
+
 
     def comment_form(self, reply_to=None):
 
