@@ -51,10 +51,6 @@ def admin_setup():
                 if issubclass(related_model, Administerable):
                     poobrains.app.admin.add_related_view(cls, related_field, rule, force_secure=True)
 
-        
-
-        #poobrains.app.register_blueprint(poobrains.app.admin, url_prefix='/admin/')
-
 
 @poobrains.app.admin.before_request
 def checkAAA():
@@ -1504,3 +1500,18 @@ class Page(Owned):
 
 
 poobrains.app.site.add_view(Page, '/<regex(".*"):path>', mode='full')
+
+
+@poobrains.app.cron
+def bury_tokens():
+
+
+    deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
+
+    q = ClientCertToken.delete().where(
+        ClientCertToken.created <= deathwall or ClientCertToken.redeemed == 1
+    )
+
+    count = q.execute()
+
+    poobrains.app.logger.info("Deleted %d dead client certificate tokens." % count)

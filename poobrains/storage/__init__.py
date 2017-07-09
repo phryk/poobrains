@@ -10,10 +10,6 @@ import werkzeug.routing
 import peewee
 
 # parent imports
-from poobrains import app
-from poobrains import helpers
-from poobrains import rendering
-from poobrains import form
 import poobrains
 # internal imports
 import fields
@@ -52,19 +48,19 @@ class QuotedSQL(peewee.Entity):
 
 
 
-class BaseModel(helpers.MetaCompatibility, peewee.BaseModel):
+class BaseModel(poobrains.helpers.MetaCompatibility, peewee.BaseModel):
 
     pass
 
 
-class Model(peewee.Model, helpers.ChildAware):
+class Model(peewee.Model, poobrains.helpers.ChildAware):
 
     __metaclass__ = BaseModel
     
     form_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
     class Meta:
-        database = app.db
+        database = poobrains.app.db
         order_by = ['-id']
 
 
@@ -123,7 +119,7 @@ class Model(peewee.Model, helpers.ChildAware):
             return "<%s, unsaved/no primary key>" % self.__class__.__name__
 
 
-class Storable(Model, rendering.Renderable):
+class Storable(Model, poobrains.rendering.Renderable):
 
     class Meta:
         abstract = True
@@ -137,7 +133,7 @@ class Storable(Model, rendering.Renderable):
 
     def instance_url(self, mode='full', quiet=None, **url_params):
 
-        return app.get_url(self.__class__, handle=self.handle_string, mode=mode, quiet=quiet, **url_params)
+        return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, quiet=quiet, **url_params)
 
 
     @classmethod
@@ -184,10 +180,10 @@ class Named(Storable):
 
 
     def instance_url(self, mode='full', quiet=None, **url_params):
-        return app.get_url(self.__class__, handle=self.name, mode=mode, quiet=quiet, **url_params)
+        return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode, quiet=quiet, **url_params)
 
 
-class Listing(rendering.Renderable):
+class Listing(poobrains.rendering.Renderable):
 
     #TODO: Make a Listing class that works with non-Storable Renderables?
 
@@ -217,7 +213,7 @@ class Listing(rendering.Renderable):
             self.title = cls.__name__
 
         if limit is None:
-            self.limit = app.config['PAGINATION_COUNT']
+            self.limit = poobrains.app.config['PAGINATION_COUNT']
         else:
             self.limit = limit
 

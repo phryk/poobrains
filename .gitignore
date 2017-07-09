@@ -6,8 +6,8 @@
 *.core
 *.log
 ssl
-gnupg
-upload
+/gnupg
+/upload
 config.py
 bin
 include

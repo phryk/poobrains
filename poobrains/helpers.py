@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import string
 import random
 import functools
 import werkzeug
@@ -53,6 +54,17 @@ def choose_primary(d):
            return v
 
     return d.values()[0]
+
+
+def clean_string(s):
+
+    allowed_chars = string.ascii_lowercase + ' '
+    clean = ""
+    for char in s.lower():
+        if char in allowed_chars:
+            clean += char
+
+    return clean.replace(' ', '-')
 
 
 def themed(f):
