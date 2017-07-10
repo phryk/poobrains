@@ -61,14 +61,17 @@ def clean_string(s):
     allowed_chars = string.ascii_lowercase + string.digits
     clean = ""
 
+    if not isinstance(s, unicode):
+        s = unicode(s.decode('utf-8'))
+
     s = s.lower()
 
     substitutions = {
-        ' ': '-',
-        'ä': 'ae',
-        'ö': 'oe',
-        'ü': 'ue',
-        'ß': 'ss'
+        u' ': u'-',
+        u'ä': u'ae',
+        u'ö': u'oe',
+        u'ü': u'ue',
+        u'ß': u'ss'
     }
 
     for pattern, substitute in substitutions.iteritems():
