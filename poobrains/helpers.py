@@ -58,13 +58,27 @@ def choose_primary(d):
 
 def clean_string(s):
 
-    allowed_chars = string.ascii_lowercase + ' '
+    allowed_chars = string.ascii_lowercase + string.digits
     clean = ""
-    for char in s.lower():
+
+    s = s.lower()
+
+    substitutions = {
+        ' ': '-',
+        'ä': 'ae',
+        'ö': 'oe',
+        'ü': 'ue',
+        'ß': 'ss'
+    }
+
+    for pattern, substitute in substitutions.iteritems():
+        s = s.replace(pattern, substitute)
+
+    for char in s:
         if char in allowed_chars:
             clean += char
 
-    return clean.replace(' ', '-')
+    return clean
 
 
 def themed(f):
