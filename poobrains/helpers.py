@@ -57,8 +57,8 @@ def choose_primary(d):
 
 
 def clean_string(s):
-
-    allowed_chars = string.ascii_lowercase + string.digits
+    
+    allowed_chars = string.ascii_lowercase + string.digits + '-'
     clean = ""
 
     if not isinstance(s, unicode):
@@ -67,8 +67,8 @@ def clean_string(s):
     s = s.lower()
 
     substitutions = {
-        u' ': u'-',
         u'ä': u'ae',
+        u' ': u'-',
         u'ö': u'oe',
         u'ü': u'ue',
         u'ß': u'ss'
