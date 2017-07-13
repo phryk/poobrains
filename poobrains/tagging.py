@@ -6,31 +6,13 @@ import flask
 
 import poobrains
 
-#@poobrains.app.expose('/tag/', mode='full')
-class Tag(poobrains.auth.Named):
-
-    description = poobrains.md.MarkdownField()
+class Forestable(poobrains.auth.Named):
+    
     parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')])
-
-    offset = None
 
 
     class Meta:
-
-        modes = collections.OrderedDict([
-            ('add', 'create'),
-            ('teaser', 'read'),
-            ('inline', 'read'),
-            ('full', 'read'),
-            ('edit', 'update'),
-            ('delete', 'delete')
-        ])
-
-
-    def __init__(self, *args, **kwargs):
-
-        super(Tag, self).__init__(*args, **kwargs)
-        self.offset = 0
+        abstract = True
 
 
     @classmethod
@@ -56,13 +38,38 @@ class Tag(poobrains.auth.Named):
         for tag in tags:
             tree.children.append(tag.tree(current_depth=current_depth+1))
 
-
         return tree
 
 
     def tree(self, current_depth=0):
 
         return self.__class__.class_tree(root=self, current_depth=current_depth)
+
+
+#@poobrains.app.expose('/tag/', mode='full')
+class Tag(Forestable):
+
+    description = poobrains.md.MarkdownField()
+
+    offset = None
+
+
+    class Meta:
+
+        modes = collections.OrderedDict([
+            ('add', 'create'),
+            ('teaser', 'read'),
+            ('inline', 'read'),
+            ('full', 'read'),
+            ('edit', 'update'),
+            ('delete', 'delete')
+        ])
+
+
+    def __init__(self, *args, **kwargs):
+
+        super(Tag, self).__init__(*args, **kwargs)
+        self.offset = 0
 
 
     @poobrains.auth.protected
