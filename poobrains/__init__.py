@@ -825,9 +825,12 @@ class ErrorPage(poobrains.rendering.Renderable):
         self.error = error
         if hasattr(error, 'code'):
             self.code = error.code
-        
+
+        elif isinstance(error, peewee.DoesNotExist):
+            self.code = 404
+
         else:
-            self.code = 'WTFBBQ'
+            self.code = '500'
             for cls, code in app.error_codes.iteritems():
                 if isinstance(error, cls):
                     self.code = code
@@ -852,18 +855,14 @@ class ErrorPage(poobrains.rendering.Renderable):
 @poobrains.helpers.themed
 def errorpage(error):
 
-    if hasattr(error, 'code'):
-        app.logger.error('Error %s when accessing %s: %s' % (error.code, flask.request.path, error.message))
-        return (ErrorPage(error), error.code)
-
-    app.logger.error('%s when accessing %s: %s' % (error.__class__.__name__, flask.request.path, error.message))
-
+    app.logger.error('Error %s when accessing %s: %s' % (type(error).__name__, flask.request.path, error.message))
     if app.config['DEBUG']:
         import traceback
         app.logger.debug(traceback.format_exc())
-    return ErrorPage(error)
 
-    
+    page = ErrorPage(error)
+    return (page, page.code)
+
 
 @app.box('breadcrumb')
 def menu_breadcrumb():
