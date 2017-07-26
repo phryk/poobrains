@@ -15,6 +15,7 @@ class Tag(poobrains.auth.Named):
 
     offset = None
 
+
     class Meta:
 
         modes = collections.OrderedDict([
@@ -31,6 +32,37 @@ class Tag(poobrains.auth.Named):
 
         super(Tag, self).__init__(*args, **kwargs)
         self.offset = 0
+    
+    
+    @classmethod
+    def class_tree(cls, root=None, current_depth=0):
+       
+        if current_depth == 0:
+            tree = poobrains.rendering.Tree(root=poobrains.rendering.RenderString(root.name), mode='inline')
+        else:
+            tree = poobrains.rendering.Tree(root=root, mode='inline')
+
+        if current_depth > 100:
+
+            if root:
+                message = "Possibly incestuous tag: '%s'."  % root.name
+            else:
+                message = "Possibly incestuous tag, but don't have a root for this tree. Are you fucking with current_depth manually?"
+
+            poobrains.app.logger.error(message)
+            return tree 
+
+        tags = cls.select().where(cls.parent == root)
+
+        for tag in tags:
+            tree.children.append(tag.tree(current_depth=current_depth+1))
+
+        return tree
+
+
+    def tree(self, current_depth=0):
+
+        return self.__class__.class_tree(root=self, current_depth=current_depth)
 
 
     @poobrains.auth.protected
