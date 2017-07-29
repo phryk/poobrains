@@ -255,6 +255,12 @@ class RangedInteger(Integer):
                 raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, self.value, self.min, self.max))
 
 
+class DateTime(RenderableField):
+
+    validator = validators.is_datetime
+    coercer = coercers.coerce_datetime
+
+
 class Choice(RenderableField):
 
     choices = None

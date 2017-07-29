@@ -43,6 +43,11 @@ def is_bool(field, value):
         raise errors.ValidationError("%s is not a boolean." % value)
 
 
+def is_datetime(field, value):
+
+    if not isinstance(value, datetime.datetime):
+        raise errors.ValidationError("%s is not a valid datetime." % value)
+
 # functions to generate validators
 
 
