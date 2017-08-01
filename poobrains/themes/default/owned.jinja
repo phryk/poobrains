@@ -1,7 +1,8 @@
-{% extends "renderable.jinja" %}
+{% extends "administerable.jinja" %}
 
 {% block footer %}
 <footer>
     by {{ content.owner.name }} of {{ content.group.name }}
+    {{ super() }}
 </footer>
 {% endblock %}
