@@ -452,7 +452,6 @@ nav.menu {
 
 ul {
     list-style: square;
-    padding: 0;
 
     &.listing {
         margin: 0;
@@ -798,10 +797,13 @@ pre {
 }
 
 ul.tag-list {
+
+    margin-top: 0.5rem;
+    padding-left: 0;
+
     li {
         list-style: none;
         display: inline-block;
-        margin-left: 0;
 
         a {
             background: $color_background_light;
