@@ -800,6 +800,7 @@ ul.tag-list {
 
     margin-top: 0.5rem;
     padding-left: 0;
+    display: block; /* mainly to make it "bigger" in order to make the title attribute trigger on more space */
 
     li {
         list-style: none;
