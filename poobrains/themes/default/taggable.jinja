@@ -1,1 +1,15 @@
 {% extends "owned.jinja" %}
+
+{% block footer %}
+{% if content.tags|length %}
+    
+    <ul title="Tagged as…" class="tag-list">
+    {% for tag in content.tags %}
+        <li>{{ tag.render('inline') }}</li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{{ super() }}
+
+{% endblock %}

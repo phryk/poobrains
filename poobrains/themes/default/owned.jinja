@@ -1,8 +1,6 @@
 {% extends "administerable.jinja" %}
 
 {% block footer %}
-<footer>
-    by {{ content.owner.name }} of {{ content.group.name }}
+    <span class="author"><a href="{{ content.owner.url(quiet=False) }}" title="{{ content.owner.about|truncate }}">{{ content.owner.name }}</a></span>
     {{ super() }}
-</footer>
 {% endblock %}

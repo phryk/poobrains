@@ -10,7 +10,8 @@ import poobrains
 #@poobrains.app.expose('/tag/', mode='full')
 class Tag(poobrains.auth.Named):
 
-    parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')])
+    title = poobrains.storage.fields.CharField()
+    parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')]) # FIXME: Yes, this is no proper protection against loops
     description = poobrains.md.MarkdownField()
 
     offset = None
@@ -112,6 +113,12 @@ class Tag(poobrains.auth.Named):
         pagination = poobrains.storage.Pagination(queries, self.offset, 'site.tag_handle_offset')
 
         return pagination
+
+    def save(self, *args, **kwargs):
+        if not self.title:
+            self.title = self.name.replace('-', ' ').title()
+
+        return super(Tag, self).save(*args, **kwargs)
 
 poobrains.app.site.add_listing(Tag, '/tag/', mode='teaser', endpoint='tag')
 poobrains.app.site.add_view(Tag, '/tag/<handle>/', mode='full', endpoint='tag_handle')
