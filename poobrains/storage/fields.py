@@ -36,7 +36,7 @@ class TextField(Field, peewee.TextField):
 
 
 class DateTimeField(Field, peewee.DateTimeField):
-    pass
+    form_class = poobrains.form.fields.DateTime
 
 
 class ForeignKeyField(Field, peewee.ForeignKeyField):

@@ -18,7 +18,7 @@
 
                 {% block breadcrumb %}{% if g.boxes['breadcrumb'] %}{{ g.boxes['breadcrumb'].render() }}{% endif %}{% endblock %}
 
-                <h1>{{ g.title }}</h1>
+                <h1 title="{{ g.title }}">{{ g.title }}</h1>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
