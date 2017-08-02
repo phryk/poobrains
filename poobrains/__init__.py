@@ -392,7 +392,7 @@ class Poobrain(flask.Flask):
         return decorator
 
     
-    def get_url(self, cls, mode=None, quiet=None, **url_params):
+    def get_url(self, cls, mode=None, **url_params):
 
         if flask.request.blueprint is not None:
 
@@ -410,7 +410,7 @@ class Poobrain(flask.Flask):
 
        
         try:
-            return blueprint.get_url(cls, mode=mode, quiet=quiet, **url_params)
+            return blueprint.get_url(cls, mode=mode, **url_params)
 
         except LookupError:
 
@@ -433,17 +433,17 @@ class Poobrain(flask.Flask):
                     blueprint = self.blueprints[bp_name]
 
                     try:
-                        return blueprint.get_url(cls, mode=mode, quiet=quiet, **url_params)
+                        return blueprint.get_url(cls, mode=mode, **url_params)
                     except LookupError:
                         pass
 
             raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, url_params.get('handle', None), mode))
 
 
-    def get_related_view_url(self, cls, handle, related_field, quiet=None):
+    def get_related_view_url(self, cls, handle, related_field):
         
         blueprint = self.blueprints[flask.request.blueprint]
-        return blueprint.get_related_view_url(cls, handle, related_field, quiet=quiet)
+        return blueprint.get_related_view_url(cls, handle, related_field)
 
 
     def cron(self, func):
@@ -640,29 +640,25 @@ class Pooprint(flask.Blueprint):
         raise ValueError("No fitting url rule found for all params: %s", ','.join(url_params.keys()))
 
 
-    def get_url(self, cls, mode=None, quiet=None, **url_params):
+    def get_url(self, cls, mode=None, **url_params):
         
         if not issubclass(cls, poobrains.storage.Model) or \
         mode == 'add' or \
         (url_params.has_key('handle') and (mode is None or not mode.startswith('teaser'))):
-            return self.get_view_url(cls, mode=mode, quiet=quiet, **url_params)
+            return self.get_view_url(cls, mode=mode, **url_params)
 
-        return self.get_listing_url(cls, mode=mode, quiet=quiet, **url_params)
+        return self.get_listing_url(cls, mode=mode, **url_params)
 
 
-    def get_view_url(self, cls, mode=None, quiet=False, **url_params):
+    def get_view_url(self, cls, mode=None, **url_params):
 
         if mode == None:
             mode = 'full'
 
         if not self.views.has_key(cls):
-            if quiet:
-                return False
             raise LookupError("No registered views for class %s." % (cls.__name__,))
 
         if not self.views[cls].has_key(mode):
-            if quiet:
-                return False
             raise LookupError("No registered views for class %s with mode %s." % (cls.__name__, mode))
 
 
@@ -672,16 +668,10 @@ class Pooprint(flask.Blueprint):
         else:
             endpoint = endpoints[0]
 
-        if quiet:
-            try:
-                return flask.url_for(endpoint, **url_params)
-            except Exception:
-                return False
-
         return flask.url_for(endpoint, **url_params)
 
 
-    def get_listing_url(self, cls, handle=None, mode=None, offset=0, quiet=False, **url_params):
+    def get_listing_url(self, cls, handle=None, mode=None, offset=0, **url_params):
         
         if mode == None:
             mode = 'teaser'
@@ -701,13 +691,9 @@ class Pooprint(flask.Blueprint):
             offset = cls.select().where(*clauses).count() - 1
 
         if not self.listings.has_key(cls):
-            if quiet:
-                return False
             raise LookupError("No registered listings for class %s." % (cls.__name__,))
 
         if not self.listings[cls].has_key(mode):
-            if quiet:
-                return False
             raise LookupError("No registered listings for class %s with mode %s." % (cls.__name__, mode))
 
         endpoints = ['%s.%s' % (self.name, x) for x in self.listings[cls][mode]]
@@ -721,35 +707,19 @@ class Pooprint(flask.Blueprint):
             kw['offset'] = offset
             endpoint = "%s_offset" % endpoint
 
-        if quiet:
-            try:
-                return flask.url_for(endpoint, **kw)
-            except Exception:
-                return False
-
         return flask.url_for(endpoint, **kw)
     
     
-    def get_related_view_url(self, cls, handle, related_field, quiet=False):
+    def get_related_view_url(self, cls, handle, related_field):
 
         if not self.related_views.has_key(cls):
-            if quiet:
-                return False
             raise LookupError("No registered related views for class %s." % (cls.__name__,))
 
         if not self.related_views[cls].has_key(related_field):
-            if quiet:
-                return False
             raise LookupError("No registered related views for %s[%s]<-%s.%s." % (cls.__name__, handle, related_field.model_class.__name__, related_field.name))
 
         endpoints = ['%s.%s' % (self.name, x) for x in self.related_views[cls][related_field]]
         endpoint = self.choose_endpoint(endpoints, **{'handle': handle}) 
-
-        if quiet:
-            try:
-                return flask.url_for(endpoint, handle=handle)
-            except Exception:
-                return False
 
         return flask.url_for(endpoint, handle=handle)
 
@@ -814,6 +784,7 @@ error_descriptions = {
 
 class ErrorPage(poobrains.rendering.Renderable):
 
+    title = None
     error = None
     code = None
     message = None

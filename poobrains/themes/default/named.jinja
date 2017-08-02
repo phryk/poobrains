@@ -1,9 +1,9 @@
 {% extends "administerable.jinja" %}
 
 {% block header %}
-{% if mode == 'teaser' %}
-    <h2><a href="{{ content.url('full', quiet=True) or content.url('edit', quiet=True) }}">{{ content.name }}</a></h2>
-{% elif mode == 'inline' %}
+{% if mode == 'inline' %}
     <h3><a href="{{ content.url('full', quiet=True) or content.url('edit', quiet=True) }}">{{ content.name }}</a></h3>
+{% elif mode != 'full' %}
+    <h2><a href="{{ content.url('full', quiet=True) or content.url('edit', quiet=True) }}">{{ content.name }}</a></h2>
 {% endif %}
 {% endblock %}

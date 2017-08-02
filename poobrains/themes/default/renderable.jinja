@@ -3,7 +3,15 @@
     {% if self.header() %}
         <header>
         {% block header %}
-            <h2>{% if content.title %}{{ content.title }}{% elif content.name %}{{ content.name }}{% else %}No title{% endif %}</h2>
+            {% if mode != 'full' %}
+                {% with url = content.url('full', quiet=True) %}
+                    {% if url %}
+                        <h2><a href="{{ url }}">{{ content.title }}</a></h2>
+                    {% else %}
+                        <h2>{{ content.title }}</h2>
+                    {% endif %}
+                {% endwith %}
+            {% endif %}
         {% endblock %}
         </header>
     {% endif %}

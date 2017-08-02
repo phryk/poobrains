@@ -130,10 +130,27 @@ class Storable(Model, poobrains.rendering.Renderable):
         super(Storable, self).__init__(*args, **kwargs)
         self.url = self.instance_url # make .url callable for class and instances
 
+    
+    @property
+    def title(self):
+        if hasattr(self, 'name'):
+            return self.name
 
-    def instance_url(self, mode='full', quiet=None, **url_params):
+        elif self.id:
+            return "%s #%d" % (self.__class__.__name__, self.id)
 
-        return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, quiet=quiet, **url_params)
+        return self.__class__.__name__
+
+
+    def instance_url(self, mode='full', quiet=False, **url_params):
+
+        if quiet:
+            try:
+                return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
+            except:
+                return False
+
+        return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
 
 
     @classmethod
@@ -179,8 +196,15 @@ class Named(Storable):
         super(Named, self).__init__(*args, **kwargs)
 
 
-    def instance_url(self, mode='full', quiet=None, **url_params):
-        return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode, quiet=quiet, **url_params)
+    def instance_url(self, mode='full', quiet=False, **url_params):
+
+        if quiet:
+            try:
+                return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
+            except:
+                return False
+
+        return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
 
 
 class Listing(poobrains.rendering.Renderable):

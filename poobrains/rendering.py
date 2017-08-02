@@ -26,15 +26,37 @@ class Renderable(helpers.ChildAware):
         self.url = self.instance_url # make .url callable for class and instances
 
 
+    @property
+    def title(self):
+        if hasattr(self, 'name'):
+            return self.name
+
+        return self.__class__.__name__
+
+
     @classmethod
-    def url(cls, mode='teaser', **url_params):
+    def url(cls, mode='teaser', quiet=False, **url_params):
+
+        if quiet:
+            try:
+                return poobrains.app.get_url(cls, mode=mode, **url_params)
+            except:
+                return False
+
         return poobrains.app.get_url(cls, mode=mode, **url_params)
 
 
-    def instance_url(self, mode='full', **url_params):
+    def instance_url(self, mode='full', quiet=False, **url_params):
         
         if getattr(self, 'handle', False) and not isinstance(self, poobrains.form.Form): # FIXME: resolve name collision "handle" storable vs. form
             url_params['handle'] = self.handle
+
+        if quiet:
+            try:
+                return poobrains.app.get_url(self.__class__, mode=mode, **url_params)
+            except:
+                return False
+
         return poobrains.app.get_url(self.__class__, mode=mode, **url_params)
 
 
