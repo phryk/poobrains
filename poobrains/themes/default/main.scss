@@ -302,6 +302,7 @@ main {
                         }
                         a {
 
+                            display: inline-table; /* Like inline-block, but ::after height doesn't get fucked */
                             padding-top: 0.5rem;
                             margin-right: 0.25rem;
                             color: $color_font_dark;
