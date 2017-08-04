@@ -301,7 +301,7 @@ class Pagination(object):
         else:
             self.limit = poobrains.app.config['PAGINATION_COUNT']
 
-        self.menu = poobrains.rendering.RenderString("Showing all results on this page.")
+        self.menu = poobrains.rendering.RenderString("")
         #self.counts = dict([(cls, q.count()) for cls, q in self.queries.iteritems()])
         #self.counts = dict([(q.model_class, q.count()) for q in self.queries])
         self.counts = collections.OrderedDict([(q, q.count()) for q in self.queries])

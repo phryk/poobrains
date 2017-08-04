@@ -903,6 +903,7 @@ ul.tag-list {
     display: block; /* mainly to make it "bigger" in order to make the title attribute trigger on more space */
 
     li {
+        margin-top: 0;
         list-style: none;
         display: inline-block;
 
