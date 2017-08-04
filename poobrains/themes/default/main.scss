@@ -438,6 +438,18 @@ main {
                 padding: 1rem;
         }
 
+        & > .comments {
+            header,
+            div.content,
+            footer {
+                background: transparent;
+            }
+
+            footer {
+                padding-top: 0;
+            }
+        }
+
         article,
         form {
 

@@ -50,7 +50,7 @@ class Comment(poobrains.auth.Administerable):
         if children.has_key(self.model):
 
             model = Commentable.class_children_keyed()[self.model]
-            comments_enabled = model.load(self.handle).select(model.comments_enabled).scalar()
+            comments_enabled = model.load(self.handle).comments_enabled
 
             if comments_enabled:
 
