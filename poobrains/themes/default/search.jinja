@@ -6,7 +6,7 @@
 
 {% block content %}
     {% if content.results|length %}
-        <ul>
+        <ul class="listing">
         {% for result in content.results %}
             <li>{{ result.render('teaser') }}</li>
         {% endfor %}
