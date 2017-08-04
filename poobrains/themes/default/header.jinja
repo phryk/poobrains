@@ -1,3 +1,5 @@
+<a id="logo-link" href="/" title="Florp me!"><object id="logo" data="/theme/logo.svg"></object></a>
+
 <div class="sticky">
 
     {% block menu_main %}
@@ -5,10 +7,6 @@
         {{ g.boxes.menu_main.render() }}
     {% endif %}
     {% endblock %}
-
-    {% for n in g.forms.keys() %}
-      FORM: {{ n.__class__ }}
-    {% endfor %}
 
     {% block search %}
     {% if g.boxes.search %}

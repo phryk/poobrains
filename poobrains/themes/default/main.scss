@@ -205,17 +205,22 @@ body {
             }
         }
 
-        #logo {
+        #logo-link {
 
-            display: none;
             flex-basis: 7.5rem;
             flex-grow: 1;
             flex-shrink: 0;
             align-self: center;
             justify-self: flex-end;
-            max-height: 7.5rem;
             position: sticky;
             bottom: calc(100% - 9.5rem);
+            max-height: 7.5rem;
+            
+            #logo {
+                display: none;
+                height: 7.5rem;
+                pointer-events: none;
+            }
         }
     }
 }
