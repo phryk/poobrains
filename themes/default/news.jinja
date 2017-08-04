@@ -7,5 +7,9 @@
 {% endblock %}
 
 {% block content %}
-{{ content.text.render() }}
+{% if mode == 'full' %}
+    {{ content.text.render() }}
+{% else %}
+    <pre class="markdown">{{ content.text|truncate }}</pre>
+{% endif %}
 {% endblock %}
