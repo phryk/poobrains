@@ -464,10 +464,9 @@ main {
                 padding-bottom: 0;
             }
 
-
             &.content-type-listing,
-            &.content-type-container:not(.administerable-actions),
-            &.content-type-tag.mode-full { 
+            &.content-type-container,
+            &.content-type-tag.mode-full {
             
                 & > div.content {
                     background: transparent;
@@ -478,6 +477,20 @@ main {
                     background: transparent;
                 }
             }
+
+            &.content-type-search.mode-full {
+                form,
+                header,
+                div.content,
+                footer {
+                    background: transparent;
+                }
+
+                & > header {
+                    background: $color_background_dark;
+                }
+            }
+
         }
 
         article {
