@@ -39,6 +39,9 @@ class News(poobrains.commenting.Commentable):
 
     """ This is the news class docstring """
 
+    class Meta:
+        search_fields = ['title', 'name', 'text']
+
     title = poobrains.storage.fields.CharField()
     text = poobrains.md.MarkdownField()
 

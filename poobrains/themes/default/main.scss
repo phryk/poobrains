@@ -497,18 +497,22 @@ main {
                     & > header,
                     & > div.content,
                     & > footer {
-                        background: $color_background_dark;
+                        background: $color_background_dark !important;
                         padding: 0.25rem 1rem;
                     }
                 }
             }
 
             &.content-type-search.mode-full {
-                form,
-                header,
-                div.content,
-                footer {
+
+                & > div.content {
                     background: transparent;
+
+                    article,
+                    form {
+                        background: $color_background_dark;
+                        padding: 0.25rem 1rem;
+                    }
                 }
 
                 & > header {
