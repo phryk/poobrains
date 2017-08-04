@@ -1,4 +1,4 @@
-<article class="content-type-{{ content.__class__.__name__.lower() }} mode-{{ mode }}">
+<article class="content-type-{{ content.__class__.__name__.lower() }} mode-{{ mode }} {{ content.css_class }}">
     
     {% if self.header() %}
         <header>
@@ -15,17 +15,17 @@
         {% endblock %}
         </header>
     {% endif %}
-
+    
+    <div class="content">
     {% block content %}
-    <div>
         This is the ultimate fallback template. Somebody probably ought to implement one of these templates:
         <ul>
             {% for template in content.templates() %}
                 <li>{{ template }}</li>
             {% endfor %}
         </ul>
-    </div>
     {% endblock %}
+    </div>
 
     {% if self.footer() %}
     <footer>

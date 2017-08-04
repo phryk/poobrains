@@ -1,7 +1,13 @@
-<div class="error">
-    {% if content.description %}
-    <em>{{ content.description }}</em>
-    {% else %}
-    <em>{{ content.message }}</em>
-    {% endif %}
-</div>
+<article class="error">
+    <header>
+        <h2>VERY ERROR. SUCH DISGRACE. MANY SORRY.</h2>
+    </header>
+
+    <div class="content">
+        {% if content.description %}
+        <em>{{ content.description }}</em>
+        {% else %}
+        <em>{{ content.message }}</em>
+        {% endif %}
+    </div>
+</article>

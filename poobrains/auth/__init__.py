@@ -266,7 +266,7 @@ def admin_index():
         
         for administerable, listings in poobrains.app.admin.listings.iteritems():
 
-            subcontainer = poobrains.rendering.Container()
+            subcontainer = poobrains.rendering.Container(css_class='administerable-actions')
             menu = poobrains.rendering.Menu('listings-%s' % administerable.__name__)
             for mode, endpoints in listings.iteritems():
 

@@ -1,6 +1,6 @@
 /*@import('static/ostrich/ostrich-sans.css');*/
-@import '/theme/fonts/ostrich-sans/ostrich-sans.css';
-@import '/theme/fonts/open-sans/open-sans.css';
+@import 'fonts/ostrich-sans/ostrich-sans';
+@import 'fonts/open-sans/open-sans';
 
 @import 'colors';
 @import 'code';
@@ -389,7 +389,7 @@ main {
 
     #content {
 
-        display: flex;
+        display: flex; /* Why did this need to be flexed again ? */
         flex-basis: 100%;
         flex-direction: column;
 
@@ -399,13 +399,71 @@ main {
             position: relative;
             box-sizing: border-box;
             width: 100%;
-            padding: 1rem;
-            background: $color_background_dark;
+            /*background: $color_background_dark;*/
             z-index: 100;
             /*border: 0.25rem solid;
             border-top: none;
             border-bottom: none;
             border-color: $color_border;*/
+        }
+
+        article,
+        form {
+
+            & > header,
+            & > div.content,
+            & > footer {
+                background: $color_background_dark;
+                padding: 1rem;
+            }
+
+
+            &.content-type-listing,
+            &.content-type-container:not(.administerable-actions) { 
+            
+                & > div.content {
+                    background: transparent;
+                    padding: 0;
+                }
+
+                & > footer {
+                    background: transparent;
+                }
+            }
+        }
+
+        article {
+            & > footer {
+
+                padding: 0.25rem 1rem;
+                background: $color_background_light;
+                color: $color_font_dark;
+
+                nav.menu.actions,
+                span.author {
+
+                    display: inline-block;
+
+                    a {
+                        font-family: 'Ostrich Sans';
+                        font-size: 1.4rem;
+                        color: $color_font_dark;
+                        text-decoration: none;
+                        transition: color 0.3s, text-shadow 0.3s;
+                        font-weight: normal;
+
+                        &:hover,
+                        &.active {
+                            text-shadow: 0 0 0.25rem opacify($color_highlight, 1);
+                        }
+                    }
+                }
+
+                nav.menu.actions {
+                    float: right;
+                }
+
+            }
         }
 
         a {
@@ -415,8 +473,8 @@ main {
 
     & > footer {
 
+        margin: 0.25rem 0;
         padding: 0.5rem;
-        border-top: 1px solid opacify($color_background_light, -0.3);
         background: $color_background_dark;
 
         &, a {
@@ -456,8 +514,9 @@ ul {
 
     &.listing {
         margin: 0;
-        margin-top: 1rem;
-        padding-left: 1rem;
+        /*margin-top: 1rem; DELETEME */
+        padding-left: 0;
+        list-style: none;
 
         li {
             margin-top: 1rem;
@@ -557,6 +616,7 @@ article {
         margin-top: 0;
     }
 
+
     img,
     video,
     object {
@@ -575,12 +635,7 @@ article {
     }
     
     header {    
-        margin-bottom: 0.5rem;
-    }
-
-    footer {
-        margin-top: 0.5rem;
-        border-top: 1px solid opacify(opacify($color_font_light, 1), -0.8);
+        /*margin-bottom: 0.5rem; DELETEME */
     }
 
 }
@@ -595,7 +650,7 @@ form {
     padding: 0;
     margin: 0;
 
-    & > * {
+    & > div.content > * {
       display: block;
       width: 100%;
     }
@@ -694,7 +749,8 @@ h6 {
   font-family: 'Ostrich Sans Inline', sans;
   font-weight: normal;
   font-style: italic;
-  margin: 1rem 0;
+  /*margin: 1rem 0;*/ /* DELETEME */
+  margin: 0;
   padding: 0;
   line-height: 1;
 }

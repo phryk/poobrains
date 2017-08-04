@@ -6,16 +6,18 @@
 
 {% block header %}{%endblock%}
 
+<div class="content">
 {% block fields %}
     {% for field in content %}
         {{ field.render() }}
     {% endfor %}
 {% endblock %}
+</div>
 
+<footer>
 {% block footer %}
-    <footer>
-        {{ content.render_controls() }}
-    </footer>
+    {{ content.render_controls() }}
 {% endblock %}
+</footer>
 
 </form>

@@ -14,16 +14,21 @@ import helpers
 class Renderable(helpers.ChildAware):
 
     name = None
+    css_class = None
 
 
     class Meta:
         modes = collections.OrderedDict([('full', 'read')])
 
 
-    def __init__(self, name=None, **kwargs):
+    def __init__(self, name=None, css_class=None, **kwargs):
 
         self.name = name
         self.url = self.instance_url # make .url callable for class and instances
+
+        self.css_class = css_class
+        if self.css_class is None:
+            self.css_class = ''
 
 
     @property

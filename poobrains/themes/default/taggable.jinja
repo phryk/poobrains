@@ -1,6 +1,9 @@
 {% extends "owned.jinja" %}
 
 {% block footer %}
+
+{{ super() }}
+
 {% if content.tags|length %}
     
     <ul title="Tagged as…" class="tag-list">
@@ -9,7 +12,5 @@
     {% endfor %}
     </ul>
 {% endif %}
-
-{{ super() }}
 
 {% endblock %}
