@@ -460,6 +460,10 @@ main {
                 padding: 1rem;
             }
 
+            & > header {
+                padding-bottom: 0;
+            }
+
 
             &.content-type-listing,
             &.content-type-container:not(.administerable-actions),
