@@ -8,5 +8,7 @@
 {% endblock %}
 
 {% block footer %}
-{{ content.pagination.render() }}
+{% if content.pagination %}
+    {{ content.pagination.render() }}
+{% endif %}
 {% endblock %}

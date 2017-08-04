@@ -457,13 +457,27 @@ main {
             & > div.content,
             & > footer {
                 background: $color_background_dark;
-                padding: 1rem;
+                padding: 0.25rem 1rem;
             }
 
             & > header {
                 padding-bottom: 0;
             }
 
+            article,
+            form {
+
+                & > header,
+                & > div.content,
+                & > footer {
+                    background: transparent;
+                    padding: 0;
+                }
+            }
+        }
+
+        article {
+            
             &.content-type-listing,
             &.content-type-container,
             &.content-type-tag.mode-full {
@@ -474,7 +488,18 @@ main {
                 }
 
                 & > footer {
-                    background: transparent;
+                    background: transparent !important;
+                }
+
+                & article,
+                & footer {
+
+                    & > header,
+                    & > div.content,
+                    & > footer {
+                        background: $color_background_dark;
+                        padding: 0.25rem 1rem;
+                    }
                 }
             }
 
@@ -491,13 +516,10 @@ main {
                 }
             }
 
-        }
-
-        article {
             & > footer {
 
                 padding: 0.25rem 1rem;
-                background: $color_background_light;
+                background: $color_background_light !important;
                 color: $color_font_dark;
 
                 &::after {
