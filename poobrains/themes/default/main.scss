@@ -497,7 +497,7 @@ main {
                     & > header,
                     & > div.content,
                     & > footer {
-                        background: $color_background_dark !important;
+                        background: $color_background_dark;
                         padding: 0.25rem 1rem;
                     }
                 }
@@ -505,18 +505,30 @@ main {
 
             &.content-type-search.mode-full {
 
+                & > header {
+                    background: $color_background_dark;
+                    padding-bottom: 0.5rem;
+                }
+
                 & > div.content {
+
                     background: transparent;
+                    padding: 0;
 
                     article,
                     form {
-                        background: $color_background_dark;
-                        padding: 0.25rem 1rem;
+
+                        header,
+                        div.content,
+                        footer {
+                            background: $color_background_dark;
+                            padding: 0.25rem 1rem;
+                        }
                     }
                 }
 
-                & > header {
-                    background: $color_background_dark;
+                & > footer {
+                    background: transparent !important;
                 }
             }
 

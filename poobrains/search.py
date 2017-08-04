@@ -103,7 +103,10 @@ class Search(poobrains.auth.Protected):
                 q = administerable.list('read', flask.g.user)
                 clauses = []
 
-                term = '%%%s%%' % self.handle.lower()
+                if isinstance(poobrains.app.db, peewee.SqliteDatabase):
+                    term = '*%s*' % self.handle.lower()
+                else:
+                    term = '%%%s%%' % self.handle.lower()
 
                 if hasattr(administerable._meta, 'search_fields'):
 
