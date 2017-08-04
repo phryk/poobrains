@@ -1,6 +1,6 @@
 <article class="content-type-{{ content.__class__.__name__.lower() }} mode-{{ mode }} {{ content.css_class }}">
     
-    {% if self.header() %}
+    {% if self.header()|trim %}
         <header>
         {% block header %}
             {% if mode != 'full' %}
@@ -27,7 +27,7 @@
     {% endblock %}
     </div>
 
-    {% if self.footer() %}
+    {% if self.footer()|trim %}
     <footer>
         {% block footer %}{% endblock %}
     </footer>
