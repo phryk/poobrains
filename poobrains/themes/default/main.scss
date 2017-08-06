@@ -222,6 +222,15 @@ body {
                 pointer-events: none;
             }
         }
+
+        form {
+
+            & > .content,
+            & > footer {
+                padding: 0;
+                background: transparent;
+            }
+        }
     }
 }
 
@@ -238,44 +247,10 @@ main {
 
     box-sizing: border-box;
     
-    nav.menu {
-
-        ul {
-            li {
-                display: inline;
-
-                a {
-                    display: inline-block;
-                    position:relative;
-                    padding: 0.25rem;
-                }
-            }
-        }
-
-        &.pagination {
-
-            margin-top: 0.5rem;
-            text-align: center;
-
-            a {
-                display: inline-block;
-                background: $color_background_light;
-                width: 2rem;
-                height: 2rem;
-                border-radius: 1rem;
-                padding: 0;
-                margin: 0;
-                color: $color_font_dark;
-                text-decoration: none !important;
-                transition: background 0.3s;
-
-                &:hover,
-                &.active {
-                    background: $color_highlight;
-                }
-            }
-        }
+    a {
+        text-decoration: underline;
     }
+
 
     & > header {
 
@@ -309,6 +284,10 @@ main {
 
             &:last-child {
                 margin-bottom: -2rem;
+            }
+
+            ul li a {
+                padding: 0.25rem;
             }
 
             &.breadcrumb {
@@ -454,136 +433,6 @@ main {
                 padding-top: 0;
             }
         }
-
-        article,
-        form {
-
-            & > header,
-            & > div.content,
-            & > footer {
-                background: $color_background_dark;
-                padding: 0.25rem 1rem;
-            }
-
-            & > header {
-                padding-bottom: 0;
-            }
-
-            article,
-            form {
-
-                & > header,
-                & > div.content,
-                & > footer {
-                    background: transparent;
-                    padding: 0;
-                }
-            }
-        }
-
-        article {
-            
-            &.content-type-listing,
-            &.content-type-container,
-            &.content-type-tag.mode-full {
-            
-                & > div.content {
-                    background: transparent;
-                    padding: 0;
-                }
-
-                & > footer {
-                    background: transparent !important;
-                }
-
-                & article,
-                & footer {
-
-                    & > header,
-                    & > div.content,
-                    & > footer {
-                        background: $color_background_dark;
-                        padding: 0.25rem 1rem;
-                    }
-                }
-            }
-
-            &.content-type-search.mode-full {
-
-                & > header {
-                    background: $color_background_dark;
-                    padding-bottom: 0.5rem;
-                }
-
-                & > div.content {
-
-                    background: transparent;
-                    padding: 0;
-
-                    article,
-                    form {
-
-                        header,
-                        div.content,
-                        footer {
-                            background: $color_background_dark;
-                            padding: 0.25rem 1rem;
-                        }
-                    }
-                }
-
-                & > footer {
-                    background: transparent !important;
-                }
-            }
-
-            & > footer {
-
-                padding: 0.25rem 1rem;
-                background: $color_background_light !important;
-                color: $color_font_dark;
-
-                &::after {
-                    content: "Don't mind me, I'm just clearing shit up.";
-                    display: block;
-                    visibility: hidden;
-                    height: 0;
-                    clear: both;
-                }
-
-                nav.menu.actions,
-                span.author {
-
-                    display: inline-block;
-
-                    a {
-
-                        display: inline-block;
-                        padding: 0.25rem;
-                        font-family: 'Ostrich Sans';
-                        font-size: 1.4rem;
-                        color: $color_font_dark;
-                        text-decoration: none;
-                        transition: color 0.3s, text-shadow 0.3s;
-                        font-weight: normal;
-
-                        &:hover,
-                        &.active {
-                            text-shadow: 0 0 0.25rem opacify($color_highlight, 1);
-                        }
-                    }
-                }
-
-                nav.menu.actions {
-                    float: right;
-                }
-
-            }
-        }
-
-        a {
-            text-decoration: underline;
-        }
     }
 
     & > footer {
@@ -613,12 +462,40 @@ nav.menu {
         padding: 0;
 
         li {
+            display: inline;
             list-style: none;
             font-size: 1.4rem;
             font-weight: normal;
 
             a {
                 outline: none;
+                text-decoration: none;
+                display: inline-block;
+                position:relative;
+            }
+        }
+    }
+
+    &.pagination {
+
+        margin-top: 0.5rem;
+        text-align: center;
+
+        a {
+            display: inline-block;
+            background: $color_background_light;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 1rem;
+            padding: 0;
+            margin: 0;
+            color: $color_font_dark;
+            text-decoration: none !important;
+            transition: background 0.3s;
+
+            &:hover,
+            &.active {
+                background: $color_highlight;
             }
         }
     }
@@ -633,7 +510,7 @@ ul {
         padding-left: 0;
         list-style: none;
 
-        li {
+        & > li {
             margin-top: 1rem;
 
             /*&:first-child {
@@ -720,6 +597,39 @@ div.tree {
     }
 }
 
+article,
+form {
+
+    & > header,
+    & > div.content,
+    & > footer {
+        padding: 0.5rem 1rem;
+    }
+
+    & > header {
+        background: $color_background_light;
+
+        h2 {
+
+            max-width: 100%; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            color: $color_font_dark;
+
+            a {
+                color: $color_font_dark;
+                text-decoration: none;
+            }
+        }
+    }
+
+    & > div.content {
+        background: $color_background_dark;
+    }
+}
+
 article {
 
     line-height: 1.5;
@@ -730,7 +640,6 @@ article {
     p:first-child {
         margin-top: 0;
     }
-
 
     img,
     video,
@@ -746,11 +655,109 @@ article {
 
     nav {
         font-weight: normal;
-        font-size: 1.5rem;
     }
     
-    header {    
+    & > header {    
         /*margin-bottom: 0.5rem; DELETEME */
+    }
+
+    & > footer {
+
+        padding: 0.25rem 1rem;
+        background: $color_background_light;
+        color: $color_font_dark;
+
+        &::after {
+            content: "Don't mind me, I'm just clearing shit up.";
+            display: block;
+            visibility: hidden;
+            height: 0;
+            clear: both;
+        }
+
+        nav.menu.actions,
+        span.author {
+
+            display: inline-block;
+
+            a {
+
+                display: inline-block;
+                font-family: 'Ostrich Sans';
+                font-size: 1.4rem;
+                color: $color_font_dark;
+                text-decoration: none;
+                transition: color 0.3s, text-shadow 0.3s;
+                font-weight: normal;
+
+                &:hover,
+                &.active {
+                    text-shadow: 0 0 0.25rem opacify($color_highlight, 1);
+                }
+            }
+        }
+
+        nav.menu.actions {
+            float: right;
+        }
+
+    }
+
+    &.content-type-listing,
+    &.content-type-container,
+    &.content-type-tag.mode-full {
+    
+        & > div.content {
+            background: transparent;
+            padding: 0;
+        }
+
+        & > footer {
+            background: transparent !important;
+        }
+
+        & article {
+
+            & > div.content {
+                background: $color_background_dark;
+                padding: 0.25rem 1rem;
+            }
+        }
+    }
+
+    &.content-type-search.mode-full {
+
+        & > header {
+            background: $color_background_dark;
+            padding: 0; /* padding already in form */
+
+            form > footer {
+                background: transparent;
+            }
+        }
+
+        & > div.content {
+
+            background: transparent;
+            padding: 0;
+
+        }
+
+        & > footer {
+            background: transparent !important;
+        }
+    }
+
+    .content-type-image.mode-teaser {
+
+        .content {
+            padding: 0;
+
+            img {
+                display: block;
+                width: 100%;
+            }
+        }
     }
 
 }
@@ -839,11 +846,13 @@ form {
         padding: 0;
     }
 
-    footer {
+    & > footer {
+
         margin-top: 0.5rem;
         display: flex;
         flex-direction: row;
         justify-content: right;
+        background: $color_background_dark;
 
         button {
             &:focus,

@@ -2,7 +2,7 @@
 
 {% block header %}
 {% if mode == 'teaser' %}
-    <h2><a href="{{ content.url('full', quiet=True) or content.url('edit', quiet=True) }}">{{ content.title }}</a></h2>
+    <h2><a href="{{ content.url('full', quiet=True) or content.url('edit', quiet=True) }}" title="{{ content.title }}">{{ content.title }}</a></h2>
 {% endif %}
 {% endblock %}
 

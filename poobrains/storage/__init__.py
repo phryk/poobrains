@@ -133,7 +133,7 @@ class Storable(Model, poobrains.rendering.Renderable):
     
     @property
     def title(self):
-        if hasattr(self, 'name'):
+        if self.name:
             return self.name
 
         elif self.id:

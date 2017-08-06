@@ -6,7 +6,7 @@
             {% if mode != 'full' %}
                 {% with url = content.url('full', quiet=True) %}
                     {% if url %}
-                        <h2><a href="{{ url }}">{{ content.title }}</a></h2>
+                        <h2><a href="{{ url }}" title="{{ content.title }}">{{ content.title }}</a></h2>
                     {% else %}
                         <h2>{{ content.title }}</h2>
                     {% endif %}

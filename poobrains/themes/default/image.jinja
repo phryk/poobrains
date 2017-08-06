@@ -1,5 +1,5 @@
 {% extends "file.jinja" %}
 
 {% block content %}
-    <img src="{{ content.url('raw') }}" />
+    <img src="{{ content.url('raw') }}" alt="{{ content.name }}" />
 {% endblock %}

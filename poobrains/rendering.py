@@ -33,7 +33,8 @@ class Renderable(helpers.ChildAware):
 
     @property
     def title(self):
-        if hasattr(self, 'name'):
+
+        if self.name:
             return self.name
 
         return self.__class__.__name__

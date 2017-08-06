@@ -1,1 +1,5 @@
-{{ content.group.name }} / {{ content.permission }} / {{ content.access }} {{ content.menu_actions.render() }}
+{% extends "administerable.jinja" %}
+
+{% block content %}
+{{ content.group.name }} / {{ content.permission }} / {{ content.access }}
+{% endblock %}

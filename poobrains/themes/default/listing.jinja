@@ -16,7 +16,11 @@
 
 
     {% else %}
-        <p>You have entered the {{ content.cls.__name__ }} crypt. It is empty, save for some cobwebs.</p>
+        <article>
+            <div class="content">
+                <p>You have entered the {{ content.cls.__name__ }} crypt. It is empty, save for some cobwebs.</p>
+            </div>
+        </article>
     {% endif %}
 
 {% endblock %}
