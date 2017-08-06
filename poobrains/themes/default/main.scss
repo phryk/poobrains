@@ -641,6 +641,13 @@ article {
         margin-top: 0;
     }
 
+    &.mode-inline {
+        & > .content {
+            background: transparent;
+            padding: 0;
+        }
+    }
+
     img,
     video,
     object {
