@@ -963,7 +963,7 @@ code {
     
     max-width: calc(100vw - 2rem); /* 1rem padding on each side has to be subtracted */
     overflow-x: auto;
-    font-size: 1rem;
+    font-size: 0.8rem;
     font-weight: normal;
     white-space: pre-wrap; /* avoids horizontal scroll if lines are too long */
 }
