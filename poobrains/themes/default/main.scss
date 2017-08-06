@@ -843,7 +843,8 @@ form {
         width: 100%;
         resize: vertical;
         background: $color_background_form;
-        min-height: 8rem;
+        min-height: 12rem;
+        font-size: 0.8rem;
     }
 
     select {
