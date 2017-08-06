@@ -1,5 +1,11 @@
 {% extends "administerable.jinja" %}
 
+{% block header %}
+    {% if mode != 'inline' %}
+    {{ super() }}
+    {% endif %}
+{% endblock %}
+
 {% block content %}
     <a href="{{ content.url('raw') }}">{{ content.filename }}</a>
 {% endblock %}
