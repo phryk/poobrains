@@ -243,7 +243,7 @@ class Poobrain(flask.Flask):
     
     def serve_theme_resources(self, resource):
 
-        paths = []
+        r = False
 
         extension = resource.split('.')
         if len(extension) > 1:
@@ -259,7 +259,7 @@ class Poobrain(flask.Flask):
         if extension == 'svg':
             try:
 
-                return flask.Response(
+                r = flask.Response(
                     flask.render_template(
                         resource,
                         style=scss.compiler.compile_string("@import 'svg';", root=pathlib.Path('/'), search_path=self.theme_paths)
@@ -269,7 +269,7 @@ class Poobrain(flask.Flask):
 
             except scss.errors.SassImportError:
 
-                return flask.Response(
+                r = flask.Response(
                     flask.render_template(
                         resource,
                         style=''),
@@ -279,29 +279,23 @@ class Poobrain(flask.Flask):
             except jinja2.exceptions.TemplateNotFound:
                 flask.abort(404)
 
-        if self.config['THEME'] != 'default':
-            paths.append(os.path.join(
-                self.root_path, 'themes', self.config['THEME'],
-                resource))
 
-            paths.append(os.path.join(
-                self.poobrain_path, 'themes', self.config['THEME'],
-                resource))
+        else:
 
-        paths.append(os.path.join(
-            self.root_path, 'themes', 'default',
-            resource))
+            paths = [os.path.join(path, resource) for path in app.theme_paths]
 
-        paths.append(os.path.join(
-            self.poobrain_path, 'themes', 'default',
-            resource))
+            for current_path in paths:
+                if os.path.exists(current_path):
+                    if extension == 'scss':
+                        r = flask.Response(scss.compiler.compile_file(current_path, root=pathlib.Path('/'), search_path=self.theme_paths), mimetype='text/css')
+                    else:
+                        r = flask.send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
 
-        for current_path in paths:
-            if os.path.exists(current_path):
-                if extension == 'scss':
-                    return flask.Response(scss.compiler.compile_file(current_path, root=pathlib.Path('/'), search_path=self.theme_paths), mimetype='text/css')
-                return flask.send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
-
+        if r:
+            r.cache_control.public = True
+            r.cache_control.max_age = app.config['CACHE_LONG']
+            return r
+            
         flask.abort(404)
 
 
@@ -879,7 +873,8 @@ def robots_txt():
     else:
         response = flask.Response("User-agent: *\nAllow: /")
 
-    response.cache_control.max_age = 604800
+    response.cache_control.public = True
+    response.cache_control.max_age = app.config['CACHE_LONG']
 
     return response
 

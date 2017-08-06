@@ -138,6 +138,7 @@ class File(poobrains.auth.NamedOwned):
             # Disable "public" mode caching downstream (nginx, varnish) in order to hopefully not leak restricted content
             response.cache_control.public = False
             response.cache_control.private = True
+            response.cache_control.max_age = poobrains.app.config['CACHE_LONG']
 
             return response
         
