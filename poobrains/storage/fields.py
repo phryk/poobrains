@@ -4,7 +4,9 @@
 import peewee
 
 # parent imports
-import poobrains
+#import poobrains
+import poobrains.helpers
+import poobrains.form
 
 
 class Field(poobrains.helpers.ChildAware):
@@ -45,14 +47,3 @@ class ForeignKeyField(Field, peewee.ForeignKeyField):
 
 class BooleanField(Field, peewee.BooleanField):
     form_class = poobrains.form.fields.Checkbox
-
-
-class FileField(ForeignKeyField):
-    
-    def __init__(self, *args, **kwargs):
-
-        rel_model = poobrains.storage.fields.File
-
-        super(FileField, self).__init__(rel_model, *args, **kwargs)
-
-

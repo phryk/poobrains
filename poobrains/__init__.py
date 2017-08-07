@@ -368,7 +368,7 @@ class Poobrain(flask.Flask):
                 for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
                     related_model = related_field.model_class
 
-                    if issubclass(related_model, poobrains.auth.Administerable):
+                    if issubclass(related_model, auth.Administerable):
                         self.site.add_related_view(cls, related_field, os.path.join(rule, '<handle>/'))
 
             elif issubclass(cls, form.Form):
@@ -577,7 +577,7 @@ class Pooprint(flask.Blueprint):
 
         if view_func is None:
 
-            @poobrains.helpers.themed
+            @helpers.themed
             def view_func(offset=0):
 
                 if action_func:
@@ -585,7 +585,7 @@ class Pooprint(flask.Blueprint):
                 else:
                     menu_actions = None
 
-                return poobrains.storage.Listing(cls, offset=offset, title=title, mode=mode, menu_actions=menu_actions)
+                return storage.Listing(cls, offset=offset, title=title, mode=mode, menu_actions=menu_actions)
 
         if force_secure:
             view_func = helpers.is_secure(view_func) # manual decoration, cause I don't know how to do this cleaner
@@ -605,10 +605,10 @@ class Pooprint(flask.Blueprint):
         def decorator(f):
 
             @functools.wraps(f)
-            @poobrains.helpers.themed
+            @helpers.themed
             def real(offset=0):
 
-                instance = poobrains.storage.Listing(cls, title=title, offset=offset, mode=mode)
+                instance = storage.Listing(cls, title=title, offset=offset, mode=mode)
                 return f(instance)
 
             self.add_listing(cls, rule, view_func=real, **options)
@@ -636,7 +636,7 @@ class Pooprint(flask.Blueprint):
 
     def get_url(self, cls, mode=None, **url_params):
         
-        if not issubclass(cls, poobrains.storage.Model) or \
+        if not issubclass(cls, storage.Model) or \
         mode == 'add' or \
         (url_params.has_key('handle') and (mode is None or not mode.startswith('teaser'))):
             return self.get_view_url(cls, mode=mode, **url_params)
@@ -754,20 +754,21 @@ app = Poobrain(__name__) # TODO: Make app class configurable.
 app.jinja_env.tests['renderable'] = is_renderable
 app.url_map.converters['regex'] = RegexConverter
 
+
 # delayed internal imports which may depend on app
-import poobrains.helpers
-import poobrains.mailing
-import poobrains.rendering
-import poobrains.form
-import poobrains.storage
-import poobrains.md
-import poobrains.auth
-import poobrains.upload
-import poobrains.tagging
-import poobrains.commenting
-import poobrains.search
-import poobrains.profile
-import poobrains.cli
+from . import helpers
+from . import mailing
+from . import rendering
+from . import form
+from . import storage
+from . import md
+from . import auth
+from . import upload
+from . import tagging
+from . import commenting
+from . import search
+from . import profile
+from . import cli
 
 
 error_descriptions = {
@@ -776,7 +777,7 @@ error_descriptions = {
         500: werkzeug.exceptions.InternalServerError.description
 }
 
-class ErrorPage(poobrains.rendering.Renderable):
+class ErrorPage(rendering.Renderable):
 
     title = None
     error = None
@@ -817,7 +818,7 @@ class ErrorPage(poobrains.rendering.Renderable):
 
 
 
-@poobrains.helpers.themed
+@helpers.themed
 def errorpage(error):
 
     app.logger.error('Error %s when accessing %s: %s' % (type(error).__name__, flask.request.path, error.message))
@@ -834,7 +835,7 @@ def menu_breadcrumb():
 
     """ HELLO, I'M A POTENTIAL XSS VULNERABILITY! """
 
-    m = poobrains.rendering.Menu('breadcrumb')
+    m = rendering.Menu('breadcrumb')
 
     segments = flask.request.path.split('/')
     for i in range(0, len(segments)):

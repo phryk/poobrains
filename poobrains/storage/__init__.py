@@ -10,20 +10,24 @@ import werkzeug.routing
 import peewee
 
 # parent imports
-import poobrains
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.rendering
+import poobrains.storage
 # internal imports
 import fields
 
-if isinstance(poobrains.app.db, peewee.SqliteDatabase):
+if isinstance(app.db, peewee.SqliteDatabase):
 
-    @poobrains.app.db.func('regexp')
+    @app.db.func('regexp')
     def nonretardedsqliteregexp(regexp, value):
         return re.search(regexp, value) is not None
 
 
 def RegexpConstraint(field_name, regexp):
 
-    if 'sqlite' in poobrains.app.db.__class__.__name__.lower():
+    if 'sqlite' in app.db.__class__.__name__.lower():
         regexp_compat = QuotedSQL(regexp)
     else:
         regexp_compat = regexp
@@ -60,7 +64,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
     form_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
     class Meta:
-        database = poobrains.app.db
+        database = app.db
         order_by = ['-id']
 
 
@@ -146,11 +150,11 @@ class Storable(Model, poobrains.rendering.Renderable):
 
         if quiet:
             try:
-                return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
+                return app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
             except:
                 return False
 
-        return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
+        return app.get_url(self.__class__, handle=self.handle_string, mode=mode, **url_params)
 
 
     @classmethod
@@ -200,11 +204,11 @@ class Named(Storable):
 
         if quiet:
             try:
-                return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
+                return app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
             except:
                 return False
 
-        return poobrains.app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
+        return app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
 
 
 class Listing(poobrains.rendering.Renderable):
@@ -237,7 +241,7 @@ class Listing(poobrains.rendering.Renderable):
             self.title = cls.__name__
 
         if limit is None:
-            self.limit = poobrains.app.config['PAGINATION_COUNT']
+            self.limit = app.config['PAGINATION_COUNT']
         else:
             self.limit = limit
 
@@ -299,7 +303,7 @@ class Pagination(object):
         if limit is not None:
             self.limit = limit
         else:
-            self.limit = poobrains.app.config['PAGINATION_COUNT']
+            self.limit = app.config['PAGINATION_COUNT']
 
         self.menu = False
         #self.counts = dict([(cls, q.count()) for cls, q in self.queries.iteritems()])

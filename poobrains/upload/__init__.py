@@ -6,7 +6,13 @@ import peewee
 import werkzeug
 import jinja2
 import flask
-import poobrains
+
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.storage
+import poobrains.form
+import poobrains.auth
 
 class UploadForm(poobrains.form.AddForm):
    
@@ -42,7 +48,7 @@ class UploadForm(poobrains.form.AddForm):
             )
 
 
-    def handle(self):
+    def process(self):
         
         force = self.fields['force'].value
         upload_file = self.fields['upload'].value
@@ -68,7 +74,7 @@ class UploadForm(poobrains.form.AddForm):
                     except self.model.DoesNotExist:
                         
                         flask.flash(u'A file unknown to this site already exists at the same place on the filesystem. /dev/null has been informed.')
-                        poobrains.app.logger.error('Unknown file clutter: %s/upload/%s/%s' % (poobrains.app.root_path, self.instance.path, filename))
+                        app.logger.error('Unknown file clutter: %s/upload/%s/%s' % (app.root_path, self.instance.path, filename))
 
                     return self
 
@@ -78,16 +84,16 @@ class UploadForm(poobrains.form.AddForm):
             except IOError as e:
 
                 flask.flash(u"Failed saving file '%s'." % filename, 'error')
-                poobrains.app.logger.error(u"Failed saving file: %s\n%s: %s / %s / %s" % (filename, type(e).__name__, e.message, e.strerror, e.filename))
+                app.logger.error(u"Failed saving file: %s\n%s: %s / %s / %s" % (filename, type(e).__name__, e.message, e.strerror, e.filename))
                 return self # stop handling, show form within same request
 
         try:
-            return super(UploadForm, self).handle(exceptions=True)
+            return super(UploadForm, self).process(exceptions=True)
 
         except peewee.DatabaseError as e:
             flask.flash(u"Could not save file metadata for file '%s'. Deleting file, sorry if it was big. ¯\_(ツ)_/¯" % filename)
             flask.flash(e.message)
-            poobrains.app.logger.error(u"Failed saving file metadata: %s\n%s: %s" % (filename, type(e).__name__, e.message))
+            app.logger.error(u"Failed saving file metadata: %s\n%s: %s" % (filename, type(e).__name__, e.message))
             os.remove(file_path)
 
         return self
@@ -117,7 +123,7 @@ class File(poobrains.auth.NamedOwned):
     def __init__(self, *args, **kwargs):
 
         super(File, self).__init__(*args, **kwargs)
-        self.path = os.path.join(poobrains.app.site_path, 'upload', self.__class__.__name__.lower())
+        self.path = os.path.join(app.site_path, 'upload', self.__class__.__name__.lower())
 
     def __setattr__(self, name, value):
 
@@ -138,7 +144,7 @@ class File(poobrains.auth.NamedOwned):
             # Disable "public" mode caching downstream (nginx, varnish) in order to hopefully not leak restricted content
             response.cache_control.public = False
             response.cache_control.private = True
-            response.cache_control.max_age = poobrains.app.config['CACHE_LONG']
+            response.cache_control.max_age = app.config['CACHE_LONG']
 
             return response
         
@@ -165,7 +171,7 @@ class Video(File):
     extension_whitelist = set(['mp4', 'webm', 'ogg'])
 
 # setup upload routes for "raw" mode
-
+#FIXME: Won't this mean subclasses in projects using poobrains won't have this?
 for cls in [File] + File.class_children():
     rule = os.path.join("/upload/", cls.__name__.lower(), '<handle>')
-    poobrains.app.site.add_view(cls, rule, mode='raw')
+    app.site.add_view(cls, rule, mode='raw')

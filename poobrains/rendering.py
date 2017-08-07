@@ -7,11 +7,13 @@ import werkzeug
 import jinja2
 
 # local imports 
-import poobrains
-import helpers
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+#import poobrains.form
 
 
-class Renderable(helpers.ChildAware):
+class Renderable(poobrains.helpers.ChildAware):
 
     name = None
     css_class = None
@@ -45,25 +47,25 @@ class Renderable(helpers.ChildAware):
 
         if quiet:
             try:
-                return poobrains.app.get_url(cls, mode=mode, **url_params)
+                return app.get_url(cls, mode=mode, **url_params)
             except:
                 return False
 
-        return poobrains.app.get_url(cls, mode=mode, **url_params)
+        return app.get_url(cls, mode=mode, **url_params)
 
 
     def instance_url(self, mode='full', quiet=False, **url_params):
         
-        if getattr(self, 'handle', False) and not isinstance(self, poobrains.form.Form): # FIXME: resolve name collision "handle" storable vs. form
+        if getattr(self, 'handle', False): 
             url_params['handle'] = self.handle
 
         if quiet:
             try:
-                return poobrains.app.get_url(self.__class__, mode=mode, **url_params)
+                return app.get_url(self.__class__, mode=mode, **url_params)
             except:
                 return False
 
-        return poobrains.app.get_url(self.__class__, mode=mode, **url_params)
+        return app.get_url(self.__class__, mode=mode, **url_params)
 
 
     def templates(self, mode=None):

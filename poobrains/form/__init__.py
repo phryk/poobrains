@@ -10,11 +10,16 @@ import werkzeug
 import flask
 
 # parent imports
-import poobrains
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.rendering
+#import poobrains.storage
+
 
 # internal imports
-import errors
-import fields
+from . import errors
+from . import fields
 
 
 class FormMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
@@ -130,7 +135,7 @@ class BaseForm(poobrains.rendering.Renderable):
     def _add_external_field(self, field):
 
         """
-        Add a field which is to be rendered outside of this form, but handled by it.
+        Add a field which is to be rendered outside of this form, but processed by it.
         Fields like this can be created by passing a Form object to the Field constructor.
         """
 
@@ -276,9 +281,9 @@ class BaseForm(poobrains.rendering.Renderable):
         return tpls
 
 
-    def handle(self):
+    def process(self):
 
-        raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
+        raise NotImplementedError("%s.process not implemented." % self.__class__.__name__)
 
 
 class Form(BaseForm):
@@ -316,12 +321,12 @@ class Form(BaseForm):
             binding_error = None
             values = flask.request.form.get(self.name, werkzeug.datastructures.MultiDict())
             files = flask.request.files.get(self.name, werkzeug.datastructures.FileMultiDict())
-            #TODO: filter self.readonly in here instead of .bind and .handle?
+            #TODO: filter self.readonly in here instead of .bind and .process?
             try:
                 self.bind(values, files)
 
                 try:
-                    return self.handle()
+                    return self.process()
 
                 except errors.CompoundError as handling_error:
                     for error in handling_error.errors:
@@ -444,7 +449,7 @@ class AddForm(BoundForm):
                     pass
  
 
-    def handle(self, exceptions=False):
+    def process(self, exceptions=False):
 
         if not self.readonly:
             
@@ -471,12 +476,12 @@ class AddForm(BoundForm):
 
                     for fieldset in self.fieldsets:
                         try:
-                            fieldset.handle(self.instance)
+                            fieldset.process(self.instance)
                         except Exception as e:
                             if exceptions:
                                 raise
-                            flask.flash(u"Failed to handle fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
-                            poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
+                            flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
+                            app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
 
                     try:
                         return flask.redirect(self.instance.url('edit'))
@@ -536,7 +541,7 @@ class DeleteForm(BoundForm):
                 self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._get_pk_value()))
 
     
-    def handle(self):
+    def process(self):
 
         if hasattr(self.instance, 'title') and self.instance.title:
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
@@ -583,9 +588,9 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
-    def handle(self):
+    def process(self):
 
-        raise NotImplementedError("%s.handle not implemented." % self.__class__.__name__)
+        raise NotImplementedError("%s.process not implemented." % self.__class__.__name__)
 
 
     def __setattr__(self, name, value):

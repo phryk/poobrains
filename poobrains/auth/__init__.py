@@ -348,7 +348,7 @@ class ClientCertForm(poobrains.form.Form):
         flask.session['key_challenge'] = self.key.challenge
 
 
-    def handle(self):
+    def process(self):
 
         try:
             # creation time older than this means token is dead.
@@ -684,15 +684,15 @@ class RelatedForm(poobrains.form.Form):
         self.related_field = related_field
 
    
-    def handle(self):
+    def process(self):
         if not self.readonly:
             for field in self.fields.itervalues():
                 if isinstance(field, poobrains.form.Fieldset):
                     try:
-                        field.handle()
+                        field.process()
                     except Exception as e:
-                        flask.flash(u"Failed to handle fieldset '%s.%s'." % (field.prefix, field.name))
-                        poobrains.app.logger.error("Failed to handle fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
+                        flask.flash(u"Failed to process fieldset '%s.%s'." % (field.prefix, field.name))
+                        poobrains.app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
                         
             #return flask.redirect(flask.request.url)
         return self
@@ -711,7 +711,7 @@ class UserPermissionAddForm(poobrains.form.AddForm):
         return f
 
 
-    def handle(self):
+    def process(self):
         op = self.instance._meta.modes[self.mode]
 
         self.instance.user = self.fields['user'].value
@@ -794,7 +794,7 @@ class GroupPermissionAddForm(poobrains.form.AddForm):
         return f
 
 
-    def handle(self):
+    def process(self):
 
         op = self.instance._meta.modes[self.mode]
 

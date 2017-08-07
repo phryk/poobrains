@@ -5,13 +5,16 @@ import peewee
 import gnupg
 import click
 
-import poobrains
+#import poobrains
+from poobrains import app
+import poobrains.storage
+import poobrains.auth
 
-@poobrains.app.cli.command()
+@app.cli.command()
 def test():
     click.echo("Running test command!")
 
-@poobrains.app.cli.command()
+@app.cli.command()
 def install():
 
         value = click.prompt("Really execute installation procedure? (y/N)").lower()
@@ -21,7 +24,7 @@ def install():
 
             click.echo("Installing now...\n")
 
-            poobrains.app.db.create_tables(poobrains.storage.Model.class_children())
+            app.db.create_tables(poobrains.storage.Model.class_children())
             click.echo("Database tables created!\n")
 
 
@@ -99,7 +102,7 @@ def install():
             click.echo("We'll now configure GPG for sending encrypted mail.\n")
             gpg_home = click.prompt("GPG home (relative to project root)")
 
-            gpg = gnupg.GPG(binary=poobrains.app.config['GPG_BINARY'], homedir=gpg_home)
+            gpg = gnupg.GPG(binary=app.config['GPG_BINARY'], homedir=gpg_home)
             config_addendum['GPG_HOME'] = gpg_home
             
             passphrase = click.prompt("Site PGP passphrase")
@@ -130,7 +133,7 @@ def install():
                 click.echo("%s = %s\n" % (k, v))
 
 
-@poobrains.app.cli.command()
+@app.cli.command()
 @click.argument('storable')
 def add(storable):
 
@@ -148,7 +151,7 @@ def add(storable):
 
         instance.save(force_insert=True)
 
-@poobrains.app.cli.command()
+@app.cli.command()
 def cron():
 
-    poobrains.app.cron_run()
+    app.cron_run()

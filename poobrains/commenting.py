@@ -11,7 +11,14 @@ import flask
 import io
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
-import poobrains
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.rendering
+import poobrains.storage
+import poobrains.form
+import poobrains.auth
+import poobrains.tagging
 
 
 class Comment(poobrains.auth.Administerable):
@@ -98,7 +105,7 @@ class Commentable(poobrains.tagging.Taggable):
             pass # No point loading shit this user isn't allowed to render anyways.
 
         except Exception as e:
-            poobrains.app.logger.warning("Can't load comments associated to %r" % self)
+            app.logger.warning("Can't load comments associated to %r" % self)
 
 
     def comment_form(self, reply_to=None):
@@ -116,8 +123,8 @@ class Commentable(poobrains.tagging.Taggable):
 
 
 
-@poobrains.app.expose('/comment/<string:model>/<string:handle>')
-@poobrains.app.expose('/comment/<string:model>/<string:handle>/<int:reply_to>')
+@app.expose('/comment/<string:model>/<string:handle>')
+@app.expose('/comment/<string:model>/<string:handle>/<int:reply_to>')
 class CommentForm(poobrains.form.Form):
 
     instance = None # Commentable instance the comment is going to be associated to
@@ -144,7 +151,7 @@ class CommentForm(poobrains.form.Form):
             self.action += "/%d" % reply_to.id
 
 
-    def handle(self):
+    def process(self):
 
         self.instance.permissions['read'].check(flask.g.user)
 
@@ -205,7 +212,7 @@ class Challenge(poobrains.storage.Named):
                 (255,128,0)
             ]
 
-            font_path = os.path.join(poobrains.app.poobrain_path, 'themes/default/fonts/knewave/knewave-outline.otf')
+            font_path = os.path.join(app.poobrain_path, 'themes/default/fonts/knewave/knewave-outline.otf')
             image = Image.new('RGBA', (250, 80), (255,255,255,0))
             font = ImageFont.truetype(font_path, 42)
 
@@ -261,8 +268,8 @@ class Challenge(poobrains.storage.Named):
 
         return ChallengeForm(self).view('full')
 
-poobrains.app.site.add_view(Challenge, '/comment/challenge/<handle>/', mode='full')
-poobrains.app.site.add_view(Challenge, '/comment/challenge/<handle>/raw', mode='raw')
+app.site.add_view(Challenge, '/comment/challenge/<handle>/', mode='full')
+app.site.add_view(Challenge, '/comment/challenge/<handle>/raw', mode='raw')
 
 
 class ChallengeForm(poobrains.form.Form):
@@ -277,7 +284,7 @@ class ChallengeForm(poobrains.form.Form):
         self.challenge = challenge
 
 
-    def handle(self):
+    def process(self):
 
         if self.fields['response'].value == self.challenge.captcha:
 
@@ -320,13 +327,13 @@ class ChallengeForm(poobrains.form.Form):
             return flask.redirect(self.challenge.url('full'))
 
 
-@poobrains.app.cron
+@app.cron
 def bury_orphaned_challenges():
 
-    deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
+    deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
 
     q = Challenge.delete().where(Challenge.created <= deathwall)
 
     count = q.execute()
 
-    poobrains.app.logger.info("Deleted %d orphaned comment challenges." % count)
+    app.logger.info("Deleted %d orphaned comment challenges." % count)

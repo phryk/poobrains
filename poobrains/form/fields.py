@@ -4,13 +4,21 @@ import time # needed for ordered attributes
 import flask
 
 # parent imports
-import poobrains
-from poobrains import rendering, helpers
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.rendering
+from poobrains import rendering
+print "########################################################################'"
+print poobrains
+print poobrains.rendering
+print "########################################################################'"
+#from poobrains import rendering, helpers
 
 # internal imports
-import errors
-import validators
-import coercers
+from . import errors
+from . import validators
+from . import coercers
 
 
 class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
@@ -491,7 +499,7 @@ class Keygen(RenderableField):
 
         try:
             if flask.request.method == 'GET':
-                poobrains.app.logger.debug("Keygen new challenge")
+                app.logger.debug("Keygen new challenge")
                 self.challenge = helpers.random_string()
         except RuntimeError as e:
             pass
