@@ -4,10 +4,17 @@ import collections
 import peewee
 import flask
 
-import poobrains
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.rendering
+import poobrains.form
+import poobrains.storage
+import poobrains.auth
+import poobrains.md
 
 
-#@poobrains.app.expose('/tag/', mode='full')
+#@app.expose('/tag/', mode='full')
 class Tag(poobrains.auth.Named):
 
     title = poobrains.storage.fields.CharField()
@@ -50,7 +57,7 @@ class Tag(poobrains.auth.Named):
             else:
                 message = "Possibly incestuous tag, but don't have a root for this tree. Are you fucking with current_depth manually?"
 
-            poobrains.app.logger.error(message)
+            app.logger.error(message)
             return tree 
 
         tags = cls.select().where(cls.parent == root)
@@ -85,7 +92,7 @@ class Tag(poobrains.auth.Named):
 
     def list_tagged(self):
 
-        bindings = TagBinding.select().where(TagBinding.tag == self).limit(poobrains.app.config['PAGINATION_COUNT'])
+        bindings = TagBinding.select().where(TagBinding.tag == self).limit(app.config['PAGINATION_COUNT'])
         bindings_by_model = collections.OrderedDict()
         queries = []
 
@@ -103,7 +110,7 @@ class Tag(poobrains.auth.Named):
             try:
                 model = poobrains.storage.Storable.class_children_keyed()[model_name]
             except KeyError:
-                poobrains.app.logger.error("TagBinding for unknown model: %s" % model_name)
+                app.logger.error("TagBinding for unknown model: %s" % model_name)
                 continue
 
             handles = [model.string_handle(binding.handle) for binding in bindings]
@@ -120,9 +127,9 @@ class Tag(poobrains.auth.Named):
 
         return super(Tag, self).save(*args, **kwargs)
 
-poobrains.app.site.add_listing(Tag, '/tag/', mode='teaser', endpoint='tag')
-poobrains.app.site.add_view(Tag, '/tag/<handle>/', mode='full', endpoint='tag_handle')
-poobrains.app.site.add_view(Tag, '/tag/<handle>/+<int:offset>', mode='full', endpoint='tag_handle_offset')
+app.site.add_listing(Tag, '/tag/', mode='teaser', endpoint='tag')
+app.site.add_view(Tag, '/tag/<handle>/', mode='full', endpoint='tag_handle')
+app.site.add_view(Tag, '/tag/<handle>/+<int:offset>', mode='full', endpoint='tag_handle_offset')
 
 
 class TagBinding(poobrains.auth.Administerable):
@@ -149,7 +156,7 @@ class TaggingField(poobrains.form.fields.MultiChoice):
                 choices.append((tag.name, tag.name))
 
         except (peewee.OperationalError, peewee.ProgrammingError) as e:
-            poobrains.app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
+            app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
 
         self.choices = choices
 

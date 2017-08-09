@@ -6,7 +6,14 @@ import OpenSSL as openssl
 import werkzeug
 import flask
 
-import poobrains
+#import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.mailing
+import poobrains.rendering
+import poobrains.form
+import poobrains.storage
+import poobrains.auth
 
 import time
 
@@ -19,7 +26,7 @@ class Dashbar(poobrains.rendering.Container):
         super(Dashbar, self).__init__(**kwargs)
 
         self.user = user
-        self.items.append(poobrains.rendering.RenderString("%s@%s" % (user.name, poobrains.app.config['SITE_NAME'])))
+        self.items.append(poobrains.rendering.RenderString("%s@%s" % (user.name, app.config['SITE_NAME'])))
 
         menu = poobrains.rendering.Menu('dashbar-actions')
 
@@ -54,7 +61,7 @@ class Dashbar(poobrains.rendering.Container):
         self.items.append(menu)
 
 
-@poobrains.app.box('dashbar')
+@app.box('dashbar')
 def dashbar():
     user = flask.g.user
     if user.id != 1: # not "anonymous"
@@ -113,8 +120,8 @@ class CertControl(poobrains.auth.Protected):
 
         return poobrains.helpers.ThemedPassthrough(super(CertControl, self).view(handle=handle, cert_handle=cert_handle, **kwargs))
 
-poobrains.app.site.add_view(CertControl, '/~<handle>/cert/', endpoint='certcontrol', mode='full')
-poobrains.app.site.add_view(CertControl, '/~<handle>/cert/<cert_handle>', mode='delete')
+app.site.add_view(CertControl, '/~<handle>/cert/', endpoint='certcontrol', mode='full')
+app.site.add_view(CertControl, '/~<handle>/cert/<cert_handle>', mode='delete')
 
 
 class PGPControl(poobrains.auth.Protected):
@@ -133,7 +140,7 @@ class PGPControl(poobrains.auth.Protected):
         return PGPForm(handle=handle).view(handle=handle, **kwargs)
         #return r
 
-poobrains.app.site.add_view(PGPControl, '/~<handle>/pgp', mode='full')
+app.site.add_view(PGPControl, '/~<handle>/pgp', mode='full')
 
 class PGPForm(poobrains.form.Form):
 
@@ -168,7 +175,7 @@ class PGPForm(poobrains.form.Form):
         else:
             # Fun fact: I'm more proud of this error message than half my code.
             flask.flash(u"Something went wrong when importing your new key. A pack of lazy raccoons has been dispatched to look at your plight in disinterested amusement.")
-            poobrains.app.logger.error("GPG key import error: %s" % result.stderr)
+            app.logger.error("GPG key import error: %s" % result.stderr)
 
         return flask.redirect(flask.request.path) # reload page to show flash()es
 
@@ -222,8 +229,8 @@ class NotificationControl(poobrains.auth.Protected):
         return self
 
 
-poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/', mode='full')
-poobrains.app.site.add_view(NotificationControl, '/~<handle>/notifications/+<int:offset>', mode='full', endpoint='notification_offset')
+app.site.add_view(NotificationControl, '/~<handle>/notifications/', mode='full')
+app.site.add_view(NotificationControl, '/~<handle>/notifications/+<int:offset>', mode='full', endpoint='notification_offset')
 
 
 class NotificationForm(poobrains.form.Form):

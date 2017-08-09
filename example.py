@@ -29,8 +29,8 @@ class TestForm(poobrains.form.Form):
     completeme = poobrains.form.fields.TextAutoComplete(label="Lookit me, I can autocomplete without JS!", choices=[('Mr. Foo', 'foo'), ('Mr. Florb', 'florb'), ('Ms. Bar', 'bar')])
     trigger = poobrains.form.Button('submit', label='Hit me!')
 
-    def handle(self):
-        flask.flash('TestForm.handle called!')
+    def process(self):
+        flask.flash('TestForm.process called!')
         return self
 
 

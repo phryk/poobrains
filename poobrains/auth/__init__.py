@@ -874,7 +874,6 @@ class Protected(poobrains.rendering.Renderable):
 
     def render(self, mode='full'):
 
-        app.debugger.set_trace()
         op = self._meta.modes[mode]
 
         try:
