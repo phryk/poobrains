@@ -536,7 +536,7 @@ class DeleteForm(BoundForm):
 
         f.title = "Delete %s" % f.instance.name
         f.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
-        f.submit = Button('submit', name='submit', value='delete', label='KILL')
+        f.submit = Button('submit', name='submit', value='delete', label=u'☠')
 
         return f
 

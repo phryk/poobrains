@@ -5,8 +5,14 @@
     {{ super() }}
 
     {% if mode == 'full' %}
-        <h2>Tag hierarchy:</h2>
-        {{ content.tree().render('teaser') }}
+        <div class="description">{{ content.description.render() }}</div>
+        {% with tree = content.tree() %}
+            {% if tree.children|length %}
+                {{ tree.render('teaser') }}
+            {% else %}
+                <p>This tag has no children.</p>
+            {% endif %}
+        {% endwith %}
     {% endif %}
 
 {% endblock %}
@@ -14,14 +20,13 @@
 
 {% block content %}
 
-    <div class="description">{{ content.description.render() }}</div>
     {% if mode == 'full' %}
 
         <div class="posts">
         {% with tagged_posts = content.list_tagged() %}
 
             {% if not tagged_posts.results|length %}
-                <p>No associated content.</p>
+                <article><div class="content"><p>No associated content.</p></div></article>
             {% else %}
                 <ul class="tagged-posts listing">
                 {% for post in tagged_posts.results %}

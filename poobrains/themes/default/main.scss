@@ -22,7 +22,7 @@
 
 @media (min-width: 56rem) {
 
-    #logo {
+    #logo-link {
         display: flex !important;
     }
 
@@ -215,9 +215,9 @@ body {
             position: sticky;
             bottom: calc(100% - 9.5rem);
             max-height: 7.5rem;
+            display: none;
             
             #logo {
-                display: none;
                 height: 7.5rem;
                 pointer-events: none;
             }
@@ -418,7 +418,7 @@ main {
 
         & > .comments,
         & article.content-type-tag.mode-full > .content > .description {
-                margin: 0.5rem 0;
+                margin-top: 0.5rem;
                 background: $color_background_dark;
                 padding: 1rem;
         }
@@ -612,7 +612,7 @@ form {
 
         h2 {
 
-            max-width: 100%; 
+            max-width: calc(100vw - 2rem); 
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -635,6 +635,39 @@ form {
 
     & > div.content {
         background: $color_background_dark;
+    }
+}
+
+form {
+
+    &#DeleteForm {
+
+        & > footer {
+            justify-content: center;
+        }
+
+        button[name="submit"] {
+
+            display: block;
+            width: 7rem;
+            height: 7rem;
+            border-radius: 3.5rem;
+            float: none;
+            background: desaturate($color_danger, 50%);
+            box-shadow: 0 0.75rem 0 desaturate($color_danger, 80%);
+            font-size: 4.5rem;
+            transition: margin 0.3s, box-shadow 0.3s, background 0.3s;
+            margin-bottom: 0.75rem;
+
+            &:focus,
+            &:hover {
+
+                background: $color_danger;
+                box-shadow: 0 0.2rem 0 desaturate($color_danger, 80%), 0 0 1rem $color_danger;
+                margin-top: 0.55rem;
+                margin-bottom: 0.2rem;
+            }
+        }
     }
 }
 
@@ -736,6 +769,18 @@ article {
             & > div.content {
                 background: $color_background_dark;
                 padding: 0.25rem 1rem;
+            }
+        }
+    }
+    
+    &.content-type-tag.mode-full {
+        & > header {
+
+            margin: 0.5rem 0;
+            background: $color_background_dark;
+
+            h2 {
+                color: $color_font_light;
             }
         }
     }
