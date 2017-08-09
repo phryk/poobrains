@@ -8,12 +8,6 @@ import flask
 from poobrains import app
 import poobrains.helpers
 import poobrains.rendering
-from poobrains import rendering
-print "########################################################################'"
-print poobrains
-print poobrains.rendering
-print "########################################################################'"
-#from poobrains import rendering, helpers
 
 # internal imports
 from . import errors
@@ -500,7 +494,7 @@ class Keygen(RenderableField):
         try:
             if flask.request.method == 'GET':
                 app.logger.debug("Keygen new challenge")
-                self.challenge = helpers.random_string()
+                self.challenge = poobrains.helpers.random_string()
         except RuntimeError as e:
             pass
 

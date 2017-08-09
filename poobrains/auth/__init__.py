@@ -16,12 +16,19 @@ import peewee
 
 
 # local imports
-import poobrains
+from poobrains import app
+import poobrains.helpers
+import poobrains.mailing
+import poobrains.rendering
+import poobrains.form
+import poobrains.storage
+import poobrains.md
 
-@poobrains.app.before_first_request
+
+@app.before_first_request
 def admin_setup():
 
-    if not poobrains.app._got_first_request:
+    if not app._got_first_request:
 
         administerables = Administerable.class_children_keyed()
 
@@ -32,27 +39,27 @@ def admin_setup():
             rule = '%s' % key.lower()
             actions = functools.partial(admin_listing_actions, cls)
 
-            poobrains.app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
+            app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
 
             if cls._meta.modes.has_key('add'):
-                poobrains.app.admin.add_view(cls, os.path.join(rule, 'add/'), mode='add', force_secure=True)
+                app.admin.add_view(cls, os.path.join(rule, 'add/'), mode='add', force_secure=True)
 
             rule = os.path.join(rule, '<handle>/')
 
             if cls._meta.modes.has_key('edit'):
-                poobrains.app.admin.add_view(cls, rule, mode='edit', force_secure=True)
+                app.admin.add_view(cls, rule, mode='edit', force_secure=True)
 
             if cls._meta.modes.has_key('delete'):
-                poobrains.app.admin.add_view(cls, os.path.join(rule, 'delete'), mode='delete', force_secure=True)
+                app.admin.add_view(cls, os.path.join(rule, 'delete'), mode='delete', force_secure=True)
 
             for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
                 related_model = related_field.model_class
 
                 if issubclass(related_model, Administerable):
-                    poobrains.app.admin.add_related_view(cls, related_field, rule, force_secure=True)
+                    app.admin.add_related_view(cls, related_field, rule, force_secure=True)
 
 
-@poobrains.app.admin.before_request
+@app.admin.before_request
 def checkAAA():
 
     try:
@@ -232,7 +239,7 @@ def admin_listing_actions(cls):
     return m
 
 
-@poobrains.app.admin.box('menu_main')
+@app.admin.box('menu_main')
 def admin_menu():
 
     try:
@@ -241,7 +248,7 @@ def admin_menu():
         menu = poobrains.rendering.Menu('main')
         menu.title = 'Administration'
 
-        for administerable, listings in poobrains.app.admin.listings.iteritems():
+        for administerable, listings in app.admin.listings.iteritems():
 
             for mode, endpoints in listings.iteritems():
 
@@ -254,7 +261,7 @@ def admin_menu():
         return None
 
 
-@poobrains.app.admin.route('/')
+@app.admin.route('/')
 @poobrains.helpers.themed
 def admin_index():
 
@@ -264,7 +271,7 @@ def admin_index():
 
         container = poobrains.rendering.Container(title='Administration')
         
-        for administerable, listings in poobrains.app.admin.listings.iteritems():
+        for administerable, listings in app.admin.listings.iteritems():
 
             subcontainer = poobrains.rendering.Container(css_class='administerable-actions')
             menu = poobrains.rendering.Menu('listings-%s' % administerable.__name__)
@@ -302,7 +309,7 @@ def protected(func):
 
     @functools.wraps(func)
     def substitute(cls_or_instance, mode=None, *args, **kwargs):
-        
+
         if not mode:
             raise Exception('Need explicit mode in @protected.')
 
@@ -332,7 +339,7 @@ def protected(func):
     return substitute
 
 
-@poobrains.app.expose('/cert/', force_secure=True)
+@app.expose('/cert/', force_secure=True)
 class ClientCertForm(poobrains.form.Form):
 
     #passphrase = poobrains.form.fields.ObfuscatedText()
@@ -352,7 +359,7 @@ class ClientCertForm(poobrains.form.Form):
 
         try:
             # creation time older than this means token is dead.
-            deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
+            deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
 
             token = ClientCertToken.get(
                 ClientCertToken.token == self.fields['token'].value,
@@ -377,7 +384,7 @@ class ClientCertForm(poobrains.form.Form):
 
             except Exception as e: # FIXME: More specific exception matching?
 
-                if poobrains.app.debug:
+                if app.debug:
                     raise
 
                 return poobrains.rendering.RenderString("Client certificate creation failed.")
@@ -434,7 +441,7 @@ class ClientCertForm(poobrains.form.Form):
 
         except Exception as e:
 
-            if poobrains.app.debug:
+            if app.debug:
                 raise
 
             return poobrains.rendering.RenderString("Failed to write info into database. Disregard this certificate.")
@@ -478,7 +485,7 @@ class OwnedPermission(Permission):
                 return True
 
             else:
-                poobrains.app.logger.warning("Unknown access mode '%s' for User %d with Permission %s" % (access, user.id, cls.__name__))
+                app.logger.warning("Unknown access mode '%s' for User %d with Permission %s" % (access, user.id, cls.__name__))
                 raise AccessDenied("YOU SHALL NOT PASS!")
 
         else:
@@ -665,7 +672,7 @@ class RelatedForm(poobrains.form.Form):
             if f.fields[key].fields.has_key(related_field.name):
                 setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
             else:
-                poobrains.app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
+                app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
 
         except AccessDenied as e:
             pass
@@ -692,7 +699,7 @@ class RelatedForm(poobrains.form.Form):
                         field.process()
                     except Exception as e:
                         flask.flash(u"Failed to process fieldset '%s.%s'." % (field.prefix, field.name))
-                        poobrains.app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
+                        app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
                         
             #return flask.redirect(flask.request.url)
         return self
@@ -865,8 +872,21 @@ class Protected(poobrains.rendering.Renderable):
         return instance
 
 
-    @protected
     def render(self, mode='full'):
+
+        app.debugger.set_trace()
+        op = self._meta.modes[mode]
+
+        try:
+            self.permissions[op].check(flask.g.user)
+
+        except AccessDenied:
+
+            if mode == 'inline':
+                return poobrains.rendering.RenderString("Access Denied for %s." % self.__class__.__name__)
+
+            raise
+
         return super(Protected, self).render(mode)
 
 
@@ -923,9 +943,9 @@ class Administerable(poobrains.storage.Storable, Protected):
                     actions.append(self.url(mode), mode)
 
             except AccessDenied:
-                poobrains.app.logger.debug("Not generating %s link for %s %s because this user is not authorized for it." % (mode, self.__class__.__name__, self.handle_string))
+                app.logger.debug("Not generating %s link for %s %s because this user is not authorized for it." % (mode, self.__class__.__name__, self.handle_string))
             except Exception:
-                poobrains.app.logger.debug("Couldn't create %s link for %s" % (mode, self.handle_string))
+                app.logger.debug("Couldn't create %s link for %s" % (mode, self.handle_string))
 
         return actions
 
@@ -952,7 +972,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
 
     def related_url(self, related_field):
-        return poobrains.app.get_related_view_url(self.__class__, self.handle_string, related_field)
+        return app.get_related_view_url(self.__class__, self.handle_string, related_field)
 
     def form(self, mode=None):
         
@@ -1015,7 +1035,7 @@ class Administerable(poobrains.storage.Storable, Protected):
             if hasattr(related_model, 'related_form'):
                 form_class = related_model.related_form
             else:
-                form_class = functools.partial(poobrains.auth.RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
+                form_class = functools.partial(RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
 
             f = form_class(related_field, instance)
             
@@ -1090,17 +1110,17 @@ class User(Named):
 
         try:
 
-            ca_key = M2Crypto.EVP.load_key(poobrains.app.config['CA_KEY'])
-            ca_cert = M2Crypto.X509.load_cert(poobrains.app.config['CA_CERT'])
+            ca_key = M2Crypto.EVP.load_key(app.config['CA_KEY'])
+            ca_cert = M2Crypto.X509.load_cert(app.config['CA_CERT'])
 
         except Exception as e:
 
-            poobrains.app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
-            poobrains.app.logger.debug(e)
+            app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
+            app.logger.debug(e)
             flask.flash(u"Plumbing issue. Invalid CA_KEY or CA_CERT.")
             raise e
 
-        common_name = '%s:%s@%s' % (self.name, name, poobrains.app.config['SITE_NAME'])
+        common_name = '%s:%s@%s' % (self.name, name, app.config['SITE_NAME'])
         spkac = pyspkac.SPKAC(spkac, challenge, CN=common_name) # TODO: Make sure CN is unique
         spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
         spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
@@ -1108,7 +1128,7 @@ class User(Named):
         spkac.subject.C = ca_cert.get_subject().C
 
         not_before = int(time.time())
-        not_after = not_before + poobrains.app.config['CERT_LIFETIME']
+        not_after = not_before + app.config['CERT_LIFETIME']
 
         serial = int(time.time())
 
@@ -1120,14 +1140,14 @@ class User(Named):
         if not re.match('^[a-zA-Z0-9_\- ]+$', name):
             raise ValueError("Requested client certificate name is invalid.")
 
-        common_name = '%s:%s@%s' % (self.name, name, poobrains.app.config['SITE_NAME'])
+        common_name = '%s:%s@%s' % (self.name, name, app.config['SITE_NAME'])
 
-        fd = open(poobrains.app.config['CA_KEY'], 'rb')
+        fd = open(app.config['CA_KEY'], 'rb')
         ca_key = openssl.crypto.load_privatekey(openssl.crypto.FILETYPE_PEM, fd.read())
         fd.close()
         del fd
 
-        fd = open(poobrains.app.config['CA_CERT'], 'rb')
+        fd = open(app.config['CA_CERT'], 'rb')
         ca_cert = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, fd.read())
         fd.close()
         del fd
@@ -1145,7 +1165,7 @@ class User(Named):
         cert.set_issuer(ca_cert.get_subject())
         cert.set_pubkey(keypair)
         cert.gmtime_adj_notBefore(0)
-        cert.gmtime_adj_notAfter(poobrains.app.config['CERT_LIFETIME'])
+        cert.gmtime_adj_notAfter(app.config['CERT_LIFETIME'])
         cert.set_serial_number(int(time.time())) # FIXME: This is bad, but probably won't fuck us over for a while ¯\_(ツ)_/¯
         cert.get_subject().CN = common_name
         cert.get_subject().C = ca_cert.get_subject().C
@@ -1191,7 +1211,7 @@ class User(Named):
     def notifications_unread(self):
         return self.notifications.where(Notification.read == 0)
 
-poobrains.app.site.add_view(User, '/~<handle>/', mode='full')
+app.site.add_view(User, '/~<handle>/', mode='full')
 
 class UserPermission(Administerable):
 
@@ -1221,7 +1241,7 @@ class UserPermission(Administerable):
             self.permission_class = Permission.class_children_keyed()[self.permission]
 
         except KeyError:
-            poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
+            app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
             #TODO: Do we want to do more, like define a permission_class that always denies access?
 
 
@@ -1320,7 +1340,7 @@ class GroupPermission(Administerable):
             self.permission_class = Permission.class_children_keyed()[self.permission]
 
         except KeyError:
-            poobrains.app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.group_id)) # can't use self.group.name because dat recursion
+            app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.group_id)) # can't use self.group.name because dat recursion
             #TODO: Do we want to do more, like define a permission_class that always denies access?
 
 
@@ -1349,7 +1369,7 @@ class ClientCertToken(Administerable, Protected):
 
     def __init__(self, *args, **kw):
 
-        self.validity = poobrains.app.config['TOKEN_VALIDITY']
+        self.validity = app.config['TOKEN_VALIDITY']
         super(ClientCertToken, self).__init__(*args, **kw)
 
     @property
@@ -1362,12 +1382,12 @@ class ClientCertToken(Administerable, Protected):
 
             user_token_count = self.__class__.select().where(self.__class__.user == self.user).count()
 
-            if user_token_count >= poobrains.app.config['MAX_TOKENS']:
+            if user_token_count >= app.config['MAX_TOKENS']:
                 raise ValueError( # TODO: Is ValueError really the most fitting exception there is?
                     "User %s already has %d out of %d client certificate tokens." % (
                         self.user.name,
                         user_token_count,
-                        poobrains.app.config['MAX_TOKENS']
+                        app.config['MAX_TOKENS']
                     )
                 )
 
@@ -1471,9 +1491,9 @@ class Page(Owned):
         
         if mode == 'full':
 
-            return poobrains.app.site.get_view_url(self.__class__, mode=mode, quiet=quiet, path=self.path[1:], **url_params)
+            return app.site.get_view_url(self.__class__, mode=mode, quiet=quiet, path=self.path[1:], **url_params)
 
-        return poobrains.app.get_url(self.__class__, handle=self.handle_string, mode=mode, quiet=quiet, **url_params)
+        return app.get_url(self.__class__, handle=self.handle_string, mode=mode, quiet=quiet, **url_params)
 
 
     @classmethod
@@ -1499,14 +1519,14 @@ class Page(Owned):
         return instance.view(mode=mode, handle=handle, **kwargs)
 
 
-poobrains.app.site.add_view(Page, '/<regex(".*"):path>', mode='full')
+app.site.add_view(Page, '/<regex(".*"):path>', mode='full')
 
 
-@poobrains.app.cron
+@app.cron
 def bury_tokens():
 
 
-    deathwall = datetime.datetime.now() - datetime.timedelta(seconds=poobrains.app.config['TOKEN_VALIDITY'])
+    deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
 
     q = ClientCertToken.delete().where(
         ClientCertToken.created <= deathwall or ClientCertToken.redeemed == 1
@@ -1514,4 +1534,4 @@ def bury_tokens():
 
     count = q.execute()
 
-    poobrains.app.logger.info("Deleted %d dead client certificate tokens." % count)
+    app.logger.info("Deleted %d dead client certificate tokens." % count)

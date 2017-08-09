@@ -303,6 +303,8 @@ main {
                     li {
                         &:after {
                             content: '/';
+                            position: relative;
+                            top: -0.6rem;
                         }
 
                         &:last-child:after {
@@ -310,7 +312,6 @@ main {
                         }
                         a {
 
-                            display: inline-table; /* Like inline-block, but ::after height doesn't get fucked */
                             padding-top: 0.5rem;
                             margin-right: 0.25rem;
                             color: $color_font_dark;
@@ -319,7 +320,7 @@ main {
                             background-repeat: no-repeat;
                             background-position: top;
                             transition: background 0.3s, color 0.3s;
-                            max-width: 15em;
+                            max-width: 8ex;
                             white-space: nowrap;
                             overflow: hidden;
                             text-overflow: ellipsis;

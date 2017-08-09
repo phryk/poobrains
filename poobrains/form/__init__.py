@@ -14,7 +14,6 @@ import flask
 from poobrains import app
 import poobrains.helpers
 import poobrains.rendering
-#import poobrains.storage
 
 
 # internal imports
@@ -39,6 +38,8 @@ class BaseForm(poobrains.rendering.Renderable):
         abstract = True
 
     _external_fields = None
+
+    custom_id = None
 
     fields = None
     controls = None
@@ -78,7 +79,7 @@ class BaseForm(poobrains.rendering.Renderable):
         return instance
     
     
-    def __init__(self, prefix=None, name=None, title=None):
+    def __init__(self, prefix=None, name=None, title=None, custom_id=None):
 
         self._external_fields = []
         super(BaseForm, self).__init__()
@@ -90,6 +91,7 @@ class BaseForm(poobrains.rendering.Renderable):
             self.title = self.__class__.__name__
 
         self.prefix = prefix
+        self.custom_id = custom_id
 
     
     def __setattr__(self, name, value):
@@ -167,15 +169,23 @@ class BaseForm(poobrains.rendering.Renderable):
 
     @property
     def ref_id(self):
+
+        """ HTML 'id' attribute value to enable fields outside that <form> element. """
+
+        if self.custom_id:
+            return self.custom_id
+
         if self.prefix:
             return "%s-%s" % (self.prefix, self.name)
         return self.name
+
 
     def empty(self): # TODO: find out why I didn't make this @property
         for field in self:
             if not field.empty():
                 return False
         return True
+
 
     @property
     def readonly(self):
@@ -185,8 +195,7 @@ class BaseForm(poobrains.rendering.Renderable):
                 return False
 
         return True
-    
-    
+
 
     def bind(self, values, files):
 
@@ -294,9 +303,9 @@ class Form(BaseForm):
     class Meta:
         abstract = True
 
-    def __init__(self, prefix=None, name=None, title=None, method=None, action=None, **kwargs):
+    def __init__(self, prefix=None, name=None, title=None, method=None, action=None, custom_id=None, **kwargs):
 
-        super(Form, self).__init__(prefix=prefix, name=name, title=title)
+        super(Form, self).__init__(prefix=prefix, name=name, title=title, custom_id=custom_id)
         self.method = method if method else 'POST'
         self.action = action if action else ''
 

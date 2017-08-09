@@ -6,7 +6,12 @@ import jinja2
 import markdown
 
 import flask
-import poobrains
+
+# local imports
+from poobrains import app
+import poobrains.rendering
+import poobrains.storage
+#import poobrains.auth
 
 
 def magic_markdown_loader(storable, handle):
@@ -65,8 +70,14 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
                     else:
                         instance = cls(handle=handle)
 
-                    if isinstance(instance, poobrains.auth.Protected):
-                        instance.permissions['read'].check(flask.g.user)
+                    #if isinstance(instance, poobrains.auth.Protected):
+                    if hasattr(instance, 'permissions'):
+
+                        try:
+                            instance.permissions['read'].check(flask.g.user)
+                        
+                        except:
+                            return jinja2.Markup(md.convert("*You are not allowed to view an instance of %s that was placed here.*" % cls.__name__))
 
                     if instance._meta.modes.has_key('inline'):
                         return instance.render('inline')
@@ -96,9 +107,9 @@ class DisplayRenderableExtension(markdown.Extension):
         )
 
 
-md = poobrains.app.config['MARKDOWN_CLASS'](
-    output_format=poobrains.app.config['MARKDOWN_OUTPUT'],
-    extensions=[DisplayRenderableExtension()] + poobrains.app.config['MARKDOWN_EXTENSIONS']
+md = app.config['MARKDOWN_CLASS'](
+    output_format=app.config['MARKDOWN_OUTPUT'],
+    extensions=[DisplayRenderableExtension()] + app.config['MARKDOWN_EXTENSIONS']
 )
 
 md.references.set_loader(magic_markdown_loader)

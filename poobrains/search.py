@@ -5,18 +5,22 @@ import math
 import peewee
 import flask
 
-import poobrains 
+from poobrains import app
+import poobrains.helpers
+import poobrains.form
+import poobrains.storage
+import poobrains.auth
 
 
 class SearchField(poobrains.form.fields.Text):
     pass
 
 
-@poobrains.app.box('search')
+@app.box('search')
 def box_search():
     try:
         Search.permissions['read'].check(flask.g.user)
-        return SearchForm()
+        return SearchForm(custom_id='box-search')
     except poobrains.auth.AccessDenied:
         return None
 
@@ -29,7 +33,7 @@ class SearchForm(poobrains.form.Form):
     def __init__(self, *args, **kwargs):
 
         if not kwargs.has_key('action'):
-            kwargs['action'] = poobrains.app.site.get_view_url(Search, mode='full')
+            kwargs['action'] = app.site.get_view_url(Search, mode='full')
 
         if not self.fields['pattern'].value and flask.session.has_key('search_pattern'):
             self.fields['pattern'].value = flask.session['search_pattern']
@@ -66,7 +70,7 @@ class Search(poobrains.auth.Protected):
 
             if flask.request.form.has_key('clear'):
                 flask.session.pop('search_pattern', None)
-                return flask.redirect(poobrains.app.site.get_view_url(self.__class__, mode='full'))
+                return flask.redirect(app.site.get_view_url(self.__class__, mode='full'))
 
             self.handle = pattern
             flask.session['search_pattern'] = pattern
@@ -103,7 +107,7 @@ class Search(poobrains.auth.Protected):
                 q = administerable.list('read', flask.g.user)
                 clauses = []
 
-                if isinstance(poobrains.app.db, peewee.SqliteDatabase):
+                if isinstance(app.db, peewee.SqliteDatabase):
                     term = '*%s*' % self.handle.lower()
                 else:
                     term = '%%%s%%' % self.handle.lower()
@@ -143,6 +147,6 @@ class Search(poobrains.auth.Protected):
         return self
 
 
-poobrains.app.site.add_view(Search, '/search/', mode='full', endpoint='search')
-poobrains.app.site.add_view(Search, '/search/<handle>/', mode='full', endpoint='search_handle')
-poobrains.app.site.add_view(Search, '/search/<handle>/+<int:offset>', mode='full', endpoint='search_handle_offset')
+app.site.add_view(Search, '/search/', mode='full', endpoint='search')
+app.site.add_view(Search, '/search/<handle>/', mode='full', endpoint='search_handle')
+app.site.add_view(Search, '/search/<handle>/+<int:offset>', mode='full', endpoint='search_handle_offset')
