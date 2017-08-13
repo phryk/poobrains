@@ -7,7 +7,15 @@ setup(
         'Development Status :: 2 - Pre-Alpha',
         'Programming Language :: Python :: 2.7',
     ],
-    install_requires=['flask', 'peewee', 'pyspkac', 'pyScss', 'pillow', 'markdown'],
+    install_requires=[
+        'flask',
+        'peewee',
+        'pyspkac',
+        'pyOpenSSL', # because apparently this is marked neither by pyspkac nor by m2crypto as dependency…
+        'pyScss',
+        'pillow',
+        'markdown',
+        'gnupg'],
     extras_require={
         'dev': ['pudb'], 
     },
