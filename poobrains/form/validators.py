@@ -5,7 +5,7 @@ import functools
 import re
 
 # internal imports
-import errors 
+from . import errors 
 
 def is_string(field, value):
 

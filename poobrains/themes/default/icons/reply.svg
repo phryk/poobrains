@@ -11,6 +11,9 @@
    width="16"
    height="16"
    id="svg2">
+    <style>
+        {{ style }}
+    </style>
   <defs
      id="defs4" />
   <metadata
@@ -33,10 +36,4 @@
        id="icon"
        style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none" />
   </g>
-
-  <style>
-    path#icon {
-        stroke: rgba(128,255,0, 0.8);
-    } 
-  </style>
 </svg>

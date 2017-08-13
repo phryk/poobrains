@@ -1,26 +1,6 @@
 @import 'colors';
 
-/*@keyframes test {
-    0% {
-        opacity: 1;
-    }
 
-    25% {
-        opacity: 0;
-    }
-
-    50% {
-        opacity: 1;
-    }
-
-    75% {
-        opacity: 0;
-    }
-
-    100% {
-        opacity: 1;
-    }
-}*/
 
 @keyframes scroll {
     0% {
@@ -69,3 +49,7 @@ svg#hexascroll {
         }
     }
 }
+
+path#icon {
+    stroke: $color_highlight;
+} 

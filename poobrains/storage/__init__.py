@@ -14,7 +14,6 @@ import peewee
 from poobrains import app
 import poobrains.helpers
 import poobrains.rendering
-import poobrains.storage
 # internal imports
 import fields
 
@@ -97,7 +96,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
             except peewee.DoesNotExist: # Means we have a ForeignKey without assigned/valid value.
                 segment = None
 
-            if isinstance(segment, poobrains.storage.Model):
+            if isinstance(segment, Model):
                 segment = str(segment._get_pk_value())
             else:
                 segment = str(segment)

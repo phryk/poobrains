@@ -756,7 +756,6 @@ app.url_map.converters['regex'] = RegexConverter
 
 
 # delayed internal imports which may depend on app
-from . import helpers
 from . import mailing
 from . import rendering
 from . import form

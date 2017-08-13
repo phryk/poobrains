@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import md_default
+from . import md_default
 
 SITE_NAME = 'poobrains'
 DATABASE = 'sqlite:///poobrains.db' # database url, containing password, if any. at least sqlite and postres should be supported
