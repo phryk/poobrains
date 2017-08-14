@@ -3,16 +3,27 @@
 import collections
 import peewee
 import gnupg
+import flask
 import click
+
+import os.path
 
 #import poobrains
 from poobrains import app
 import poobrains.storage
 import poobrains.auth
 
+def mkconfig(template, **values):
+
+    app.debugger.set_trace()
+    template_path = os.path.join(app.poobrain_path, 'cli', 'templates', template)
+    return flask.render_template(template_path, **values)
+
+
 @app.cli.command()
 def test():
     click.echo("Running test command!")
+    print mkconfig('uwsgi_freebsd.ini', project_dir="/foo/bar", project_name="bar")
 
 @app.cli.command()
 def install():

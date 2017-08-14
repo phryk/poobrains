@@ -282,6 +282,7 @@ class Poobrain(flask.Flask):
 
         else:
 
+            #FIXME: I think the iteration isn't even needed as we got Pooprint.jinja_loader? But maybe it should be moved to this class?
             paths = [os.path.join(path, resource) for path in app.theme_paths]
 
             for current_path in paths:
