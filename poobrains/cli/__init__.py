@@ -36,14 +36,15 @@ def test():
 
 
 @app.cli.command()
-@click.option('--database', prompt="Database url", default="poo.db")
+@click.option('--database', prompt="Database url", default="sqlite:///poo.db")
 @click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
 @click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
-@click.option('--mail-address', prompt="Admin email address") # FIXME: needs a regexp check
-@click.option('--mail-server', prompt="Admin email server") # FIXME: needs regexp check, maybe connection check
-@click.option('--mail-port', prompt="Admin email server port", type=int)
-@click.option('--mail-user', prompt="Admin email account username")
+@click.option('--mail-address', prompt="site email address") # FIXME: needs a regexp check
+@click.option('--mail-server', prompt="site email server") # FIXME: needs regexp check, maybe connection check
+@click.option('--mail-port', prompt="site email server port", type=int)
+@click.option('--mail-user', prompt="site email account username")
 @click.option('--mail-password', prompt="Admin email password")
+@click.option('--admin-mail-address', prompt="admin email address") # FIXME: needs a regexp check
 @click.option('--admin-cert-name', prompt="Admin login certificate name", default="%s-initial" % app.config['SITE_NAME']) # FIXME: needs a regexp check
 @click.option('--gnupg-homedir', prompt="gnupg homedir, relative to project root (corresponds to gpgs' --homedir)", default="gnupg")
 @click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
