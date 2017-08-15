@@ -5,8 +5,9 @@ import peewee
 import gnupg
 import flask
 import click
+import jinja2
 
-import os.path
+import os
 
 #import poobrains
 from poobrains import app
@@ -15,9 +16,12 @@ import poobrains.auth
 
 def mkconfig(template, **values):
 
-    app.debugger.set_trace()
-    template_path = os.path.join(app.poobrain_path, 'cli', 'templates', template)
-    return flask.render_template(template_path, **values)
+    template_dir = os.path.join(app.poobrain_path, 'cli', 'templates')
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
+
+    template = jinja_env.get_template(template)
+    
+    return template.render(**values)
 
 
 @app.cli.command()
@@ -25,7 +29,10 @@ def test():
     click.echo("Running test command!")
     print mkconfig('uwsgi_freebsd.ini', project_dir="/foo/bar", project_name="bar")
 
+
 @app.cli.command()
+@click.option('--os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
+@click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']))
 def install():
 
         value = click.prompt("Really execute installation procedure? (y/N)").lower()
