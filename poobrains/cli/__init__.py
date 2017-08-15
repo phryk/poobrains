@@ -11,34 +11,52 @@ import os
 
 #import poobrains
 from poobrains import app
+import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
 
-def mkconfig(template, **values):
+import __main__ # to look up project name
+
+def mkconfig(template, os, **values):
 
     template_dir = os.path.join(app.poobrain_path, 'cli', 'templates')
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
 
-    template = jinja_env.get_template(template)
-    
+    try:
+        template = jinja_env.get_template('%s-%s.jinja' % (template, os))
+    except:
+        template = jinja_env.get_template('%s.jinja' % template)
+
     return template.render(**values)
 
 
 @app.cli.command()
 def test():
     click.echo("Running test command!")
-    print mkconfig('uwsgi_freebsd.ini', project_dir="/foo/bar", project_name="bar")
 
 
 @app.cli.command()
-@click.option('--os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
-@click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']))
-def install():
+@click.option('--database', prompt="Database url", default="poo.db")
+@click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
+@click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
+@click.option('--mail-address', prompt="Admin email address") # FIXME: needs a regexp check
+@click.option('--mail-server', prompt="Admin email server") # FIXME: needs regexp check, maybe connection check
+@click.option('--mail-port', prompt="Admin email server port", type=int)
+@click.option('--mail-user', prompt="Admin email account username")
+@click.option('--mail-password', prompt="Admin email password")
+@click.option('--admin-cert-name', prompt="Admin login certificate name", default="%s-initial" % app.config['SITE_NAME']) # FIXME: needs a regexp check
+@click.option('--gnupg-homedir', prompt="gnupg homedir, relative to project root (corresponds to gpgs' --homedir)", default="gnupg")
+@click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
+def install(**options):
 
         value = click.prompt("Really execute installation procedure? (y/N)").lower()
         if value == 'y':
 
-            config_addendum = collections.OrderedDict()
+            options['project_name'] = os.path.splitext(os.path.basename(__main__.__file__))[0]
+            options['project_dir'] = app.site_path
+            options['secret_key'] = poobrains.helpers.random_string_light(64) # cookie crypto key, config['SECRET_KEY']
+
+            #config_addendum = collections.OrderedDict()
 
             click.echo("Installing now...\n")
 
@@ -85,63 +103,59 @@ def install():
             click.echo("Successfully created User 'anonymous'.\n")
             click.echo(str(anon))
 
-            admin_mail = click.prompt("Administrator email addr")
             click.echo("Creating administrator account…\n")
-            admin = poobrains.auth.User()
-            admin.name = 'administrator'
-            admin.mail = admin_mail
-            admin.groups.append(admins) # Put 'administrator' into group 'administrators'
+            root = poobrains.auth.User()
+            root.name = 'root'
+            root.mail = options['admin_mail_address']
+            root.groups.append(admins) # Put 'administrator' into group 'administrators'
 
-            if not admin.save():
+            if not root.save():
                 
-                raise ShellException("Couldn't save administrator, please try again or fix according bugs.")
+                raise ShellException("Couldn't save administrator. Please try again or fix according bugs.")
 
-            click.echo("Successfully saved administrator account.\n")
-            cert_name = click.prompt("Please type in a name for an admin certificate")
+            click.echo("Successfully created administrator account.\n")
 
             t = poobrains.auth.ClientCertToken()
-            t.user = admin
-            t.cert_name = cert_name
+            t.user = root
+            t.cert_name = options['admin_cert_name']
 
             if t.save():
                 click.echo("Admin certificate token is: %s\n" % t.token)
 
-            config_addendum['SMTP_HOST'] = click.prompt("SMTP host")
-            
-            config_addendum['SMTP_PORT'] = click.prompt("SMTP port")
-            
-            config_addendum['SMTP_ACCOUNT'] = click.prompt("SMTP account")
-            
-            config_addendum['SMTP_PASSWORD'] = click.prompt("SMTP password")
+            #config_addendum['SMTP_HOST'] = click.prompt("SMTP host")
+            #config_addendum['SMTP_PORT'] = click.prompt("SMTP port")
+            #config_addendum['SMTP_ACCOUNT'] = click.prompt("SMTP account")
+            #config_addendum['SMTP_PASSWORD'] = click.prompt("SMTP password")
 
-            site_mail = click.prompt("SMTP from")
-            config_addendum['SMTP_FROM'] = site_mail
+            #site_mail = click.prompt("SMTP from")
+            #config_addendum['SMTP_FROM'] = site_mail
             
             click.echo("We'll now configure GPG for sending encrypted mail.\n")
-            gpg_home = click.prompt("GPG home (relative to project root)")
+            #gpg_home = click.prompt("GPG home (relative to project root)")
 
-            gpg = gnupg.GPG(binary=app.config['GPG_BINARY'], homedir=gpg_home)
-            config_addendum['GPG_HOME'] = gpg_home
+            gpg = gnupg.GPG(binary=app.config['GPG_BINARY'], homedir=options['gnupg_homedir'])
+            #config_addendum['GPG_HOME'] = gpg_home
             
-            passphrase = click.prompt("Site PGP passphrase")
-            config_addendum['GPG_PASSPHRASE'] = passphrase
+            #config_addendum['GPG_PASSPHRASE'] = passphrase
 
 
             click.echo("Creating trustdb, if it doesn't exist\n")
             gpg.create_trustdb()
             site_gpg_info = gpg.gen_key_input(
-                name_email = site_mail,
+                name_email = options['mail_address'],
                 key_type = 'RSA',
                 key_length = 4096,
                 key_usage = 'encrypt,sign',
-                passphrase = passphrase
+                passphrase = options['gnupg_passphrase']
             )
 
             click.echo("Generating PGP key for this site. This will probably take a pretty long while. Go get a sammich.\n")
             gpg.gen_key(site_gpg_info)
             
-            click.echo("Probably created site PGP key")
+            click.echo("Probably created site PGP key! \o/")
 
+            config = mkconfig('config', **options) 
+            print config
 
             click.echo("Installation complete!\n")
 
