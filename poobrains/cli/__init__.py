@@ -170,7 +170,7 @@ def install(**options):
                 nginx_conf = mkconfig('nginx', **options)
                 nginx_conf_filename = '%s.nginx.conf' % options['project_name']
                 nginx_conf_fd = open(os.path.join(app.root_path, nginx_conf_filename), 'w')
-                nginx_conf_fd.write(nginx_conf_filename)
+                nginx_conf_fd.write(nginx_conf)
                 nginx_conf_fd.close()
                 click.echo("nginx config snippet was written to %s" % click.style(nginx_conf_filename, fg='green'))
 
