@@ -18,6 +18,9 @@ import poobrains.auth
 
 import __main__ # to look up project name
 
+project_name = os.path.splitext(os.path.basename(__main__.__file__))[0] # basically filename of called file - extension
+
+
 def mkconfig(template, **values):
 
     template_dir = os.path.join(app.poobrain_path, 'cli', 'templates')
@@ -34,7 +37,7 @@ def test():
 
 @app.cli.command()
 @click.option('--domain', prompt="Domain this site will be run under?", default="localhost")
-@click.option('--database', prompt="Database url", default="sqlite:///poo.db")
+@click.option('--database', prompt="Database url", default="sqlite:///%s.db" % project_name)
 @click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
 @click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
 @click.option('--mail-address', prompt="Site email address") # FIXME: needs a regexp check
@@ -51,7 +54,7 @@ def install(**options):
         value = click.prompt("Really execute installation procedure? (y/N)").lower()
         if value == 'y':
 
-            options['project_name'] = os.path.splitext(os.path.basename(__main__.__file__))[0]
+            options['project_name'] = project_name
             options['project_dir'] = app.site_path
             options['secret_key'] = poobrains.helpers.random_string_light(64) # cookie crypto key, config['SECRET_KEY']
 
