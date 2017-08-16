@@ -19,6 +19,8 @@ SMTP_ACCOUNT = None # str
 SMTP_PASSWORD = None # str
 SMTP_FROM = None
 
+CRYPTO_KEYLENGTH = 4096
+
 GPG_BINARY = None
 GPG_HOME = None # str, path
 GPG_SIGNKEY = None # str, a gpg key fingerprint

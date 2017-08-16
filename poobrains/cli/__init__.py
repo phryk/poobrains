@@ -2,7 +2,9 @@
 
 import collections
 import os
+import datetime
 import peewee
+import OpenSSL
 import gnupg
 import flask
 import click
@@ -146,7 +148,7 @@ def install(**options):
             site_gpg_info = gpg.gen_key_input(
                 name_email = options['mail_address'],
                 key_type = 'RSA',
-                key_length = 4096,
+                key_length = app.config['CRYPTO_KEYLENGTH'],
                 key_usage = 'encrypt,sign',
                 passphrase = options['gnupg_passphrase']
             )
@@ -178,6 +180,37 @@ def install(**options):
                 click.echo("nginx config snippet was written to %s" % click.style(nginx_conf_filename, fg='green'))
 
             click.echo("Installation complete!\n")
+
+@app.cli.command()
+@click.option('--lifetime', prompt="How long should this CA live (in seconds)?", default = 365 * 24 * 60 * 60)
+def minica(lifetime):
+
+    not_after = datetime.datetime.now() + datetime.timedelta(seconds=lifetime)
+
+    click.echo("Generating keypair.")
+
+    keypair = OpenSSL.crypto.PKey()
+    keypair.generate_key(OpenSSL.crypto.TYPE_RSA, app.config['CRYPTO_KEYLENGTH'])
+
+    click.echo("Generating certificate")
+    cert = OpenSSL.crypto.X509()
+    cert.set_pubkey(keypair)
+    cert.set_notAfter(not_after.strftime('%Y%m%d%H%M%SZ'))
+    
+    extensions = []
+    extensions.append(OpenSSL.crypto.X509Extension('basicConstraints', True, "CA:TRUE, pathlen:0"))
+    extensions.append(OpenSSL.crypto.X509Extension('keyUsage', True, 'digitalSignature, keyEncipherment, dataEncipherment, keyAgreement, keyCertSign, cRLSign'))
+    cert.add_extensions(extensions)
+
+    #os.mkdir(os.path.join(app.root_path, 'tls'))
+    cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+    click.echo("Certificate:")
+    click.echo(cert_pem)
+
+    click.echo("Private Key:")
+    click.echo(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, keypair))
+
+
 
 
 @app.cli.command()
