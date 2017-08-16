@@ -17,15 +17,11 @@ import poobrains.auth
 
 import __main__ # to look up project name
 
-def mkconfig(template, os, **values):
+def mkconfig(template, **values):
 
     template_dir = os.path.join(app.poobrain_path, 'cli', 'templates')
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
-
-    try:
-        template = jinja_env.get_template('%s-%s.jinja' % (template, os))
-    except:
-        template = jinja_env.get_template('%s.jinja' % template)
+    template = jinja_env.get_template('%s.jinja' % template)
 
     return template.render(**values)
 
