@@ -1,0 +1,34 @@
+http {
+
+	client_max_body_size 512M;
+
+	ssl_trusted_certificate /usr/local/etc/ssl/{{ project_name }}-root.crt;
+	ssl_certificate /usr/local/etc/ssl/{{ project_name }}-server.crt;
+	ssl_certificate_key /usr/local/etc/ssl/{{ project_name }}-key.pem;
+	ssl_client_certificate /usr/local/etc/ssl/{{ project_name}}-CA.crt;
+	ssl_verify_client optional;
+	ssl_verify_depth 3;
+
+    #gzip  on;
+
+	#uwsgi_cache_path /var/db/{{ project_name }}-cache keys_zone={{ project_name }}:1M max_size=1G;
+	#uwsgi_cache_key $host$request_uri;
+	#uwsgi_cache_use_stale updating;
+
+	server {
+
+		server_name {{ domain }};
+		listen 80;
+		listen 443 ssl;
+
+		location / {
+			root {{ project_dir }};
+			include uwsgi_params;
+			uwsgi_param SSL_CLIENT_CERT $ssl_client_raw_cert;
+			uwsgi_param SSL_CLIENT_VERIFY $ssl_client_verify;
+			uwsgi_pass unix:/tmp/{{ project_name }}.sock;
+			#uwsgi_cache {{ project_name }};
+			#uwsgi_cache_background_update on;
+		}
+	}
+}

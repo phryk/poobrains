@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import collections
+import os
 import peewee
 import gnupg
 import flask
 import click
 import jinja2
 
-import os
+from playhouse import db_url
 
 #import poobrains
 from poobrains import app
@@ -32,6 +33,7 @@ def test():
 
 
 @app.cli.command()
+@click.option('--domain', prompt="Domain this site will be run under?", default="localhost")
 @click.option('--database', prompt="Database url", default="sqlite:///poo.db")
 @click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
 @click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
@@ -55,6 +57,7 @@ def install(**options):
 
             #config_addendum = collections.OrderedDict()
 
+            app.db = db_url.connect(options['database'], autocommit=True, autorollback=True)
             click.echo("Installing now...\n")
 
             app.db.create_tables(poobrains.storage.Model.class_children())
@@ -98,7 +101,6 @@ def install(**options):
             if not anon.save(force_insert=True):
                 raise ShellException("Failed creating User 'anonymous'!")
             click.echo("Successfully created User 'anonymous'.\n")
-            click.echo(str(anon))
 
             click.echo("Creating administrator account…\n")
             root = poobrains.auth.User()
@@ -117,7 +119,7 @@ def install(**options):
             t.cert_name = options['admin_cert_name']
 
             if t.save():
-                click.echo("Admin certificate token is: %s\n" % t.token)
+                click.echo("Admin certificate token is: %s\n" % click.style(t.token, fg="cyan", bold=True))
 
             #config_addendum['SMTP_HOST'] = click.prompt("SMTP host")
             #config_addendum['SMTP_PORT'] = click.prompt("SMTP port")
@@ -152,14 +154,27 @@ def install(**options):
             click.echo("Probably created site PGP key! \o/")
 
             config = mkconfig('config', **options) 
-            print config
+            config_fd = open(os.path.join(app.root_path, 'config.py'), 'w')
+            config_fd.write(config)
+            config_fd.close()
+
+            if options['deployment'] == 'uwsgi+nginx':
+
+                uwsgi_ini = mkconfig('uwsgi', **options)
+                uwsgi_ini_filename = '%s.ini' % options['project_name']
+                uwsgi_ini_fd = open(os.path.join(app.root_path, uwsgi_ini_filename), 'w')
+                uwsgi_ini_fd.write(uwsgi_ini)
+                uwsgi_ini_fd.close()
+                click.echo("UWSGI .ini file was written to %s" % click.style(uwsgi_ini_filename, fg='green'))
+
+                nginx_conf = mkconfig('nginx', **options)
+                nginx_conf_filename = '%s.nginx.conf' % options['project_name']
+                nginx_conf_fd = open(os.path.join(app.root_path, nginx_conf_filename), 'w')
+                nginx_conf_fd.write(nginx_conf_filename)
+                nginx_conf_fd.close()
+                click.echo("nginx config snippet was written to %s" % click.style(nginx_conf_filename, fg='green'))
 
             click.echo("Installation complete!\n")
-
-            click.echo("Add these lines to your config.py:\n\n")
-
-            for k, v in config_addendum.iteritems():
-                click.echo("%s = %s\n" % (k, v))
 
 
 @app.cli.command()
