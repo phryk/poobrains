@@ -48,7 +48,7 @@ def test():
 @click.option('--admin-mail-address', prompt="Admin email address") # FIXME: needs a regexp check
 @click.option('--admin-cert-name', prompt="Admin login certificate name", default="%s-initial" % project_name) # FIXME: needs a regexp check
 @click.option('--gnupg-homedir', prompt="gnupg homedir, relative to project root (corresponds to gpgs' --homedir)", default="gnupg")
-@click.option('--gnupg-binary', prompt="path to gnupg binary", default=None)
+@click.option('--gnupg-binary', default=None)
 @click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
 def install(**options):
 
@@ -124,6 +124,7 @@ def install(**options):
             
             click.echo("We'll now configure GPG for sending encrypted mail.\n")
 
+            app.debugger.set_trace()
             if options['gnupg_binary']:
                 gpg = gnupg.GPG(binary=options['gnupg_binary'], homedir=options['gnupg_homedir'])
             else: # let the gnupg module figure it out

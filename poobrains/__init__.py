@@ -205,11 +205,12 @@ class Poobrain(flask.Flask):
 
         else:
 
+            self.debugger.set_trace()
             import optparse # Pretty fucking ugly, but at least its in the stdlib. TODO: Can we *somehow* make this work with prompt in cli/__init__.py install command?
             parser = optparse.OptionParser()
             parser.add_option('--database', default="sqlite:///%s.db" % project_name, dest='database')
             (options, _) = parser.parse_args()
-            self.logger.warning("No DATABASE in config, using generated default or --database parameter '%s'. This should only happen before the install command is executed." % options.database) 
+            self.logger.warning("No DATABASE in config, using generated default or --database parameter '%s'. This should only happen before the install command is executed." % options.database)
             self.db = db_url.connect(options.database)
 
         self.add_url_rule('/theme/<path:resource>', 'serve_theme_resources', self.serve_theme_resources)
