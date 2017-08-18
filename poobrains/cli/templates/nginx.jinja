@@ -2,10 +2,10 @@ http {
 
 	client_max_body_size 512M;
 
-	ssl_trusted_certificate {{ project_dir }}/tls/{{ project_name }}-root.crt;
-	ssl_certificate {{ project_dir }}/tls/{{ project_name }}-server.crt;
-	ssl_certificate_key {{ project_dir }}/tls/{{ project_name }}-key.pem;
-	ssl_client_certificate {{ project_dir }}/{{ project_name}}-CA.crt;
+	ssl_trusted_certificate {{ project_dir }}/tls/cert.pem;
+	ssl_certificate {{ project_dir }}/tls/cert.pem;
+	ssl_certificate_key {{ project_dir }}/tls/key.pem;
+	ssl_client_certificate {{ project_dir }}/cert.pem;
 	ssl_verify_client optional;
 	ssl_verify_depth 3;
 
