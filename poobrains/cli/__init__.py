@@ -124,7 +124,6 @@ def install(**options):
             
             click.echo("We'll now configure GPG for sending encrypted mail.\n")
 
-            app.debugger.set_trace()
             if options['gnupg_binary']:
                 gpg = gnupg.GPG(binary=options['gnupg_binary'], homedir=options['gnupg_homedir'])
             else: # let the gnupg module figure it out
