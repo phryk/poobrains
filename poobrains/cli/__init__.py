@@ -40,6 +40,7 @@ def test():
 @app.cli.command()
 @click.option('--domain', prompt="Domain this site will be run under?", default="localhost")
 @click.option('--database', prompt="Database url", default="sqlite:///%s.db" % project_name)
+@click.option('--keylength', prompt="Length for cryptographic keys (in bits)", default=4096)
 @click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
 @click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
 @click.option('--mail-address', prompt="Site email address") # FIXME: needs a regexp check
@@ -48,8 +49,9 @@ def test():
 @click.option('--mail-user', prompt="Site email account username")
 @click.option('--mail-password', prompt="Site email password")
 @click.option('--admin-mail-address', prompt="Admin email address") # FIXME: needs a regexp check
-@click.option('--admin-cert-name', prompt="Admin login certificate name", default="%s-initial" % app.config['SITE_NAME']) # FIXME: needs a regexp check
+@click.option('--admin-cert-name', prompt="Admin login certificate name", default="%s-initial" % project_name) # FIXME: needs a regexp check
 @click.option('--gnupg-homedir', prompt="gnupg homedir, relative to project root (corresponds to gpgs' --homedir)", default="gnupg")
+@click.option('--gnupg-binary', prompt="path to gnupg binary", default=None)
 @click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
 def install(**options):
 
@@ -126,21 +128,13 @@ def install(**options):
             if t.save():
                 click.echo("Admin certificate token is: %s\n" % click.style(t.token, fg="cyan", bold=True))
 
-            #config_addendum['SMTP_HOST'] = click.prompt("SMTP host")
-            #config_addendum['SMTP_PORT'] = click.prompt("SMTP port")
-            #config_addendum['SMTP_ACCOUNT'] = click.prompt("SMTP account")
-            #config_addendum['SMTP_PASSWORD'] = click.prompt("SMTP password")
-
-            #site_mail = click.prompt("SMTP from")
-            #config_addendum['SMTP_FROM'] = site_mail
             
             click.echo("We'll now configure GPG for sending encrypted mail.\n")
-            #gpg_home = click.prompt("GPG home (relative to project root)")
 
-            gpg = gnupg.GPG(binary=app.config['GPG_BINARY'], homedir=options['gnupg_homedir'])
-            #config_addendum['GPG_HOME'] = gpg_home
-            
-            #config_addendum['GPG_PASSPHRASE'] = passphrase
+            if options['gnupg_binary']:
+                gpg = gnupg.GPG(binary=options['gnupg_binary'], homedir=options['gnupg_homedir'])
+            else: # let the gnupg module figure it out
+                gpg = gnupg.GPG(homedir=options['gnupg_homedir'])
 
 
             click.echo("Creating trustdb, if it doesn't exist\n")
@@ -148,7 +142,7 @@ def install(**options):
             site_gpg_info = gpg.gen_key_input(
                 name_email = options['mail_address'],
                 key_type = 'RSA',
-                key_length = app.config['CRYPTO_KEYLENGTH'],
+                key_length = options['keylength'],
                 key_usage = 'encrypt,sign',
                 passphrase = options['gnupg_passphrase']
             )
@@ -185,6 +179,7 @@ def install(**options):
 @click.option('--lifetime', prompt="How long should this CA live (in seconds)?", default = 365 * 24 * 60 * 60)
 def minica(lifetime):
 
+    not_before = datetime.datetime.now()
     not_after = datetime.datetime.now() + datetime.timedelta(seconds=lifetime)
 
     click.echo("Generating keypair.")
@@ -192,9 +187,12 @@ def minica(lifetime):
     keypair = OpenSSL.crypto.PKey()
     keypair.generate_key(OpenSSL.crypto.TYPE_RSA, app.config['CRYPTO_KEYLENGTH'])
 
+
     click.echo("Generating certificate")
     cert = OpenSSL.crypto.X509()
+    cert.get_issuer().commonName = app.config['DOMAIN'] # srsly pyOpenSSL?
     cert.set_pubkey(keypair)
+    cert.set_notBefore(not_before.strftime('%Y%m%d%H%M%SZ'))
     cert.set_notAfter(not_after.strftime('%Y%m%d%H%M%SZ'))
     
     extensions = []
@@ -202,13 +200,31 @@ def minica(lifetime):
     extensions.append(OpenSSL.crypto.X509Extension('keyUsage', True, 'digitalSignature, keyEncipherment, dataEncipherment, keyAgreement, keyCertSign, cRLSign'))
     cert.add_extensions(extensions)
 
-    #os.mkdir(os.path.join(app.root_path, 'tls'))
+    # finally, sign the certificate with the private key
+    cert.sign(keypair, b"sha512")
+
+    tls_dir = os.path.join(app.root_path, 'tls')
+    if os.path.exists(tls_dir):
+        click.secho("Directory/file '%s' already exists. Move or delete it and re-run." % tls_dir, fg='red')
+        raise click.Abort()
+
+
+    click.echo("Creating directory '%s'." % tls_dir)
+    os.mkdir(os.path.join(tls_dir))
+
+    click.echo("Creating certificate file")
     cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
-    click.echo("Certificate:")
-    click.echo(cert_pem)
+    fd = open(os.path.join(tls_dir, 'cert.pem'), 'w')
+    fd.write(cert_pem)
+    fd.close()
 
     click.echo("Private Key:")
-    click.echo(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, keypair))
+    key_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, keypair)
+    fd = open(os.path.join(tls_dir, 'key.pem'), 'w')
+    fd.write(key_pem)
+    fd.close()
+
+    click.echo("All done! :)")
 
 
 

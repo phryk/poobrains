@@ -2,6 +2,7 @@
 
 from . import md_default
 
+DOMAIN = 'localhost'
 SITE_NAME = 'poobrains'
 DATABASE = 'sqlite:///poobrains.db' # database url, containing password, if any. at least sqlite and postres should be supported
 LOGFILE = False # examples: 'poobrains.log', '/var/log/poobrains.log' TODO: is this really needed with nginx logging?

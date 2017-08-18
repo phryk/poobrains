@@ -1,8 +1,10 @@
 SECRET_KEY = "{{ secret_key }}"
+CRYPTO_KEYLENGTH = {{ keylength }}
 DATABASE = "{{ database }}"
 #CERT_LIFETIME
-#CA_KEY
-#CA_CERT
+CA_KEY = "tls/key.pem"
+CA_CERT = "tls/cert.pem"
+DOMAIN = "{{ domain }}"
 SITE_NAME = "{{ domain }}"
 SMTP_HOST = "{{ mail_server }}"
 SMTP_PORT = {{ mail_port }}
