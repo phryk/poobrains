@@ -13,17 +13,11 @@ import jinja2
 from playhouse import db_url
 db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
 
-from poobrains import app
+from poobrains import app, project_name
 import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
 
-import __main__ # to look up project name
-
-if hasattr(__main__, '__file__'):
-    project_name = os.path.splitext(os.path.basename(__main__.__file__))[0] # basically filename of called file - extension
-else:
-    project_name = "REPL" # We're probably in a REPL, right?
 
 
 def mkconfig(template, **values):
@@ -65,8 +59,6 @@ def install(**options):
             options['project_dir'] = app.site_path
             options['secret_key'] = poobrains.helpers.random_string_light(64) # cookie crypto key, config['SECRET_KEY']
 
-            app.db.initialize(db_url.connect(options['database'], autocommit=True, autorollback=True))
-            
             click.echo("Installing now...\n")
 
             app.db.create_tables(poobrains.storage.Model.class_children())

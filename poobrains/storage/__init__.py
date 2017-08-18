@@ -26,9 +26,9 @@ if isinstance(app.db, peewee.SqliteDatabase):
 
 def RegexpConstraint(field_name, regexp):
 
-    if 'sqlite' in app.db.obj.__class__.__name__.lower():
+    if 'sqlite' in app.db.__class__.__name__.lower():
         regexp_compat = QuotedSQL(regexp)
-    else: # assuming postgres
+    else:
         regexp_compat = regexp
 
     return peewee.Clause(

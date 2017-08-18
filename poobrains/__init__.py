@@ -33,6 +33,14 @@ except ImportError as e:
     config = False
 
 
+import __main__ # to look up project name
+
+if hasattr(__main__, '__file__'):
+    project_name = os.path.splitext(os.path.basename(__main__.__file__))[0] # basically filename of called file - extension
+else:
+    project_name = "REPL" # We're probably in a REPL, right?
+
+
 def is_renderable(x):
 
     """ jinja test to check if a value can be rendered """
@@ -192,7 +200,18 @@ class Poobrain(flask.Flask):
         self.site_path = os.getcwd()
         self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'woff', 'js', 'jpg']
 
-        self.db = peewee.Proxy()
+        if self.config.has_key('DATABASE'):
+            self.db = db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True)
+
+        else:
+            self.debugger.set_trace()
+
+            import optparse # Pretty fucking ugly, but at least its in the stdlib. TODO: Can we do this with click internals?
+            parser = optparse.OptionParser()
+            parser.add_option('--database', default="sqlite:///%s.db" % project_name, dest='database')
+            (options, _) = parser.parse_args()
+            self.logger.warning("No DATABASE in config, using generated default or --database parameter '%s'. This should only happen before the install command is executed." % options.database) 
+            self.db = db_url.connect(options.database)
 
         self.add_url_rule('/theme/<path:resource>', 'serve_theme_resources', self.serve_theme_resources)
 
@@ -221,7 +240,6 @@ class Poobrain(flask.Flask):
     
     def setup(self):
 
-        self.db.initialize(db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True))
         self.register_blueprint(self.site)
         self.register_blueprint(self.admin, url_prefix='/admin/')
 
