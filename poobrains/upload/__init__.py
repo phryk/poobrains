@@ -172,6 +172,6 @@ class Video(File):
 
 # setup upload routes for "raw" mode
 #FIXME: Won't this mean subclasses in projects using poobrains won't have this?
-for cls in [File] + File.class_children():
+for cls in set([File]).union(File.class_children()):
     rule = os.path.join("/upload/", cls.__name__.lower(), '<handle>')
     app.site.add_view(cls, rule, mode='raw')

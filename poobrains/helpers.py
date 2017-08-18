@@ -248,15 +248,15 @@ class ChildAware(object):
     @classmethod
     def class_children(cls, abstract=False):
 
-        reported_children = []
+        reported_children = set()
         children = cls.__subclasses__()
 
         for child in children:
 
             if abstract or not hasattr(child._meta, 'abstract') or not child._meta.abstract:
-                reported_children.append(child)
+                reported_children.add(child)
 
-            reported_children += child.class_children()
+            reported_children = reported_children.union(child.class_children())
 
         return reported_children
 

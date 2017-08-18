@@ -20,7 +20,10 @@ import poobrains.auth
 
 import __main__ # to look up project name
 
-project_name = os.path.splitext(os.path.basename(__main__.__file__))[0] # basically filename of called file - extension
+if hasattr(__main__, '__file__'):
+    project_name = os.path.splitext(os.path.basename(__main__.__file__))[0] # basically filename of called file - extension
+else:
+    project_name = "REPL" # We're probably in a REPL, right?
 
 
 def mkconfig(template, **values):
@@ -55,21 +58,19 @@ def test():
 @click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
 def install(**options):
 
-        value = click.prompt("Really execute installation procedure? (y/N)").lower()
-        if value == 'y':
+        optin = click.prompt("Really execute installation procedure? (y/N)").lower()
+        if optin == 'y':
 
             options['project_name'] = project_name
             options['project_dir'] = app.site_path
             options['secret_key'] = poobrains.helpers.random_string_light(64) # cookie crypto key, config['SECRET_KEY']
 
-            #config_addendum = collections.OrderedDict()
-
             app.db = db_url.connect(options['database'], autocommit=True, autorollback=True)
+            
             click.echo("Installing now...\n")
 
             app.db.create_tables(poobrains.storage.Model.class_children())
             click.echo("Database tables created!\n")
-
 
             click.echo("Creating Group 'anonsanonymous'…\n")
             anons = poobrains.auth.Group()
@@ -175,6 +176,7 @@ def install(**options):
 
             click.echo("Installation complete!\n")
 
+
 @app.cli.command()
 @click.option('--lifetime', prompt="How long should this CA live (in seconds)?", default = 365 * 24 * 60 * 60)
 def minica(lifetime):
@@ -225,8 +227,6 @@ def minica(lifetime):
     fd.close()
 
     click.echo("All done! :)")
-
-
 
 
 @app.cli.command()
