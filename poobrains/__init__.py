@@ -204,9 +204,8 @@ class Poobrain(flask.Flask):
             self.db = db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True)
 
         else:
-            self.debugger.set_trace()
 
-            import optparse # Pretty fucking ugly, but at least its in the stdlib. TODO: Can we do this with click internals?
+            import optparse # Pretty fucking ugly, but at least its in the stdlib. TODO: Can we *somehow* make this work with prompt in cli/__init__.py install command?
             parser = optparse.OptionParser()
             parser.add_option('--database', default="sqlite:///%s.db" % project_name, dest='database')
             (options, _) = parser.parse_args()
