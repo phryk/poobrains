@@ -151,19 +151,21 @@ class TaggingField(poobrains.form.fields.MultiChoice):
 
         choices = []
 
-        try:
-            for tag in Tag.select():
-                choices.append((tag.name, tag.name))
+        if not kwargs.has_key('dry') or not kwargs.pop('dry'): # kwargs['dry'] == dry run, don't fill automatically from db
 
-        except (peewee.OperationalError, peewee.ProgrammingError) as e:
-            app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
+            try:
+                for tag in Tag.select():
+                    choices.append((tag.name, tag.name))
+
+            except (peewee.OperationalError, peewee.ProgrammingError) as e:
+                app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
 
         self.choices = choices
 
 
 class TaggingFieldset(poobrains.form.Fieldset):
 
-    tags = TaggingField('tags')
+    tags = TaggingField('tags', dry=True) # dry in order not to require a database for importing the module
 
     def __init__(self, instance):
 

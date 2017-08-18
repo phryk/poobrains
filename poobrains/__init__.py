@@ -30,7 +30,6 @@ try:
 
 except ImportError as e:
 
-    print "Poobrains: This application has no config module. Just so you know…"
     config = False
 
 
@@ -193,7 +192,7 @@ class Poobrain(flask.Flask):
         self.site_path = os.getcwd()
         self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'woff', 'js', 'jpg']
 
-        self.db = db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True)
+        self.db = peewee.Proxy()
 
         self.add_url_rule('/theme/<path:resource>', 'serve_theme_resources', self.serve_theme_resources)
 
@@ -222,6 +221,7 @@ class Poobrain(flask.Flask):
     
     def setup(self):
 
+        self.db.initialize(db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True))
         self.register_blueprint(self.site)
         self.register_blueprint(self.admin, url_prefix='/admin/')
 

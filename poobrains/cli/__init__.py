@@ -11,8 +11,8 @@ import click
 import jinja2
 
 from playhouse import db_url
+db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
 
-#import poobrains
 from poobrains import app
 import poobrains.helpers
 import poobrains.storage
@@ -65,7 +65,7 @@ def install(**options):
             options['project_dir'] = app.site_path
             options['secret_key'] = poobrains.helpers.random_string_light(64) # cookie crypto key, config['SECRET_KEY']
 
-            app.db = db_url.connect(options['database'], autocommit=True, autorollback=True)
+            app.db.initialize(db_url.connect(options['database'], autocommit=True, autorollback=True))
             
             click.echo("Installing now...\n")
 
