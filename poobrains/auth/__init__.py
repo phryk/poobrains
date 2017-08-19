@@ -1152,7 +1152,7 @@ class User(Named):
         del fd
 
         keypair = openssl.crypto.PKey()
-        keypair.generate_key(openssl.crypto.TYPE_RSA, 4096)
+        keypair.generate_key(openssl.crypto.TYPE_RSA, app.config['CRYPTO_KEYLENGTH'])
 
         extensions = []
         extensions.append(openssl.crypto.X509Extension('keyUsage', True, 'digitalSignature, keyEncipherment, keyAgreement'))
@@ -1167,7 +1167,6 @@ class User(Named):
         cert.gmtime_adj_notAfter(app.config['CERT_LIFETIME'])
         cert.set_serial_number(int(time.time())) # FIXME: This is bad, but probably won't fuck us over for a while ¯\_(ツ)_/¯
         cert.get_subject().CN = common_name
-        cert.get_subject().C = ca_cert.get_subject().C
 
         cert.sign(ca_key, 'sha512')
 
