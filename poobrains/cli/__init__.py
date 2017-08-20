@@ -185,9 +185,10 @@ def minica(lifetime):
     click.echo("Generating certificate")
     cert = OpenSSL.crypto.X509()
     cert.get_issuer().commonName = app.config['DOMAIN'] # srsly pyOpenSSL?
+    cert.get_subject().commonName = app.config['DOMAIN'] # srsly pyOpenSSL?
     cert.set_pubkey(keypair)
-    cert.set_notBefore(not_before.strftime('%Y%m%d%H%M%SZ'))
-    cert.set_notAfter(not_after.strftime('%Y%m%d%H%M%SZ'))
+    cert.gmtime_adj_notBefore(0)
+    cert.gmtime_adj_notAfter(lifetime)
     
     extensions = []
     extensions.append(OpenSSL.crypto.X509Extension('basicConstraints', True, "CA:TRUE, pathlen:0"))
