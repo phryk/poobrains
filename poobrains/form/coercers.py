@@ -20,4 +20,4 @@ def coerce_bool(field, value):
 
 def coerce_datetime(field, value):
 
-    return datetime.datetime.strptime(value, 'Y-m-d H:M:S')
+    return datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')

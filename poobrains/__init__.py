@@ -192,8 +192,6 @@ class Poobrain(flask.Flask):
 
                 import signal # shouldn't be needed but feels hacky to leave out
                 import pdb
-                if hasattr(signal, 'SIGINFO'):
-                    pdb.set_interrupt_handler(signal.SIGINFO)
 
         self.boxes = {}
         self.poobrain_path = os.path.dirname(os.path.realpath(__file__))

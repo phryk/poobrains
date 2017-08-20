@@ -1,2 +1,4 @@
 {% extends "form/fields/field.jinja" %}
 {% block type %}datetime-local{% endblock %}
+
+{% block value %}{{ content.value.strftime('%Y-%m-%d %H:%M:%S') }}{% endblock %}
