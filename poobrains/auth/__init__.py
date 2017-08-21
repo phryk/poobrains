@@ -351,12 +351,16 @@ class ClientCertForm(poobrains.form.Form):
     tls_submit = poobrains.form.Button('submit', label="Server-side: HTTPS")
 
     def __init__(self, *args, **kwargs):
+
         super(ClientCertForm, self).__init__(*args, **kwargs)
-        flask.session['key_challenge'] = self.key.challenge
+        app.debugger.set_trace()
+        if flask.request.method == 'GET':
+            flask.session['key_challenge'] = self.fields['key'].challenge
 
 
     def process(self):
 
+        app.debugger.set_trace()
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
@@ -1124,7 +1128,7 @@ class User(Named):
         spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
         spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
 
-        spkac.subject.C = ca_cert.get_subject().C
+        #spkac.subject.C = ca_cert.get_subject().C
 
         not_before = int(time.time())
         not_after = not_before + app.config['CERT_LIFETIME']

@@ -484,26 +484,41 @@ class AddForm(BoundForm):
                     flask.flash(u"Saved %s %s." % (self.model.__name__, self.instance.handle_string))
 
                     for fieldset in self.fieldsets:
+
                         try:
+
                             fieldset.process(self.instance)
+
                         except Exception as e:
+
                             if exceptions:
                                 raise
-                            flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
-                            app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
+
+                            flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name), 'error')
+                            app.logger.error(u"Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message.decode('utf-8')))
 
                     try:
                         return flask.redirect(self.instance.url('edit'))
                     except LookupError:
                         return self
                 else:
+
                     flask.flash(u"Couldn't save %s." % self.model.__name__)
 
             except peewee.IntegrityError as e:
 
                 if exceptions:
                     raise
+
                 flask.flash(u'Integrity error: %s' % e.message.decode('utf-8'), 'error')
+                app.logger.error(u"Integrity error: %s" % e.message.decode('utf-8'))
+
+            except Exception as e:
+
+                if exceptions:
+                    raise
+
+                flask.flash(u"Couldn't save %s. %s: %s" % self.model.__name__, type(e).__name__, e.message.decode('utf-8'))
 
         else:
             flask.flash(u"Not handling readonly form '%s'." % self.name)
