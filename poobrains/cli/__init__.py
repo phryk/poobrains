@@ -18,6 +18,8 @@ import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
 
+from . import types
+
 
 
 def mkconfig(template, **values):
@@ -223,16 +225,21 @@ def minica(lifetime):
 
 
 @app.cli.command()
-@click.argument('storable')
+@click.argument('storable', type=types.STORABLE)
 def add(storable):
 
-        cls = poobrains.storage.Storable.class_children_keyed()[storable]
-        instance = cls()
+        #cls = poobrains.storage.Storable.class_children_keyed()[storable]
+        instance = storable()
 
-        click.echo("Addding %s...\n" % (cls.__name__,))
-        for field in cls._meta.sorted_fields:
+        click.echo("Addding %s...\n" % (storable.__name__,))
+        for field in storable._meta.sorted_fields:
 
             if not isinstance(field, peewee.PrimaryKeyField):
+
+                if isinstance(field, peewee.ForeignKeyField):
+                    fieldtype = types.STORABLE
+                else:
+                    fieldtype = unicode
                 value = click.prompt(field.name)
 
                 if value != '': # Makes models fall back to defaults for this field
