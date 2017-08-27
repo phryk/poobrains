@@ -709,7 +709,7 @@ class RelatedForm(poobrains.form.Form):
         return self
 
 
-class UserPermissionAddForm(poobrains.form.AddForm):
+class UserPermissionAddForm(poobrains.storage.AddForm):
 
     
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
@@ -743,7 +743,7 @@ class UserPermissionAddFieldset(UserPermissionAddForm, poobrains.form.Fieldset):
         return rv
 
 
-class UserPermissionEditFieldset(poobrains.form.EditFieldset):
+class UserPermissionEditFieldset(poobrains.storage.EditFieldset):
 
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         return super(UserPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
@@ -768,7 +768,7 @@ class UserPermissionRelatedForm(RelatedForm):
                 perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
                 perm_mode = 'edit'
 
-                #f.fields[name] = poobrains.form.EditFieldset(perm_info, mode=perm_mode, name=name)
+                #f.fields[name] = poobrains.storage.EditFieldset(perm_info, mode=perm_mode, name=name)
                 #f.fields[name] = perm_info.fieldset_edit(mode=perm_mode)
                 fieldset = perm_info.fieldset_edit(mode=perm_mode)
                 fieldset.fields['permission'].readonly = True
@@ -792,7 +792,7 @@ class UserPermissionRelatedForm(RelatedForm):
         return f
 
 
-class GroupPermissionAddForm(poobrains.form.AddForm):
+class GroupPermissionAddForm(poobrains.storage.AddForm):
 
     
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
@@ -820,7 +820,7 @@ class GroupPermissionAddForm(poobrains.form.AddForm):
         return self
 
 
-class GroupPermissionEditForm(poobrains.form.EditForm):
+class GroupPermissionEditForm(poobrains.storage.EditForm):
 
     def __new__(cls, model_or_instance, *args, **kwargs):
 
@@ -837,7 +837,7 @@ class GroupPermissionAddFieldset(GroupPermissionAddForm, poobrains.form.Fieldset
         return rv
 
 
-class GroupPermissionEditFieldset(poobrains.form.EditForm, poobrains.form.Fieldset):
+class GroupPermissionEditFieldset(poobrains.storage.EditForm, poobrains.form.Fieldset):
 
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         return super(GroupPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
@@ -901,12 +901,12 @@ class Administerable(poobrains.storage.Storable, Protected):
     
     __metaclass__ = BaseAdministerable
 
-    form_add = poobrains.form.AddForm # TODO: move form_ into class Meta?
-    form_edit = poobrains.form.EditForm
-    form_delete = poobrains.form.DeleteForm
+    form_add = poobrains.storage.AddForm # TODO: move form_ into class Meta?
+    form_edit = poobrains.storage.EditForm
+    form_delete = poobrains.storage.DeleteForm
 
-    fieldset_add = poobrains.form.AddFieldset
-    fieldset_edit = poobrains.form.EditFieldset
+    fieldset_add = poobrains.storage.AddFieldset
+    fieldset_edit = poobrains.storage.EditFieldset
 
     related_form = RelatedForm # TODO: make naming consistent
 
