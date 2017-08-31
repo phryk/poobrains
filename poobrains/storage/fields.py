@@ -82,15 +82,6 @@ class ForeignKeyChoice(poobrains.form.fields.TextAutoComplete):
         elif self.required:
             raise poobrains.errors.ValidationError("Field %s is required." % self.name)
 
-    
-    def coerce(self, value):
-        if not value is None:
-            try:
-                return self.storable.load(self.coercer(value))
-            except self.storable.DoesNotExist as e:
-                self.errors.append(e)
-        return None
-
 poobrains.form.fields.ForeignKeyChoice = ForeignKeyChoice
 
 

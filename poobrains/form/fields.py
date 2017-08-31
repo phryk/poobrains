@@ -12,7 +12,6 @@ import poobrains.rendering
 # internal imports
 from . import errors
 from . import validators
-from . import coercers
 from . import types
 
 
@@ -40,7 +39,6 @@ class Field(object):
     readonly = None
     required = None
     validator = validators.is_string
-    coercer = coercers.coerce_string
 
     class Meta:
         clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default']
@@ -138,16 +136,6 @@ class Field(object):
             raise errors.ValidationError("Required field '%s' was left empty." % self.name)
 
 
-#    def coerce(self, value):
-#
-#        if not self.coercer:
-#            return value
-#
-#        if not value is None:
-#            return self.coercer(value)
-#        return None
-
-    
     def bind(self, value):
 
         if isinstance(value, errors.MissingValue):
@@ -155,7 +143,6 @@ class Field(object):
 
         else:
             try:
-                #self.value = self.coerce(value)
                 self.value = self.type.convert(value, None, None)
 
                 #if self.required and self.empty():
@@ -163,7 +150,7 @@ class Field(object):
                     self.value = self._default
 
 
-            except ValueError:
+            except errors.BadParameter:
                 e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
                 self.errors.append(e)
                 raise e
@@ -176,7 +163,6 @@ class Field(object):
 
     @property
     def _default(self):
-        #return self.coerce(self.default() if callable(self.default) else self.default)
         return self.type.convert(self.default() if callable(self.defauult) else self.default, None, None)
 
 
@@ -272,7 +258,6 @@ class RangedInteger(Integer):
 class DateTime(RenderableField):
 
     validator = validators.is_datetime
-    coercer = coercers.coerce_datetime
     type = types.DATETIME
 
 
@@ -290,11 +275,15 @@ class Choice(RenderableField):
         if choices is None:
             choices = []
 
-        self.choices = choices
-        self.type = types.Choice(choices=[value for label, value in choices])
+        self.choices = []
+        for choice, label in choices:
+            self.choices.append((self.type.convert(choice, None, None), label))
+
+        #self.type = types.Choice(choices=[self.type.convert(value) for label, value in choices])
 
         super(Choice, self).__init__(**kwargs)
 
+       
 
     def validate(self):
 
@@ -309,8 +298,8 @@ class MultiChoice(Choice):
     default = []
     empty_value = []
 
-    def __init__(self, *args, **kwargs):
-        super(MultiChoice, self).__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super(MultiChoice, self).__init__(**kwargs)
 
         if self.value is None:
             self.value = []
@@ -323,13 +312,12 @@ class MultiChoice(Choice):
 
         for value in self.value:
             if value != '':
-                if self.coercer:
-                    try:
-                        self.coercer(value)
-                        return False
-                    
-                    except ValueError:
-                        pass
+                try:
+                    self.type.convert(value, None, None)
+                    return False
+                
+                except errors.BadParameter:
+                    pass
 
         return True # default to True if no coercible non-'' values where found
 
@@ -341,51 +329,38 @@ class MultiChoice(Choice):
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
-    def coerce(self, values):
-        
-        error = errors.CompoundError()
+    def bind(self, values):
 
-        if not isinstance(values, list):
-            values = [values]
-
-        if not self.coercer:
-            return values
-
-        coerced = []
         for value in values:
-
             try:
-                coerced.append(self.coercer(value))
-
-            except ValueError:
+                self.value.append(self.type.convert(value, None, None))
+            
+            except errors.BadParameter:
                 e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
                 self.errors.append(e)
-                error.append(e)
+                raise e
 
-        if len(error):
-            raise error
-
-        return coerced
+        try:
+            self.validate()
+        except errors.ValidationError as e:
+            self.errors.append(e)
+            raise
 
 
 class TextChoice(Choice):
     validator = validators.is_string
-    coercer = coercers.coerce_string
 
 
 class MultiTextChoice(MultiChoice):
     validator = validators.is_string
-    coercer = coercers.coerce_string
 
 
 class IntegerChoice(Choice):
     validator = validators.is_integer
-    coercer = coercers.coerce_int
 
 
 class MultiIntegerChoice(MultiChoice):
     validator = validators.is_integer
-    coercer = coercers.coerce_int
 
 
 class Checkbox(RenderableField):
@@ -395,7 +370,6 @@ class Checkbox(RenderableField):
 
     empty_value = None
     default = False
-    coercer = coercers.coerce_bool
     validator = validators.is_bool
     checked = None
 
@@ -413,7 +387,6 @@ class Radio(Checkbox):
 
 class MultiCheckbox(MultiChoice):
 
-    coercers = coercers.coerce_string
     validator = validators.is_string
     checked = None
 
@@ -432,9 +405,8 @@ class MultiCheckbox(MultiChoice):
                 kwargs['value'] = [kwargs['value']]
        
             for subvalue in kwargs['value']:
-                #kwargs['choices'].append(coercers.coerce_string(None, subvalue))
-                kwargs['choices'].append(self.coercer(subvalue))
-                #kwargs['choices'].append(subvalue)
+                kwargs['choices'].append(self.type.convert(subvalue, None, None))
+
 
         super(MultiCheckbox, self).__init__(**kwargs)
 
@@ -448,7 +420,6 @@ class MultiCheckbox(MultiChoice):
 
 class IntegerMultiCheckbox(MultiCheckbox):
 
-    coercer = coercers.coerce_int
     validator = validators.is_integer
 
 
@@ -479,4 +450,3 @@ class Keygen(RenderableField):
 class File(RenderableField):
 
     validator = None
-    coercer = None

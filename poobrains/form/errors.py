@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from click.exceptions import BadParameter
+
 class ValidationError(Exception):
     pass
 

@@ -222,7 +222,7 @@ class BaseForm(poobrains.rendering.Renderable):
                     try:
                         if isinstance(field, Fieldset):
                             sub_files = files[field.name] if files.has_key(field.name) else werkzeug.datastructures.MultiDict()
-                            field.bind(field_values, sub_files) # FIXME: This is probably wrong. files[field.name] if exists or sth like that
+                            field.bind(field_values, sub_files)
                         else:
                             field.bind(field_values)
 

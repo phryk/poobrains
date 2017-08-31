@@ -145,13 +145,13 @@ class TagBinding(poobrains.auth.Administerable):
 
 class TaggingField(poobrains.form.fields.MultiChoice):
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, dry=False, **kwargs):
 
-        super(TaggingField, self).__init__(*args, **kwargs)
+        super(TaggingField, self).__init__(**kwargs)
 
         choices = []
 
-        if not kwargs.has_key('dry') or not kwargs.pop('dry'): # kwargs['dry'] == dry run, don't fill automatically from db
+        if not dry: # kwargs['dry'] == dry run, don't fill automatically from db
 
             try:
                 for tag in Tag.select():
@@ -161,6 +161,7 @@ class TaggingField(poobrains.form.fields.MultiChoice):
                 app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
 
         self.choices = choices
+        self.type = poobrains.form.types.StorableInstanceParamType(Tag)
 
 
 class TaggingFieldset(poobrains.form.Fieldset):
