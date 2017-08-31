@@ -19,7 +19,7 @@ import poobrains.rendering
 # internal imports
 from . import errors
 from . import fields
-
+from . import types
 
 class FormMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
 

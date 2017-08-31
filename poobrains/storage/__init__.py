@@ -5,6 +5,7 @@ import math
 import collections
 import re
 import copy
+import click
 import flask
 import werkzeug.routing
 import peewee
@@ -16,7 +17,7 @@ import poobrains.helpers
 import poobrains.rendering
 import poobrains.form
 # internal imports
-import fields
+from . import fields
 
 if isinstance(app.db, peewee.SqliteDatabase):
 
@@ -383,7 +384,7 @@ class BoundForm(poobrains.form.Form):
 
         f = super(BoundForm, cls).__new__(cls, prefix=prefix, name=name, title=title, method=method, action=action)
 
-        if isinstance(model_or_instance, type(poobrains.storage.Model)): # hacky
+        if isinstance(model_or_instance, type(Model)): # hacky
             f.model = model_or_instance
             f.instance = f.model()
 
@@ -423,18 +424,6 @@ class AddForm(BoundForm):
                     kw['required'] = True
                 else:
                     kw['required'] = False
-
-                if isinstance(field, poobrains.storage.fields.ForeignKeyField):
-                    #TODO: is this the place to do permission checking for the field?
-
-                    kw['choices'] = []
-                    for choice in field.rel_model.select():
-                        if hasattr(choice, 'name') and choice.name:
-                            choice_name = choice.name
-                        else:
-                            choice_name = "%s #%d" % (choice.__class__.__name__, choice.id)
-                        kw['choices'].append((choice.handle_string, choice_name))
-
 
                 if field.form_class is not None:
                     form_field = field.form_class(**kw)
@@ -626,3 +615,28 @@ class EditFieldset(EditForm, poobrains.form.Fieldset):
 
         self.rendered = True
         return super(EditFieldset, self).render(mode)
+
+
+class StorableParamType(poobrains.form.types.ParamType):
+
+    baseclass = None
+
+    def __init__(self, baseclass=Storable):
+
+        super(StorableParamType, self).__init__()
+        self.baseclass = baseclass
+
+    def convert(self, value, param, ctx):
+
+        if isinstance(value, self.baseclass):
+            return value # apparently we need this function to be idempotent? Didn't even knew that was a real word.
+
+        storables = {k.lower(): v for k, v in self.baseclass.class_children_keyed().iteritems()}
+
+        if storables.has_key(value.lower()):
+            return storables[value.lower()] # holy shit it's lined up! D:
+
+        self.fail(u'Not a valid storable: %s. Try one of %s' % (value, storables.keys()))
+
+poobrains.form.types.StorableParamType = StorableParamType
+poobrains.form.types.STORABLE = StorableParamType()

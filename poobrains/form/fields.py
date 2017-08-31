@@ -13,6 +13,7 @@ import poobrains.rendering
 from . import errors
 from . import validators
 from . import coercers
+from . import types
 
 
 class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
@@ -29,6 +30,7 @@ class Field(object):
     errors = None
     prefix = None
     name = None
+    type = types.STRING
     value = None
     empty_value = '' # value which is considered to be "empty"
     default = None # used when client sends no value for this field
@@ -51,7 +53,8 @@ class Field(object):
 
         return instance
 
-    def __init__(self, name=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None, **kwargs):
+
+    def __init__(self, name=None, type=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None, **kwargs):
 
         self.errors = []
         self.name = name
@@ -61,14 +64,19 @@ class Field(object):
         self.readonly = readonly
         self.required = required
         self.rendered = False
+
+        if not type is None:
+            self.type = type
+
         if not default is None:
             self.default = default
         
-        if validator:
+        if not validator is None:
             self.validator = validator
 
         
-        if form is not None:
+        if not form is None:
+
             self.form = form
             if self.form.prefix:
                 self.prefix = "%s.%s" % (self.form.prefix, self.form.name)
@@ -130,14 +138,14 @@ class Field(object):
             raise errors.ValidationError("Required field '%s' was left empty." % self.name)
 
 
-    def coerce(self, value):
-
-        if not self.coercer:
-            return value
-
-        if not value is None:
-            return self.coercer(value)
-        return None
+#    def coerce(self, value):
+#
+#        if not self.coercer:
+#            return value
+#
+#        if not value is None:
+#            return self.coercer(value)
+#        return None
 
     
     def bind(self, value):
@@ -147,7 +155,8 @@ class Field(object):
 
         else:
             try:
-                self.value = self.coerce(value)
+                #self.value = self.coerce(value)
+                self.value = self.type.convert(value, None, None)
 
                 #if self.required and self.empty():
                 if self.empty():
@@ -167,7 +176,8 @@ class Field(object):
 
     @property
     def _default(self):
-        return self.coerce(self.default() if callable(self.default) else self.default)
+        #return self.coerce(self.default() if callable(self.default) else self.default)
+        return self.type.convert(self.default() if callable(self.defauult) else self.default, None, None)
 
 
 
@@ -223,9 +233,10 @@ class TextAutoComplete(Text):
         super(TextAutoComplete, self).__init__(**kwargs)
 
         if choices is None:
-            self.choices = []
-        else:
-            self.choices = choices
+            choices = []
+
+        self.choices = choices
+        self.type = types.Choice([value for value, label in choices]) # FIXME: Changing self.choices in place will lead to inconsistency
 
 
 class ObfuscatedText(Text):
@@ -238,7 +249,8 @@ class TextArea(Text):
 
 class Integer(RenderableField):
     default = 0
-    validator = validators.is_integer 
+    validator = validators.is_integer
+    type = types.INT
 
 
 class RangedInteger(Integer):
@@ -261,6 +273,7 @@ class DateTime(RenderableField):
 
     validator = validators.is_datetime
     coercer = coercers.coerce_datetime
+    type = types.DATETIME
 
 
 class Choice(RenderableField):
@@ -272,12 +285,13 @@ class Choice(RenderableField):
     class Meta:
         clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices', 'empty_label', 'multi']
     
-    def __init__(self, choices=None, **kwargs):
+    def __init__(self, choices=None, type=None, **kwargs):
 
-        if not choices is None:
-            self.choices = choices
-        else:
-            self.choices = []
+        if choices is None:
+            choices = []
+
+        self.choices = choices
+        self.type = types.Choice(choices=[value for label, value in choices])
 
         super(Choice, self).__init__(**kwargs)
 
@@ -372,45 +386,6 @@ class IntegerChoice(Choice):
 class MultiIntegerChoice(MultiChoice):
     validator = validators.is_integer
     coercer = coercers.coerce_int
-
-
-class ForeignKeyChoice(TextAutoComplete):
-
-    """
-    Warning: this field expects to be bound to a ForeignKeyField.
-    """
-
-    __metaclass__ = BoundFieldMeta
-
-    storable = None
-
-    def __new__(cls, fkfield, *args, **kwargs):
-        return super(ForeignKeyChoice, cls).__new__(cls, *args, **kwargs)
-
-
-    def __init__(self, fkfield, *args, **kwargs):
-
-        self.storable = fkfield.rel_model
-        # TODO build default choices if not passed
-        super(ForeignKeyChoice, self).__init__(*args, **kwargs)
-
-
-    def validate(self):
-        
-        if not self.value is None:
-            if not isinstance(self.value, self.storable):
-                raise errors.ValidationError("Unknown %s handle '%s'." % (self.storable.__name__, self.value))
-        elif self.required:
-            raise errors.ValidationError("Field %s is required." % self.name)
-
-    
-    def coerce(self, value):
-        if not value is None:
-            try:
-                return self.storable.load(self.coercer(value))
-            except self.storable.DoesNotExist as e:
-                self.errors.append(e)
-        return None
 
 
 class Checkbox(RenderableField):

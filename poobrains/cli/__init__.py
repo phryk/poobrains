@@ -18,8 +18,7 @@ import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
 
-from . import types
-
+from poobrains.form import types
 
 
 def mkconfig(template, **values):

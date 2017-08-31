@@ -165,7 +165,7 @@ class TaggingField(poobrains.form.fields.MultiChoice):
 
 class TaggingFieldset(poobrains.form.Fieldset):
 
-    tags = TaggingField('tags', dry=True) # dry in order not to require a database for importing the module
+    tags = TaggingField(name='tags', dry=True) # dry in order not to require a database for importing the module
 
     def __init__(self, instance):
 
