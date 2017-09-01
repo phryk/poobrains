@@ -8,15 +8,15 @@
 >
 
   <option value=''>{{ content.empty_label }}</option>
-  {% for value, label in content.choices %}
+  {% for value, label in content.choices_string %}
     {% if not value is string and value is iterable  %}
       <optgroup label="{{ label }}">
         {% for subvalue, sublabel in value %}
-          <option value="{{ subvalue }}" {% if subvalue == content.value %}selected{% endif %}>{{ sublabel }}</option>
+          <option value="{{ subvalue }}" {% if subvalue == content.value_string %}selected{% endif %}>{{ sublabel }}</option>
         {% endfor %}
       </optgroup>
     {% else %}
-      <option value="{% if value %}{{ value }}{% endif %}" {% if value == content.value %}selected{% endif %}>{{ label }}</option>
+      <option value="{% if value %}{{ value }}{% endif %}" {% if value == content.value_string %}selected{% endif %}>{{ label }}</option>
     {% endif %}
   {% endfor %}
 

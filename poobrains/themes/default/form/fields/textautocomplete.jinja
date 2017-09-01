@@ -11,12 +11,12 @@
     {% endif %}
 
     {% if content.value %}
-    value="{% block value %}{{ content.value }}{% endblock %}"
+    value="{% block value %}{{ content.value_string }}{% endblock %}"
     {% endif %}
 >
 
 <datalist id="{{ list_id }}">
-{% for choice, label in content.choices %}
+{% for choice, label in content.choices_string %}
     <option value="{{ choice }}" label="{{ label }}">
 {% endfor %}
 </datalist>

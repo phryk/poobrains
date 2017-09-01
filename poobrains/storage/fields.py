@@ -13,11 +13,14 @@ import poobrains.form
 class StorableInstanceParamType(poobrains.form.types.ParamType):
 
     storable = None
+    choices = None
 
-    def __init__(self, storable):
+    def __init__(self, storable, choices=None):
 
         super(StorableInstanceParamType, self).__init__()
+
         self.storable = storable
+        self.choices = choices
 
 
     def convert(self, value, param, ctx):
@@ -27,11 +30,17 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
 
 
         try:
-            return self.storable.load(value)
+            instance = self.storable.load(value)
 
         except Exception:
 
             self.fail("Invalid handle '%s' for %s." % (value, self.storable.__name__))
+
+        if self.choices is not None and instance not in self.choices:
+            self.fail("'%s' is not an approved choice." % value)
+
+        return instance
+
 
 poobrains.form.types.StorableInstanceParamType = StorableInstanceParamType
 
@@ -53,34 +62,30 @@ class ForeignKeyChoice(poobrains.form.fields.TextAutoComplete):
 
     def __init__(self, fkfield, choices=None, **kwargs):
 
-        import pudb; pudb.set_trace()
         self.storable = fkfield.rel_model
         super(ForeignKeyChoice, self).__init__(**kwargs)
                 
         #TODO: is this the place to do permission checking for the field?
 
-        if choices is None:
+        if not choices:
 
             choices = []
             for choice in self.storable.list('read', flask.g.user):
-                if hasattr(choice, 'name') and choice.name:
-                    choice_name = choice.name
-                else:
-                    choice_name = "%s #%d" % (choice.__class__.__name__, choice.id)
+                choices.append((choice, choice.title))
 
-                choices.append((choice.handle_string, choice_name))
+        self.choices = choices
 
         #self.type = poobrains.form.types.Choice(choices = [instance for instance, label in choices])
-        self.type = StorableInstanceParamType(self.storable)
+        self.type = StorableInstanceParamType(self.storable, choices=[choice for choice, _ in choices])
 
 
     def validate(self):
 
         if not self.value is None:
             if not isinstance(self.value, self.storable):
-                raise poobrains.errors.ValidationError("Unknown %s handle '%s'." % (self.storable.__name__, self.value))
+                raise poobrains.form.errors.ValidationError("Unknown %s handle '%s'." % (self.storable.__name__, self.value))
         elif self.required:
-            raise poobrains.errors.ValidationError("Field %s is required." % self.name)
+            raise poobrains.form.errors.ValidationError("Field %s is required." % self.name)
 
 poobrains.form.fields.ForeignKeyChoice = ForeignKeyChoice
 

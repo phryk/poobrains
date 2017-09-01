@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import time # needed for ordered attributes
+import datetime
 import flask
 
 # parent imports
@@ -15,6 +16,29 @@ from . import validators
 from . import types
 
 
+def value_string(value):
+    """ Create a string representation of this fields value for use in HTML """
+
+    if value is None:
+        return ''
+
+    elif isinstance(value, bool):
+        return 't' if value == True else 'f'
+
+    elif isinstance(value, datetime.datetime):
+        return value.strftime('%Y-%m-%d %H:%M:%S')
+
+    elif hasattr(value, 'handle_string'): # can't check whether this is a Storable by with isinstance because we can't depend on storage here (since storage depends on form )
+        return value.handle_string
+
+    else:
+        return unicode(value)
+
+
+def empty(value, multi=False):
+    return value == '' or (multi and value == [''])
+
+
 class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrInstanceBound):
     pass
 
@@ -24,14 +48,14 @@ class Field(object):
     __metaclass__ = poobrains.helpers.MetaCompatibility
 
     _created = None
-    _empty = None # hint if value of this field was set to empty_value <- TODO: is this even used anymore? don't we just have .empty()?
     form = None # only filled if this is a field rendered outside of the form
     errors = None
     prefix = None
     name = None
     type = types.STRING
     value = None
-    empty_value = '' # value which is considered to be "empty"
+    choices = None
+    #empty_value = '' # value which is considered to be "empty"
     default = None # used when client sends no value for this field
     label = None
     multi = False # Whether this field takes multiple values (i.e. value passed to .bind will be a list)
@@ -52,11 +76,12 @@ class Field(object):
         return instance
 
 
-    def __init__(self, name=None, type=None, value=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None, **kwargs):
+    def __init__(self, name=None, type=None, value=None, choices=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None, **kwargs):
 
         self.errors = []
         self.name = name
         self.value = value
+        self.choices = choices
         self.label = label if label is not None else name
         self.placeholder = placeholder if placeholder else self.label
         self.readonly = readonly
@@ -121,9 +146,10 @@ class Field(object):
 
     
     def empty(self):
-        return self.value == self.empty_value
+        #return self.value == self.empty_value
+        return empty(self.value)
 
-    
+
     def validate(self):
 
         if not self.validator:
@@ -137,8 +163,8 @@ class Field(object):
 
 
     def bind(self, value):
-
-        if isinstance(value, errors.MissingValue):
+        
+        if empty(self.value):
             self.value = self._default
 
         else:
@@ -163,8 +189,45 @@ class Field(object):
 
     @property
     def _default(self):
-        return self.type.convert(self.default() if callable(self.defauult) else self.default, None, None)
+        #return self.type.convert(self.default() if callable(self.default) else self.default, None, None)
+        return self.default() if callable(self.default) else self.default
 
+
+    @property
+    def value_string(self):
+
+        if self.multi:
+            strings = []
+            for subvalue in self.value:
+                strings.append(value_string(subvalue))
+
+            return strings
+
+        return value_string(self.value)
+
+
+    @property
+    def choices_string(self):
+
+        pairs = []
+
+        if self.choices is not None:
+
+            for choice, label in self.choices:
+
+                if isinstance(choice, (list, tuple)):
+
+                    subchoices = []
+
+                    for subchoice, sublabel in choice:
+                        subchoices.append((value_string(subchoice), sublabel))
+
+                    pairs.append((subchoices, label))
+
+                else:
+                    pairs.append((value_string(choice), label))
+
+        return pairs
 
 
 class Value(Field):
@@ -283,10 +346,9 @@ class Choice(RenderableField):
 
         super(Choice, self).__init__(**kwargs)
 
-       
-
+    
     def validate(self):
-
+        
         choices = self.choices() if callable(self.choices) else self.choices
         if not self.value in dict(choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
             raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
@@ -296,7 +358,7 @@ class MultiChoice(Choice):
 
     multi = True
     default = []
-    empty_value = []
+    #empty_value = []
 
     def __init__(self, **kwargs):
         super(MultiChoice, self).__init__(**kwargs)
@@ -305,46 +367,53 @@ class MultiChoice(Choice):
             self.value = []
 
     
-    def empty(self):
-
-        if self.value == self.empty_value or len(self.value) == 0:
-            return True
-
-        for value in self.value:
-            if value != '':
-                try:
-                    self.type.convert(value, None, None)
-                    return False
-                
-                except errors.BadParameter:
-                    pass
-
-        return True # default to True if no coercible non-'' values where found
+#    def empty(self):
+#
+#        if self.value == self.empty_value or len(self.value) == 0:
+#            return True
+#
+#        for value in self.value:
+#            if value != '':
+#                try:
+#                    self.type.convert(value, None, None)
+#                    return False
+#                
+#                except errors.BadParameter:
+#                    pass
+#
+#        return True # default to True if no coercible non-'' values where found
 
 
     def validate(self):
-        
+
         for value in self.value:
             if value != '' and not value in dict(self.choices).keys(): # FIXME: I think this will fuck up, at least for optgroups
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
 
     def bind(self, values):
+        
+        if empty(values, multi=True):
+            self.value = self._default
 
-        for value in values:
+        else:
+
+            self.value = [] # clear any already existing values
+
+            for value in values:
+                try:
+                    self.value.append(self.type.convert(value, None, None))
+                
+                except errors.BadParameter as e:
+                    error = errors.ValidationError("Invalid input '%s' for field %s. Error message: %s" % (value, self.name, e.message))
+                    self.errors.append(error)
+                    raise error
+
             try:
-                self.value.append(self.type.convert(value, None, None))
-            
-            except errors.BadParameter:
-                e = errors.ValidationError("Invalid input '%s' for field %s." % (value, self.name))
+                self.validate()
+            except errors.ValidationError as e:
                 self.errors.append(e)
-                raise e
-
-        try:
-            self.validate()
-        except errors.ValidationError as e:
-            self.errors.append(e)
-            raise
+                raise
 
 
 class TextChoice(Choice):
@@ -368,7 +437,7 @@ class Checkbox(RenderableField):
     class Meta:
         clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'empty_value', 'checked']
 
-    empty_value = None
+    #empty_value = None
     default = False
     validator = validators.is_bool
     checked = None

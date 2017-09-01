@@ -6,10 +6,6 @@ class ValidationError(Exception):
     pass
 
 
-class MissingValue(Exception):
-    pass
-
-
 class CompoundError(Exception):
 
     errors = None

@@ -561,7 +561,7 @@ class DeleteForm(BoundForm):
         f = super(DeleteForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=None, title=title, method=method, action=action)
 
         f.title = "Delete %s" % f.instance.name
-        f.warning = fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
+        f.warning = poobrains.form.fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
         f.submit = poobrains.form.Button('submit', name='submit', value='delete', label=u'☠')
 
         return f

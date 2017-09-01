@@ -14,11 +14,7 @@
         placeholder="{{ content.placeholder }}"
     {% endif %}
 
-    {% if content.value == True %}
-        value = "1"
-    {% else %}
-        value="{{ content.value }}"
-    {% endif %}
+    value="{{ content.value_string }}"
 
     {% if content.value %}
         checked

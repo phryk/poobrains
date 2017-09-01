@@ -155,7 +155,7 @@ class TaggingField(poobrains.form.fields.MultiChoice):
 
             try:
                 for tag in Tag.select():
-                    choices.append((tag.name, tag.name))
+                    choices.append((tag, tag.name))
 
             except (peewee.OperationalError, peewee.ProgrammingError) as e:
                 app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
@@ -178,12 +178,7 @@ class TaggingFieldset(poobrains.form.Fieldset):
     def process(self, instance):
         
         q = TagBinding.delete().where(TagBinding.model == instance.__class__.__name__, TagBinding.handle == instance.handle_string).execute()
-        for value in self.fields['tags'].value:
-            try:
-                tag = Tag.load(value)
-            except Tag.DoesNotExist:
-                flask.flash(u"No such tag: %s" % unicode(value))
-                return # TODO: We want to raise a type of exception we know is okay to print (preventing infoleak)
+        for tag in self.fields['tags'].value:
 
             binding = TagBinding()
             binding.tag = tag

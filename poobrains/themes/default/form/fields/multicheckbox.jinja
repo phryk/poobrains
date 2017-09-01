@@ -1,6 +1,6 @@
 <label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
 
-{% for value in content.choices %}
+{% for value in content.choices_string %}
 <input
     type="checkbox"
     name="{{content.prefix}}.{{ content.name }}"
@@ -18,7 +18,7 @@
 
     value="{{ value }}"
 
-    {% if value in content.value %}
+    {% if value in content.value_string %}
         checked
     {% endif %}
 >

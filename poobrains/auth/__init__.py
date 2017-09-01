@@ -191,9 +191,29 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
         return cls
 
 
+class PermissionParamType(poobrains.form.types.StringParamType):
+
+    def convert(self, value, param, ctx):
+
+        app.debugger.set_trace()
+        cleaned_string = super(PermissionParamType, self).convert(value, param, ctx)
+
+        try:
+            permission, access = cleaned_string.split('.')
+        except Exception as e:
+            self.fail('Could not split value to permission and access: %s' % cleaned_string)
+
+        return (permission, access)
+
+PERMISSION = PermissionParamType()
+poobrains.form.types.PermissionParamType = PermissionParamType
+poobrains.form.types.PERMISSION = PERMISSION
+
+
 class FormPermissionField(poobrains.form.fields.Choice):
 
     default = (None, None)
+    type = PERMISSION
 
     def __init__(self, *args, **kwargs):
         super(FormPermissionField, self).__init__(*args, **kwargs)
@@ -217,18 +237,16 @@ class FormPermissionField(poobrains.form.fields.Choice):
         if not access in choice_values:
             raise poobrains.form.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
 
-    
-    def coercer(self, value):
 
-        cleaned_string = poobrains.form.coercers.coerce_string(self, value)
+    def empty(self):
+        return self.value == self.default
 
-        try:
-            permission, access = cleaned_string.split('.')
-        except Exception as e:
-            raise poobrains.form.errors.ValidationError('Could not split value to permission and access: %s' % cleaned_string)
 
-        return (permission, access)
-    
+    def value_string(self):
+
+        if not self.empty():
+            return u"%s.%s" % (self.value[0], self.value[1])
+
 
 def admin_listing_actions(cls):
 
@@ -353,14 +371,12 @@ class ClientCertForm(poobrains.form.Form):
     def __init__(self, *args, **kwargs):
 
         super(ClientCertForm, self).__init__(*args, **kwargs)
-        app.debugger.set_trace()
         if flask.request.method == 'GET':
             flask.session['key_challenge'] = self.fields['key'].challenge
 
 
     def process(self):
 
-        app.debugger.set_trace()
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
