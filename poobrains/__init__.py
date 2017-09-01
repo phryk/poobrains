@@ -2,6 +2,7 @@
 
 import os
 import sys
+import types
 import collections
 import copy
 import functools
@@ -24,21 +25,24 @@ import defaults
 
 db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
 
-try:
-    import config # imports config relative to main project
-
-
-except ImportError as e:
-
-    config = False
-
-
 import __main__ # to look up project name
 
 if hasattr(__main__, '__file__'):
     project_name = os.path.splitext(os.path.basename(__main__.__file__))[0] # basically filename of called file - extension
 else:
     project_name = "REPL" # We're probably in a REPL, right?
+
+try:
+    import config # imports config relative to main project
+
+
+except ImportError as e:
+
+    #config = False
+
+    config = types.ModuleType('config')
+    config.DATABASE = "sqlite:///%s.db" % project_name # NOTE: If you change this, you'll also have to change the --database default in cli/__init__.py or else install will fuck up
+
 
 
 def is_renderable(x):
@@ -316,7 +320,7 @@ class Poobrain(flask.Flask):
 
 
     def request_setup(self):
-        
+       
         flask.g.boxes = {}
         flask.g.forms = {}
         #self.db.close() # fails first request and thus always on sqlite

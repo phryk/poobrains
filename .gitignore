@@ -5,11 +5,13 @@
 *.swo
 *.core
 *.log
-ssl
 /gnupg
 /upload
+/bin
+/include
+/lib
+/tls
 config.py
-bin
-include
-lib
 pip-selfcheck.json
+example.ini
+example.nginx.conf

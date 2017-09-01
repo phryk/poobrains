@@ -37,7 +37,7 @@ def test():
 
 @app.cli.command()
 @click.option('--domain', prompt="Domain this site will be run under?", default="localhost")
-@click.option('--database', default="sqlite:///%s.db" % project_name)
+@click.argument('--database', default="sqlite:///%s.db" % project_name)
 @click.option('--keylength', prompt="Length for cryptographic keys (in bits)", default=4096)
 @click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
 @click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
@@ -186,7 +186,12 @@ def minica(lifetime):
     click.echo("Generating certificate")
     cert = OpenSSL.crypto.X509()
     cert.get_issuer().commonName = app.config['DOMAIN'] # srsly pyOpenSSL?
-    cert.get_subject().commonName = app.config['DOMAIN'] # srsly pyOpenSSL?
+    cert.get_issuer().C = 'AQ'
+    cert.get_issuer().L = 'Fnordpol'
+    cert.get_issuer().O = 'Erisian Liberation Front'
+    cert.get_issuer().OU = 'Cyber Confusion Center'
+    #cert.get_subject().commonName = app.config['DOMAIN'] # srsly pyOpenSSL?
+    cert.set_subject(cert.get_issuer())
     cert.set_pubkey(keypair)
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(lifetime)

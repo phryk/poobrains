@@ -397,6 +397,7 @@ class ClientCertForm(poobrains.form.Form):
         
         if self.controls['keygen_submit'].value:
 
+            app.debugger.set_trace()
             try:
                 client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, flask.session['key_challenge'])
                 del flask.session['key_challenge']
