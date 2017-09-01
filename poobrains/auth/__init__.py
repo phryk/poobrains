@@ -1381,7 +1381,7 @@ class ClientCertToken(Administerable, Protected):
     token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
     token.form_class = poobrains.form.fields.Value
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
-    redeemed = poobrains.storage.fields.BooleanField(default=0, null=False)
+    redeemed = poobrains.storage.fields.BooleanField(default=False, null=False)
 
 
     def __init__(self, *args, **kw):
