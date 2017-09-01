@@ -181,11 +181,11 @@ class Field(object):
                 self.errors.append(e)
                 raise e
 
-        try:
-            self.validate()
-        except errors.ValidationError as e:
-            self.errors.append(e)
-            raise
+            try:
+                self.validate()
+            except errors.ValidationError as e:
+                self.errors.append(e)
+                raise
 
     @property
     def _default(self):

@@ -383,7 +383,7 @@ class ClientCertForm(poobrains.form.Form):
             token = ClientCertToken.get(
                 ClientCertToken.token == self.fields['token'].value,
                 ClientCertToken.created > deathwall,
-                ClientCertToken.redeemed == 0
+                ClientCertToken.redeemed == False
             )
 
         except peewee.DoesNotExist as e:
