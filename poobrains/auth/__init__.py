@@ -195,7 +195,6 @@ class PermissionParamType(poobrains.form.types.StringParamType):
 
     def convert(self, value, param, ctx):
 
-        app.debugger.set_trace()
         cleaned_string = super(PermissionParamType, self).convert(value, param, ctx)
 
         try:
