@@ -37,7 +37,7 @@ def test():
 
 @app.cli.command()
 @click.option('--domain', prompt="Domain this site will be run under?", default="localhost")
-@click.argument('--database', default="sqlite:///%s.db" % project_name)
+@click.option('--database', default="sqlite:///%s.db" % project_name) # NOTE: If you change this you'll have to change in the main __init__.py as well
 @click.option('--keylength', prompt="Length for cryptographic keys (in bits)", default=4096)
 @click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
 @click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
