@@ -23,7 +23,7 @@ def value_string(value):
         return ''
 
     elif isinstance(value, bool):
-        return 't' if value == True else 'f'
+        return 'true' if value == True else 'false'
 
     elif isinstance(value, datetime.datetime):
         return value.strftime('%Y-%m-%d %H:%M:%S')
@@ -438,6 +438,7 @@ class Checkbox(RenderableField):
         clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'empty_value', 'checked']
 
     #empty_value = None
+    type = types.BOOL
     default = False
     validator = validators.is_bool
     checked = None

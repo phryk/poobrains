@@ -3,6 +3,7 @@
 import collections
 import os
 import datetime
+import functools
 import peewee
 import OpenSSL
 import gnupg
@@ -28,6 +29,18 @@ def mkconfig(template, **values):
     template = jinja_env.get_template('%s.jinja' % template)
 
     return template.render(**values)
+
+
+def fake_before_request(function):
+
+    @functools.wraps(function)
+    def substitute(*args, **kwargs):
+
+        flask.g.user = poobrains.auth.User.get(poobrains.auth.User.id == 2) # load root user
+
+        return function(*args, **kwargs)
+
+    return substitute
 
 
 @app.cli.command()
@@ -230,9 +243,9 @@ def minica(lifetime):
 
 @app.cli.command()
 @click.argument('storable', type=types.STORABLE)
+@fake_before_request
 def add(storable):
-
-        #cls = poobrains.storage.Storable.class_children_keyed()[storable]
+        
         instance = storable()
 
         click.echo("Addding %s...\n" % (storable.__name__,))
@@ -248,7 +261,7 @@ def add(storable):
 #
 #                else:
 #                    fieldtype = types.STRING
-                fieldtype = field.form_class.type
+                fieldtype = field.form_class().type
                 if fieldtype is None:
                     click.secho("Falling back to string for field '%s' % field.name", fg='yellow')
                     fieldtype = types.STRING
