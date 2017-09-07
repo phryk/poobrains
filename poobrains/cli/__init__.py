@@ -66,15 +66,17 @@ def test():
 @click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
 def install(**options):
 
-        if click.confirm("Really execute installation procedure? (y/N)"):
+        if click.confirm("Really execute installation procedure?"):
 
             options['project_name'] = project_name
             options['project_dir'] = app.site_path
             options['secret_key'] = poobrains.helpers.random_string_light(64) # cookie crypto key, config['SECRET_KEY']
 
-            click.echo("Installing now...\n")
 
-            app.db.create_tables(poobrains.storage.Model.class_children())
+            with click.progressbar(poobrains.storage.Model.class_children(), label="Creating tables", item_show_func=lambda x: x.__name__ if x else '') as models: # iterates through all non-abstract Models
+                for model in models:
+                    app.db.create_tables([model])
+
             click.echo("Database tables created!\n")
 
             click.echo("Creating Group 'anonsanonymous'…\n")
@@ -90,22 +92,22 @@ def install(**options):
             admins = poobrains.auth.Group()
             admins.name = 'administrators'
             
-            with click.progressbar(poobrains.auth.Permission.class_children()) as classes:
+            for cls in poobrains.auth.Permission.class_children():
+                choice_values = [x[0] for x in cls.choices]
+                if 'grant' in choice_values:
+                    access = 'grant'
+                else:
+                    click.echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
+                    break
 
-                for cls in classes:
-                    choice_values = [x[0] for x in cls.choices]
-                    if 'grant' in choice_values:
-                        access = 'grant'
-                    else:
-                        click.echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
-
-                    click.echo("Adding permission %s: %s\n" % (cls.__name__, access))
-                    admins.own_permissions[cls.__name__] = access
+                #click.echo("Adding permission %s: %s\n" % (cls.__name__, access))
+                admins.own_permissions[cls.__name__] = access
             
             if not admins.save(force_insert=True):
                 raise ShellException("Failed creating Group 'administrators'!")
 
             click.echo("Successfully saved Group 'administrators'.\n")
+
 
             anon = poobrains.auth.User()
             anon.name = 'anonymous'
