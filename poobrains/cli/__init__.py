@@ -97,7 +97,6 @@ def install(**options):
                     access = 'grant'
                 else:
                     click.echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
-                    break
 
                 click.echo("Adding permission %s: %s\n" % (cls.__name__, access))
                 admins.own_permissions[cls.__name__] = access
