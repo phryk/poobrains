@@ -66,8 +66,7 @@ def test():
 @click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
 def install(**options):
 
-        optin = click.prompt("Really execute installation procedure? (y/N)").lower()
-        if optin == 'y':
+        if click.confirm("Really execute installation procedure? (y/N)"):
 
             options['project_name'] = project_name
             options['project_dir'] = app.site_path
@@ -91,21 +90,22 @@ def install(**options):
             admins = poobrains.auth.Group()
             admins.name = 'administrators'
             
-            with click.progressbar(poobrains.auth.Permission.class_children()) as cls:
-                choice_values = [x[0] for x in cls.choices]
-                if 'grant' in choice_values:
-                    access = 'grant'
-                else:
-                    click.echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
+            with click.progressbar(poobrains.auth.Permission.class_children()) as classes:
 
-                click.echo("Adding permission %s: %s\n" % (cls.__name__, access))
-                admins.own_permissions[cls.__name__] = access
+                for cls in classes:
+                    choice_values = [x[0] for x in cls.choices]
+                    if 'grant' in choice_values:
+                        access = 'grant'
+                    else:
+                        click.echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
+
+                    click.echo("Adding permission %s: %s\n" % (cls.__name__, access))
+                    admins.own_permissions[cls.__name__] = access
             
             if not admins.save(force_insert=True):
                 raise ShellException("Failed creating Group 'administrators'!")
 
             click.echo("Successfully saved Group 'administrators'.\n")
-
 
             anon = poobrains.auth.User()
             anon.name = 'anonymous'
