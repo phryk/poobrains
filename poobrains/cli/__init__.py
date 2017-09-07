@@ -91,7 +91,7 @@ def install(**options):
             admins = poobrains.auth.Group()
             admins.name = 'administrators'
             
-            for cls in poobrains.auth.Permission.class_children():
+            with click.progressbar(poobrains.auth.Permission.class_children()) as cls:
                 choice_values = [x[0] for x in cls.choices]
                 if 'grant' in choice_values:
                     access = 'grant'
@@ -272,6 +272,34 @@ def add(storable):
                     setattr(instance, field.name, value) # TODO type enforcement
 
         instance.save(force_insert=True)
+
+@app.cli.command()
+@click.argument('storable', type=types.STORABLE)
+@fake_before_request
+def list(storable):
+
+    for instance in storable.select():
+
+        print "%s: %s - %s" % (instance.handle_string, instance.title, instance)
+
+
+@app.cli.command()
+@click.argument('storable', type=types.STORABLE)
+@fake_before_request
+def delete(storable):
+
+    instance = click.prompt("%s handle" % storable.__name__, type=types.StorableInstanceParamType(storable))
+    click.echo(instance)
+    if click.confirm("Really delete this %s?" % storable.__name__):
+
+        handle = instance.handle_string
+
+        if instance.delete_instance():
+            click.echo("Deleted %s %s" % (storable.__name__, handle))
+
+        else:
+            click.echo("Could not delete %s %s." % (storable.__name__, handle))
+
 
 @app.cli.command()
 def cron():
