@@ -254,20 +254,17 @@ def add(storable):
 
             if not isinstance(field, peewee.PrimaryKeyField):
 
-#                if isinstance(field, peewee.ForeignKeyField):
-#                    fieldtype = types.STORABLE
-#                
-#                elif isinstance(field, peewee.BooleanField):
-#                    fieldtype = types.BOOL
-#
-#                else:
-#                    fieldtype = types.STRING
                 fieldtype = field.form_class().type
                 if fieldtype is None:
                     click.secho("Falling back to string for field '%s' % field.name", fg='yellow')
                     fieldtype = types.STRING
 
-                value = click.prompt(field.name, type=fieldtype)
+                default = None
+
+                if fieldtype == types.DATETIME:
+                    default = datetime.datetime.now()
+
+                value = click.prompt(field.name, type=fieldtype, default=default)
 
                 if value != '': # Makes models fall back to defaults for this field
                     setattr(instance, field.name, value) # TODO type enforcement
