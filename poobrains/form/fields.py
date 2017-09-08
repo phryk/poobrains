@@ -81,7 +81,6 @@ class Field(object):
         self.errors = []
         self.name = name
         self.value = value
-        self.choices = choices
         self.label = label if label is not None else name
         self.placeholder = placeholder if placeholder else self.label
         self.readonly = readonly
@@ -90,6 +89,9 @@ class Field(object):
 
         if not type is None:
             self.type = type
+
+        if not choices is None:
+            self.choices = choices # leave choices of other __init__ intact.
 
         if not default is None:
             self.default = default
@@ -105,7 +107,7 @@ class Field(object):
                 self.prefix = "%s.%s" % (self.form.prefix, self.form.name)
             else:
                 self.prefix = self.form.name
-            self.form._add_external_field(self)
+            self.form._add_external_field(self) # this has to be called *after* self.choices is filled
 
 
     def __getattr__(self, name):
@@ -245,7 +247,6 @@ class RenderableField(Field, poobrains.rendering.Renderable):
 
     rendered = None
 
-
     def render(self):
 
         self.rendered = True
@@ -334,15 +335,29 @@ class Choice(RenderableField):
         clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices', 'empty_label', 'multi']
     
     def __init__(self, choices=None, type=None, **kwargs):
+        
+        app.debugger.set_trace()
 
         if choices is None:
             choices = []
 
         self.choices = []
-        for choice, label in choices:
-            self.choices.append((self.type.convert(choice, None, None), label))
 
+        if type is None:
+            type = self.type
+
+        try:
+
+            for choice, label in choices:
+                self.choices.append((type.convert(choice, None, None), label))
+
+        except TypeError: # assume we've been passed a list of just values, no  labels
+
+            for choice in choices:
+                self.choices.append((type.convert(choice, None, None), ''))
         #self.type = types.Choice(choices=[self.type.convert(value) for label, value in choices])
+
+        kwargs['type'] = type
 
         super(Choice, self).__init__(**kwargs)
 
@@ -392,7 +407,7 @@ class MultiChoice(Choice):
 
 
     def bind(self, values):
-        
+
         if empty(values, multi=True):
             self.value = self._default
 
@@ -483,9 +498,12 @@ class MultiCheckbox(MultiChoice):
     
     def validate(self):
 
+        app.debugger.set_trace()
         for value in self.value:
-            if value != '' and not value in self.choices:
+            if value != '' and not value in [choice for choice, _ in self.choices]:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
+
+            self.validator(value)
 
 
 class IntegerMultiCheckbox(MultiCheckbox):

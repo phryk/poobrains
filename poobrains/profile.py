@@ -203,7 +203,7 @@ class NotificationControl(poobrains.auth.Protected):
         for notification in pagination.results:
 
             classes = 'read inactive' if notification.read else 'unread active'
-            mark_checkbox = poobrains.form.fields.IntegerMultiCheckbox(form=self.form, name='mark', label='', choices=[notification.id])
+            mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', type=poobrains.form.types.StorableInstanceParamType(poobrains.auth.Notification), choices=[notification.id])
 
             self.table.append(notification, mark_checkbox, _classes=classes)
 
@@ -235,7 +235,7 @@ app.site.add_view(NotificationControl, '/~<handle>/notifications/+<int:offset>',
 
 class NotificationForm(poobrains.form.Form):
 
-    mark = poobrains.form.fields.IntegerMultiCheckbox()
+    mark = poobrains.form.fields.MultiCheckbox(type=poobrains.form.types.StorableInstanceParamType(poobrains.auth.Notification))
     mark_read = poobrains.form.Button('submit', label='Mark as read')
     delete = poobrains.form.Button('submit', label='Delete')
 
