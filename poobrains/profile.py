@@ -220,10 +220,12 @@ class NotificationControl(poobrains.auth.Protected):
             except poobrains.form.errors.CompoundError as e:
                 for error in e.errors:
                     flask.flash(e.message, 'error')
+
+            else:
         
-            if len(self.form.fields['mark'].value): # means we have to issue a query
-                self.form.process()
-                return flask.redirect(flask.request.path)
+                if len(self.form.fields['mark'].value): # means we have to issue a query
+                    self.form.process()
+                    return flask.redirect(flask.request.path)
 
 
         return self

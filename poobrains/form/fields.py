@@ -65,7 +65,7 @@ class Field(object):
     validator = validators.is_string
 
     class Meta:
-        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default']
+        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default']
 
 
     def __new__(cls, *args, **kwargs):
@@ -274,7 +274,7 @@ class Text(RenderableField):
 class TextAutoComplete(Text):
     
     class Meta:
-        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices']
+        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices']
 
     choices = None
 
@@ -332,12 +332,10 @@ class Choice(RenderableField):
     multi = False
     
     class Meta:
-        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices', 'empty_label', 'multi']
+        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'choices', 'empty_label', 'multi']
     
     def __init__(self, choices=None, type=None, **kwargs):
         
-        app.debugger.set_trace()
-
         if choices is None:
             choices = []
 
@@ -450,7 +448,7 @@ class MultiIntegerChoice(MultiChoice):
 class Checkbox(RenderableField):
 
     class Meta:
-        clone_props = ['name', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'empty_value', 'checked']
+        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'empty_value', 'checked']
 
     #empty_value = None
     type = types.BOOL
@@ -498,7 +496,6 @@ class MultiCheckbox(MultiChoice):
     
     def validate(self):
 
-        app.debugger.set_trace()
         for value in self.value:
             if value != '' and not value in [choice for choice, _ in self.choices]:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))

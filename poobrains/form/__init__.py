@@ -7,6 +7,7 @@ import functools
 import collections
 import peewee
 import werkzeug
+import click
 import flask
 
 # parent imports
@@ -226,6 +227,8 @@ class BaseForm(poobrains.rendering.Renderable):
                         else:
                             field.bind(field_values)
 
+                    except click.BadParameter as e:
+                        compound_error.append(e)
                     except errors.ValidationError as e:
                         compound_error.append(e)
 
