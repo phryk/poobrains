@@ -20,6 +20,40 @@
     }
 }
 
+@keyframes dangerflash {
+
+    0% {
+        color: $color_font_dark;
+        background: $color_danger;
+        box-shadow: 0 0.1rem 0 $color_danger, 0 0 1rem $color_danger;
+    }
+
+    49% {
+        color: $color_font_dark;
+        background: $color_danger;
+        box-shadow: 0 0.1rem 0 $color_danger, 0 0 1rem $color_danger;
+    }
+
+    50% {
+        color: $color_danger;
+        background: opacify(darken(desaturate($color_danger, 50%), 20%), 20%);
+        box-shadow: 0 0.1rem 0 opacify($color_danger, -100%), 0 0 1rem opacify($color_danger, -100%);
+        text-shadow: 0 0 1rem $color_danger;
+    }
+
+    99% {
+        color: $color_danger;
+        background: opacify(darken(desaturate($color_danger, 50%), 20%), 20%);
+        box-shadow: 0 0.1rem 0 opacify($color_danger, -100%), 0 0 1rem opacify($color_danger, -100%);
+        text-shadow: 0 0 1rem $color_danger;
+    }
+    100% {
+        color: $color_font_dark;
+        background: $color_danger;
+        box-shadow: 0 0.1rem 0 $color_danger, 0 0 1rem $color_danger;
+    }
+}
+
 @media (min-width: 56rem) {
 
     #logo-link {
@@ -635,6 +669,10 @@ form {
 
     & > div.content {
         background: $color_background_dark;
+
+        h2, h3, h4, h5, h6 {
+            text-align: center;
+        }
     }
 }
 
@@ -658,14 +696,30 @@ form {
             font-size: 4.5rem;
             transition: margin 0.3s, box-shadow 0.3s, background 0.3s;
             margin-bottom: 0.75rem;
+            outline: none;
+            padding: 0 !important;
 
             &:focus,
             &:hover {
+            padding: 0 !important;
+
+                background: desaturate($color_danger, 20%);
+                box-shadow: 0 0.3rem 0 desaturate($color_danger, 80%), 0 0 1rem $color_danger;
+                margin-top: 0.45rem;
+                margin-bottom: 0.3rem;
+                outline: none;
+            }
+
+            &:active {
+            padding: 0 !important;
 
                 background: $color_danger;
-                box-shadow: 0 0.2rem 0 desaturate($color_danger, 80%), 0 0 1rem $color_danger;
-                margin-top: 0.55rem;
-                margin-bottom: 0.2rem;
+                box-shadow: 0 0.1rem 0 $color_danger, 0 0 1rem $color_danger;
+                text-shadow: 0 0 1rem opacify($color_danger, -1);
+                margin-top: 0.65rem;
+                margin-bottom: 0.1rem;
+                outline: none;
+                animation: dangerflash 0.3s linear infinite;
             }
         }
     }
@@ -838,7 +892,7 @@ form {
     }
 
     datalist {
-        display: none;
+        display: none !important;
     }
 
     img {
