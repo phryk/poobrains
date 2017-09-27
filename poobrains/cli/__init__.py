@@ -185,11 +185,8 @@ def install(**options):
 
 
 @app.cli.command()
-@click.option('--lifetime', prompt="How long should this CA live (in seconds)?", default = 365 * 24 * 60 * 60)
+@click.option('--lifetime', prompt="How long should this CA live (in seconds, 0 means infinite)?", default=0)
 def minica(lifetime):
-
-    not_before = datetime.datetime.now()
-    not_after = datetime.datetime.now() + datetime.timedelta(seconds=lifetime)
 
     click.echo("Generating keypair.")
 
@@ -208,7 +205,10 @@ def minica(lifetime):
     cert.set_subject(cert.get_issuer())
     cert.set_pubkey(keypair)
     cert.gmtime_adj_notBefore(0)
-    cert.gmtime_adj_notAfter(lifetime)
+    if lifetime == 0:
+        cert.set_notAfter('99991231235959Z') # "indefinitely valid" as defined in RFC 5280 4.1.2.5.
+    else:
+        cert.gmtime_adj_notAfter(lifetime)
     
     extensions = []
     extensions.append(OpenSSL.crypto.X509Extension('basicConstraints', True, "CA:TRUE, pathlen:0"))
