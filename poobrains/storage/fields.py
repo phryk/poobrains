@@ -25,6 +25,9 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
 
     def convert(self, value, param, ctx):
 
+        if value == '':
+            return None
+
         if isinstance(value, self.storable):
             return value # idempotency/gigo/ducks
 
@@ -65,8 +68,6 @@ class ForeignKeyChoice(poobrains.form.fields.TextAutoComplete):
         self.storable = fkfield.rel_model
         super(ForeignKeyChoice, self).__init__(**kwargs)
                 
-        #TODO: is this the place to do permission checking for the field?
-
         if not choices:
 
             choices = []

@@ -25,6 +25,9 @@ class DateTimeParamType(ParamType):
 
     def convert(self, value, param, ctx):
 
+        if value == '':
+            return None
+
         if isinstance(value, datetime.datetime):
             return value # apparently we need this function to be Idempotency!
 

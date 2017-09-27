@@ -628,6 +628,9 @@ class StorableParamType(poobrains.form.types.ParamType):
 
     def convert(self, value, param, ctx):
 
+        if value == '':
+            return None
+
         if isinstance(value, self.baseclass):
             return value # apparently we need this function to be idempotent? Didn't even knew that was a real word.
 
