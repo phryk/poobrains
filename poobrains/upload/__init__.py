@@ -28,6 +28,8 @@ class UploadForm(poobrains.storage.AddForm):
         if self.mode == 'add':
             self.fields['upload'].required = True
 
+        del self.controls['preview']
+
 
     def bind(self, values, files):
 

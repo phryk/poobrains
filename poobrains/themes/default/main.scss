@@ -862,7 +862,9 @@ article {
         }
     }
 
-    .content-type-image.mode-teaser {
+    .content-type-image.mode-teaser,
+    .content-type-video.mode-teaser,
+    .content-type-audio.mode-teaser {
 
         .content {
             padding: 0;
