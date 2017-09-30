@@ -156,7 +156,7 @@ class PGPForm(poobrains.form.Form):
         self.fields.order = ['current_key', 'pubkey']
    
 
-    def process(self):
+    def process(self, submit):
 
         pubkey = self.fields['pubkey'].value.read()
         crypto = poobrains.mailing.getgpg()
@@ -224,7 +224,7 @@ class NotificationControl(poobrains.auth.Protected):
             else:
         
                 if len(self.form.fields['mark'].value): # means we have to issue a query
-                    self.form.process()
+                    self.form.process(flask.request.form['submit'][len(self.ref_id)+1:])
                     return flask.redirect(flask.request.path)
 
 
@@ -241,7 +241,7 @@ class NotificationForm(poobrains.form.Form):
     mark_read = poobrains.form.Button('submit', label='Mark as read')
     delete = poobrains.form.Button('submit', label='Delete')
 
-    def process(self):
+    def process(self, submit):
 
         for handle in self.fields['mark'].value:
 

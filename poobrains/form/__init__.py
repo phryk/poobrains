@@ -293,7 +293,7 @@ class BaseForm(poobrains.rendering.Renderable):
         return tpls
 
 
-    def process(self):
+    def process(self, submit):
 
         raise NotImplementedError("%s.process not implemented." % self.__class__.__name__)
 
@@ -328,17 +328,17 @@ class Form(BaseForm):
         """
 
         if flask.request.method == self.method:
-            
+
             validation_error = None
             binding_error = None
             values = flask.request.form.get(self.name, werkzeug.datastructures.MultiDict())
             files = flask.request.files.get(self.name, werkzeug.datastructures.FileMultiDict())
-            #TODO: filter self.readonly in here instead of .bind and .process?
+
             try:
                 self.bind(values, files)
 
                 try:
-                    return self.process()
+                    return self.process(flask.request.form['submit'][len(self.ref_id)+1:])
 
                 except errors.CompoundError as handling_error:
                     for error in handling_error.errors:
@@ -347,6 +347,10 @@ class Form(BaseForm):
             except errors.CompoundError as validation_error:
                 for error in validation_error.errors:
                     flask.flash(error.message, 'error')
+
+            if not flask.request.form['submit'].startswith(self.ref_id): # means the right form was submitted, should be implied by the path tho…
+                app.logger.error("Form %s: submit button of another form used: %s" % (self.name, flask.request.form['submit']))
+                flask.flash("The form you just used might be broken. Bug someone if this problem persists.", 'error')
 
         return self
 
@@ -388,7 +392,7 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
-    def process(self):
+    def process(self, submit):
 
         raise NotImplementedError("%s.process not implemented." % self.__class__.__name__)
 

@@ -408,6 +408,8 @@ class BoundForm(poobrains.form.Form):
 
 class AddForm(BoundForm):
 
+    preview = None
+
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
         f = super(AddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
 
@@ -430,6 +432,7 @@ class AddForm(BoundForm):
                     setattr(f, field.name, form_field)
 
             f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
+            f.controls['preview'] = poobrains.form.Button('submit', name='preview', value='preview', label='Preview')
             f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
 
         return f
@@ -469,8 +472,8 @@ class AddForm(BoundForm):
                     pass
  
 
-    def process(self, exceptions=False):
-
+    def process(self, submit, exceptions=False):
+        
         if not self.readonly:
             
             for field in self.model._meta.sorted_fields:
@@ -484,52 +487,57 @@ class AddForm(BoundForm):
                         setattr(self.instance, field.name, None)
 
 
-            try:
+            if submit == 'submit':
 
-                if self.mode == 'add':
-                    saved = self.instance.save(force_insert=True) # To make sure Administerables with CompositeKey as primary get inserted properly
-                else:
-                    saved = self.instance.save()
+                try:
 
-                if saved:
-                    flask.flash(u"Saved %s %s." % (self.model.__name__, self.instance.handle_string))
+                    if self.mode == 'add':
+                        saved = self.instance.save(force_insert=True) # To make sure Administerables with CompositeKey as primary get inserted properly
+                    else:
+                        saved = self.instance.save()
 
-                    for fieldset in self.fieldsets:
+                    if saved:
+                        flask.flash(u"Saved %s %s." % (self.model.__name__, self.instance.handle_string))
+
+                        for fieldset in self.fieldsets:
+
+                            try:
+
+                                fieldset.process(submit, self.instance)
+
+                            except Exception as e:
+
+                                if exceptions:
+                                    raise
+
+                                flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name), 'error')
+                                app.logger.error(u"Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message.decode('utf-8')))
 
                         try:
+                            return flask.redirect(self.instance.url('edit'))
+                        except LookupError:
+                            return self
+                    else:
 
-                            fieldset.process(self.instance)
+                        flask.flash(u"Couldn't save %s." % self.model.__name__)
 
-                        except Exception as e:
+                except peewee.IntegrityError as e:
 
-                            if exceptions:
-                                raise
+                    if exceptions:
+                        raise
 
-                            flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name), 'error')
-                            app.logger.error(u"Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message.decode('utf-8')))
+                    flask.flash(u'Integrity error: %s' % e.message.decode('utf-8'), 'error')
+                    app.logger.error(u"Integrity error: %s" % e.message.decode('utf-8'))
 
-                    try:
-                        return flask.redirect(self.instance.url('edit'))
-                    except LookupError:
-                        return self
-                else:
+                except Exception as e:
 
-                    flask.flash(u"Couldn't save %s." % self.model.__name__)
+                    if exceptions:
+                        raise
 
-            except peewee.IntegrityError as e:
+                    flask.flash(u"Couldn't save %s. %s: %s" % self.model.__name__, type(e).__name__, e.message.decode('utf-8'))
 
-                if exceptions:
-                    raise
-
-                flask.flash(u'Integrity error: %s' % e.message.decode('utf-8'), 'error')
-                app.logger.error(u"Integrity error: %s" % e.message.decode('utf-8'))
-
-            except Exception as e:
-
-                if exceptions:
-                    raise
-
-                flask.flash(u"Couldn't save %s. %s: %s" % self.model.__name__, type(e).__name__, e.message.decode('utf-8'))
+            elif submit == 'preview':
+                self.preview = self.instance.render('full')
 
         else:
             flask.flash(u"Not handling readonly form '%s'." % self.name)
@@ -576,7 +584,7 @@ class DeleteForm(BoundForm):
                 self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._get_pk_value()))
 
     
-    def process(self):
+    def process(self, submit):
 
         if hasattr(self.instance, 'title') and self.instance.title:
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)

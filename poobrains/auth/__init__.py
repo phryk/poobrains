@@ -374,7 +374,7 @@ class ClientCertForm(poobrains.form.Form):
             flask.session['key_challenge'] = self.fields['key'].challenge
 
 
-    def process(self):
+    def process(self, submit):
 
         try:
             # creation time older than this means token is dead.
@@ -710,12 +710,12 @@ class RelatedForm(poobrains.form.Form):
         self.related_field = related_field
 
    
-    def process(self):
+    def process(self, submit):
         if not self.readonly:
             for field in self.fields.itervalues():
                 if isinstance(field, poobrains.form.Fieldset):
                     try:
-                        field.process()
+                        field.process(submit)
                     except Exception as e:
                         flask.flash(u"Failed to process fieldset '%s.%s'." % (field.prefix, field.name))
                         app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
@@ -737,7 +737,7 @@ class UserPermissionAddForm(poobrains.storage.AddForm):
         return f
 
 
-    def process(self):
+    def process(self, submit):
         op = self.instance._meta.modes[self.mode]
 
         self.instance.user = self.fields['user'].value
@@ -820,7 +820,7 @@ class GroupPermissionAddForm(poobrains.storage.AddForm):
         return f
 
 
-    def process(self):
+    def process(self, submit):
 
         op = self.instance._meta.modes[self.mode]
 
@@ -1245,7 +1245,7 @@ class UserPermission(Administerable):
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
     access = poobrains.storage.fields.CharField(null=False)
-    access.form_class = poobrains.form.fields.TextChoice
+    access.form_class = poobrains.form.fields.Choice
 
     related_form = UserPermissionRelatedForm
 
@@ -1346,7 +1346,7 @@ class GroupPermission(Administerable):
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
     access = poobrains.storage.fields.CharField(null=False)
-    access.form_class = poobrains.form.fields.TextChoice
+    access.form_class = poobrains.form.fields.Choice
 
     
     def prepared(self):

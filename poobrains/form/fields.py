@@ -12,7 +12,7 @@ import poobrains.rendering
 
 # internal imports
 from . import errors
-from . import validators
+#from . import validators
 from . import types
 
 
@@ -62,7 +62,7 @@ class Field(object):
     placeholder = None
     readonly = None
     required = None
-    validator = validators.is_string
+    validator = None
 
     class Meta:
         clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default']
@@ -154,11 +154,9 @@ class Field(object):
 
     def validate(self):
 
-        if not self.validator:
-            return
-
         if not self.empty():
-            self.validator(self.value)
+            if callable(self.validator):
+                self.validator(self.value)
 
         elif self.required:
             raise errors.ValidationError("Required field '%s' was left empty." % self.name)
@@ -299,7 +297,6 @@ class TextArea(Text):
 
 class Integer(RenderableField):
     default = 0
-    validator = validators.is_integer
     type = types.INT
 
 
@@ -321,7 +318,6 @@ class RangedInteger(Integer):
 
 class DateTime(RenderableField):
 
-    validator = validators.is_datetime
     type = types.DATETIME
 
 
@@ -429,20 +425,12 @@ class MultiChoice(Choice):
                 raise
 
 
-class TextChoice(Choice):
-    validator = validators.is_string
-
-
-class MultiTextChoice(MultiChoice):
-    validator = validators.is_string
-
-
 class IntegerChoice(Choice):
-    validator = validators.is_integer
+    type = types.INT
 
 
 class MultiIntegerChoice(MultiChoice):
-    validator = validators.is_integer
+    type = types.INT
 
 
 class Checkbox(RenderableField):
@@ -453,7 +441,6 @@ class Checkbox(RenderableField):
     #empty_value = None
     type = types.BOOL
     default = False
-    validator = validators.is_bool
     checked = None
 
     def __init__(self, *args, **kwargs):
@@ -470,9 +457,7 @@ class Radio(Checkbox):
 
 class MultiCheckbox(MultiChoice):
 
-    validator = validators.is_string
     checked = None
-
     
     def __init__(self, **kwargs):
 
@@ -500,20 +485,21 @@ class MultiCheckbox(MultiChoice):
             if value != '' and not value in [choice for choice, _ in self.choices]:
                 raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
 
-            self.validator(value)
+            if callable(self.validator):
+                self.validator(value)
 
 
 class IntegerMultiCheckbox(MultiCheckbox):
 
-    validator = validators.is_integer
+    type = types.INT
 
 
 class Float(RenderableField):
-    validator = validators.is_float
+    type = types.FLOAT
 
 
 class RangedFloat(RangedInteger):
-    validator = validators.is_float
+    type = types.FLOAT
 
 
 class Keygen(RenderableField):
@@ -533,5 +519,4 @@ class Keygen(RenderableField):
 
 
 class File(RenderableField):
-
-    validator = None
+    pass

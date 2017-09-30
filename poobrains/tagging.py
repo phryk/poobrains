@@ -163,6 +163,8 @@ class TaggingField(poobrains.form.fields.MultiChoice):
         self.choices = choices
         self.type = poobrains.form.types.StorableInstanceParamType(Tag)
 
+poobrains.form.fields.TaggingField = TaggingField
+
 
 class TaggingFieldset(poobrains.form.Fieldset):
 
@@ -175,7 +177,7 @@ class TaggingFieldset(poobrains.form.Fieldset):
            self.fields['tags'].value = [tag.name for tag in instance.tags] 
 
 
-    def process(self, instance):
+    def process(self, submit, instance):
         
         q = TagBinding.delete().where(TagBinding.model == instance.__class__.__name__, TagBinding.handle == instance.handle_string).execute()
         for tag in self.fields['tags'].value:
