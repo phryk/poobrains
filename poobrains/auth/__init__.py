@@ -801,7 +801,7 @@ class UserPermissionRelatedForm(RelatedForm):
                 #fieldset.fields['access'].choices = perm.choices
 
             fieldset.fields.user = poobrains.form.fields.Value(instance)
-            fieldset.fields.permission = poobrains.form.fields.Text(value=name, readonly=True)
+            fieldset.fields.permission = poobrains.form.fields.Field(value=name, readonly=True)
             setattr(f, name, fieldset)
 
         return f
@@ -998,8 +998,8 @@ class Administerable(poobrains.storage.Storable, Protected):
         if not hasattr(self, n):
             raise NotImplementedError("Form class %s.%s missing." % (self.__class__.__name__, n))
 
-        form_class = getattr(self, n)
-        return form_class(mode=mode)#, name=None, title=None, method=None, action=None)
+        form_widget = getattr(self, n)
+        return form_widget(mode=mode)#, name=None, title=None, method=None, action=None)
     
 
     @classmethod
@@ -1051,11 +1051,11 @@ class Administerable(poobrains.storage.Storable, Protected):
 
         if flask.request.blueprint == 'admin' and related_model._meta.related_use_form:
             if hasattr(related_model, 'related_form'):
-                form_class = related_model.related_form
+                form_widget = related_model.related_form
             else:
-                form_class = functools.partial(RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
+                form_widget = functools.partial(RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
 
-            f = form_class(related_field, instance)
+            f = form_widget(related_field, instance)
             
             return f.view('full')
 
@@ -1244,8 +1244,7 @@ class UserPermission(Administerable):
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(null=False)
-    access.form_class = poobrains.form.fields.Choice
+    access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Choice)
 
     related_form = UserPermissionRelatedForm
 
@@ -1345,8 +1344,7 @@ class GroupPermission(Administerable):
 
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(null=False)
-    access.form_class = poobrains.form.fields.Choice
+    access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Choice)
 
     
     def prepared(self):
@@ -1379,7 +1377,7 @@ class ClientCertToken(Administerable, Protected):
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     cert_name = poobrains.storage.fields.CharField(null=False, max_length=32, constraints=[poobrains.storage.RegexpConstraint('cert_name', '^[a-zA-Z0-9_\- ]+$')])
     token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
-    token.form_class = poobrains.form.fields.Value
+    token.form_widget = poobrains.form.fields.Value
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
     redeemed = poobrains.storage.fields.BooleanField(default=False, null=False)
 

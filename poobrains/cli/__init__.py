@@ -254,7 +254,7 @@ def add(storable):
 
             if not isinstance(field, peewee.PrimaryKeyField):
 
-                fieldtype = field.form_class().type
+                fieldtype = field.form().type
                 if fieldtype is None:
                     click.secho("Falling back to string for field '%s' % field.name", fg='yellow')
                     fieldtype = types.STRING

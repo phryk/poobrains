@@ -1,0 +1,5 @@
+{% extends "form/fields/field.jinja" %}
+
+{% block type %}range{% endblock %}
+
+{% block extra_properties %}min="{{ content.min }}" max="{{ content.max }}"{% endblock %}

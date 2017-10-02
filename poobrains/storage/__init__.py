@@ -427,9 +427,8 @@ class AddForm(BoundForm):
                 else:
                     kw['required'] = False
 
-                if field.form_class is not None:
-                    form_field = field.form_class(**kw)
-                    setattr(f, field.name, form_field)
+                if not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field)): # second clause is to avoid problems with name collisions (for instance on "name") 
+                    setattr(f, field.name, field.form()) # automatically add the right form field, unless a custom one has been supplied in a child class of AddForm
 
             f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
             f.controls['preview'] = poobrains.form.Button('submit', name='preview', value='preview', label='Preview')
@@ -473,7 +472,7 @@ class AddForm(BoundForm):
  
 
     def process(self, submit, exceptions=False):
-        
+
         if not self.readonly:
             
             for field in self.model._meta.sorted_fields:

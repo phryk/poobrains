@@ -43,7 +43,7 @@ class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.Clas
     pass
 
 
-class Field(object):
+class BaseField(object):
 
     __metaclass__ = poobrains.helpers.MetaCompatibility
 
@@ -60,6 +60,7 @@ class Field(object):
     label = None
     multi = False # Whether this field takes multiple values (i.e. value passed to .bind will be a list)
     placeholder = None
+    help_text = None
     readonly = None
     required = None
     validator = None
@@ -70,19 +71,20 @@ class Field(object):
 
     def __new__(cls, *args, **kwargs):
 
-        instance = super(Field, cls).__new__(cls, *args, **kwargs)
+        instance = super(BaseField, cls).__new__(cls, *args, **kwargs)
         instance._created = time.time()
 
         return instance
 
 
-    def __init__(self, name=None, type=None, value=None, choices=None, label=None, placeholder=None, readonly=False, required=False, validator=None, default=None, form=None, **kwargs):
+    def __init__(self, name=None, type=None, value=None, choices=None, label=None, placeholder=None, help_text=None, readonly=False, required=False, validator=None, default=None, form=None, **kwargs):
 
         self.errors = []
         self.name = name
         self.value = value
         self.label = label if label is not None else name
         self.placeholder = placeholder if placeholder else self.label
+        self.help_text = help_text
         self.readonly = readonly
         self.required = required
         self.rendered = False
@@ -114,7 +116,7 @@ class Field(object):
 
         if name in ['label', 'placeholder']:
 
-            real_value = super(Field, self).__getattr__(name)
+            real_value = super(BaseField, self).__getattr__(name)
 
             if not real_value and isinstance(self.name, basestring):
                 return self.name.capitalize()
@@ -230,7 +232,7 @@ class Field(object):
         return pairs
 
 
-class Value(Field):
+class Value(BaseField):
     """ To put a static value into the form. """
 
     def validate(self):
@@ -241,17 +243,21 @@ class Value(Field):
         pass
 
 
-class RenderableField(Field, poobrains.rendering.Renderable):
+class Field(BaseField, poobrains.rendering.Renderable):
 
     rendered = None
 
     def render(self):
 
         self.rendered = True
-        return super(RenderableField, self).render()
+        return super(Field, self).render()
 
 
-class Message(RenderableField):
+class Text(Field):
+    pass
+
+
+class Message(Field):
 
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__, self.value)
@@ -263,10 +269,6 @@ class Message(RenderableField):
 
     def bind(self, value):
         pass
-
-
-class Text(RenderableField):
-    pass
 
 
 class TextAutoComplete(Text):
@@ -295,15 +297,11 @@ class TextArea(Text):
     pass
 
 
-class Integer(RenderableField):
-    default = 0
-    type = types.INT
-
-
-class RangedInteger(Integer):
+class Range(Field):
 
     min = None
     max = None
+    type = types.INT
 
 
     def validate(self):
@@ -316,12 +314,12 @@ class RangedInteger(Integer):
                 raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, self.value, self.min, self.max))
 
 
-class DateTime(RenderableField):
+class DateTime(Field):
 
     type = types.DATETIME
 
 
-class Choice(RenderableField):
+class Choice(Field):
 
     choices = None
     empty_label = 'Please choose'
@@ -425,15 +423,7 @@ class MultiChoice(Choice):
                 raise
 
 
-class IntegerChoice(Choice):
-    type = types.INT
-
-
-class MultiIntegerChoice(MultiChoice):
-    type = types.INT
-
-
-class Checkbox(RenderableField):
+class Checkbox(Field):
 
     class Meta:
         clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validator', 'default', 'empty_value', 'checked']
@@ -489,20 +479,7 @@ class MultiCheckbox(MultiChoice):
                 self.validator(value)
 
 
-class IntegerMultiCheckbox(MultiCheckbox):
-
-    type = types.INT
-
-
-class Float(RenderableField):
-    type = types.FLOAT
-
-
-class RangedFloat(RangedInteger):
-    type = types.FLOAT
-
-
-class Keygen(RenderableField):
+class Keygen(Field):
     
     challenge = None
 
@@ -518,5 +495,5 @@ class Keygen(RenderableField):
         super(Keygen, self).__init__(*args, **kw)
 
 
-class File(RenderableField):
+class File(Field):
     pass

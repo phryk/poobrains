@@ -94,41 +94,65 @@ poobrains.form.fields.ForeignKeyChoice = ForeignKeyChoice
 
 class Field(poobrains.helpers.ChildAware):
 
-    form_class = poobrains.form.fields.Text
+    form_widget = poobrains.form.fields.Field
+    type = poobrains.form.types.STRING
 
     def __init__(self, *args, **kwargs):
 
-        if kwargs.has_key('form_class'):
-            self.form_class = kwargs.pop('form_class')
+        if kwargs.has_key('form_widget'):
+            self.form_widget = kwargs.pop('form_widget')
 
         super(Field, self).__init__(*args, **kwargs)
 
 
-    def form(self, value):
-        return self.form_class(self.name, label=self.name, value=value)
+    def form(self):
+
+        kw = {}
+        kw['name'] = self.name
+        kw['type'] = self.type
+        kw['default'] = self.default
+
+        if self.verbose_name:
+            kw['label'] = self.verbose_name
+            kw['placeholder'] = self.verbose_name
+        else:
+            kw['placeholder'] = self.name
+        
+        if self.null == False and self.default is None:
+            kw['required'] = True
+        else:
+            kw['required'] = False
+
+        return self.form_widget(**kw)
 
 
 class IntegerField(Field, peewee.IntegerField):
-    pass
+    type = poobrains.form.types.INT
 
 
 class CharField(Field, peewee.CharField):
-    pass
+    type = poobrains.form.types.STRING
 
 
 class TextField(Field, peewee.TextField):
-    form_class = poobrains.form.fields.TextArea
+
+    form_widget = poobrains.form.fields.TextArea
+    type = poobrains.form.types.STRING
 
 
 class DateTimeField(Field, peewee.DateTimeField):
-    form_class = poobrains.form.fields.DateTime
+
+    type = poobrains.form.types.DATETIME
+    form_widget = poobrains.form.fields.DateTime
 
 
 class ForeignKeyField(Field, peewee.ForeignKeyField):
-    form_class = ForeignKeyChoice
+
+    # NOTE: type set by constructor, because it needs a storable passed in 
+    form_widget = ForeignKeyChoice
 
 
 class BooleanField(Field, peewee.BooleanField):
-    form_class = poobrains.form.fields.Checkbox
+    form_widget = poobrains.form.fields.Checkbox
 
 

@@ -131,7 +131,7 @@ class BaseForm(poobrains.rendering.Renderable):
         """
 
         for field in self.fields.itervalues():
-            if isinstance(field, (fields.RenderableField, Fieldset)) and field.name not in self._external_fields:
+            if isinstance(field, (fields.Field, Fieldset)) and field.name not in self._external_fields:
                 yield field
 
     

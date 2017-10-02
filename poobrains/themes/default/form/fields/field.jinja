@@ -15,4 +15,14 @@
     {% if content.value %}
     value="{% block value %}{{ content.value_string }}{% endblock %}"
     {% endif %}
+
+    {% block extra_properties %}{% endblock %}
 >
+
+{% if self.help()|trim %}
+{% block help %}
+    {% if content.help_text %}
+       <span class="help">{{ content.help_text }}</span> 
+    {% endif %}
+{% endblock %}
+{% endif %}
