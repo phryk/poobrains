@@ -7,5 +7,6 @@
 {% endblock %}
 
 {% block content %}
-{{ content.fingerprint }}
+    <span class="fingerprint">{{ content.fingerprint }}</span>
+    <span class="not-after">{{ content.not_after }}</span>
 {% endblock %}

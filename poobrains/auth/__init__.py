@@ -375,7 +375,7 @@ class ClientCertForm(poobrains.form.Form):
 
 
     def process(self, submit):
-
+        app.debugger.set_trace()
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
@@ -410,6 +410,7 @@ class ClientCertForm(poobrains.form.Form):
 
             cert_info.keylength = client_cert.get_pubkey().size() * 8 # .size gives length in byte
             cert_info.fingerprint = client_cert.get_fingerprint('sha512')
+            cert_info.not_after = client_cert.get_not_after().get_datetime()
 
             r = werkzeug.wrappers.Response(client_cert.as_pem())
             r.mimetype = 'application/x-x509-user-cert'
@@ -429,6 +430,7 @@ class ClientCertForm(poobrains.form.Form):
 
             cert_info.keylength = pkcs12.get_certificate().get_pubkey().bits() 
             cert_info.fingerprint = pkcs12.get_certificate().digest('sha512').replace(':', '')
+            cert_info.not_after = datetime.strptime(pkcs12.get_certificate().get_notAfter(), '%Y%m%d%H%M%SZ')
 
             #if submit == 'ClientCertForm.tls_submit':
             if self.controls['tls_submit'].value:
@@ -1372,12 +1374,15 @@ class GroupPermission(Administerable):
 
 class ClientCertToken(Administerable, Protected):
 
+    class Meta:
+
+        form_blacklist = ['id', 'token']
+
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     cert_name = poobrains.storage.fields.CharField(null=False, max_length=32, constraints=[poobrains.storage.RegexpConstraint('cert_name', '^[a-zA-Z0-9_\- ]+$')])
     token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
-    token.form_widget = poobrains.form.fields.Value
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
     redeemed = poobrains.storage.fields.BooleanField(default=False, null=False)
 
@@ -1431,7 +1436,8 @@ class ClientCert(Administerable):
     #subject_name = poobrains.storage.fields.CharField()
     keylength = poobrains.storage.fields.IntegerField()
     fingerprint = poobrains.storage.fields.CharField()
-    
+    not_after = poobrains.storage.fields.DateTimeField(null=True)
+
     
     def save(self, force_insert=False, only=None):
 
