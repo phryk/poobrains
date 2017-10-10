@@ -4,6 +4,8 @@
 import flask
 import peewee
 
+from peewee import Check
+
 # parent imports
 #import poobrains
 import poobrains.helpers
