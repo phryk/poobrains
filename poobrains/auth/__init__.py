@@ -11,6 +11,7 @@ import pyspkac
 import time
 import datetime
 import werkzeug
+import click
 import flask
 import peewee
 
@@ -411,6 +412,7 @@ class ClientCertForm(poobrains.form.Form):
             cert_info.keylength = client_cert.get_pubkey().size() * 8 # .size gives length in byte
             cert_info.fingerprint = client_cert.get_fingerprint('sha512')
             cert_info.not_after = client_cert.get_not_after().get_datetime()
+            cert_info.not_after.tzinfo = None # is UTC anyways and tzinfo confuses peewee (https://github.com/coleifer/peewee/issues/914)
 
             r = werkzeug.wrappers.Response(client_cert.as_pem())
             r.mimetype = 'application/x-x509-user-cert'
@@ -430,7 +432,7 @@ class ClientCertForm(poobrains.form.Form):
 
             cert_info.keylength = pkcs12.get_certificate().get_pubkey().bits() 
             cert_info.fingerprint = pkcs12.get_certificate().digest('sha512').replace(':', '')
-            cert_info.not_after = datetime.strptime(pkcs12.get_certificate().get_notAfter(), '%Y%m%d%H%M%SZ')
+            cert_info.not_after = datetime.datetime.strptime(pkcs12.get_certificate().get_notAfter(), '%Y%m%d%H%M%SZ')
 
             #if submit == 'ClientCertForm.tls_submit':
             if self.controls['tls_submit'].value:
@@ -1378,6 +1380,7 @@ class ClientCertToken(Administerable, Protected):
 
         form_blacklist = ['id', 'token']
 
+
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
@@ -1555,4 +1558,22 @@ def bury_tokens():
 
     count = q.execute()
 
-    app.logger.info("Deleted %d dead client certificate tokens." % count)
+    msg = "Deleted %d dead client certificate tokens." % count
+    click.secho(msg, fg='green')
+    app.logger.info(msg)
+
+@app.cron
+def notify_dying_cert_owners():
+
+    now = datetime.datetime.now()
+    affected_certs = ClientCert.select().where(ClientCert.not_after > now, ClientCert.not_after >= (now - datetime.timedelta(days=365)))
+
+    affected_users = set()
+    for cert_info in affected_certs:
+
+        affected_users.add(cert_info.user)
+        death_in = cert_info.not_after - now
+        cert_info.user.notify("Your client certificate '%s' is expiring in %d days, %d hours, $d minutes!" % (cert_info.name, death_in.days, death_in.hours, death_in.minutes))
+        click.echo("Notified user '%s' about certificate '%s'" % (cert_info.user.name, cert_info.name))
+
+    click.secho("Notified %d users about %d certificates that will soon expire." % (len(affected_users), affected_certs.count()), fg='green')

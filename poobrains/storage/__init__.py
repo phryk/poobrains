@@ -61,12 +61,12 @@ class BaseModel(poobrains.helpers.MetaCompatibility, peewee.BaseModel):
 class Model(peewee.Model, poobrains.helpers.ChildAware):
 
     __metaclass__ = BaseModel
-    
-    form_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
     class Meta:
+
         database = app.db
         order_by = ['-id']
+        form_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
 
     @classmethod
@@ -415,7 +415,7 @@ class AddForm(BoundForm):
 
         for field in f.model._meta.sorted_fields:
 
-            if not field.name in f.model.form_blacklist and \
+            if not field.name in f.model._meta.form_blacklist and \
                 not f.fields.has_key(field.name): # means this field was already defined in the class definition for this form
 
                 kw = {}
@@ -476,7 +476,7 @@ class AddForm(BoundForm):
         if not self.readonly:
             
             for field in self.model._meta.sorted_fields:
-                if not field.name in self.model.form_blacklist:
+                if not field.name in self.model._meta.form_blacklist:
                     #if self.fields[field.name].value is not None: # see https://github.com/coleifer/peewee/issues/107
                     if not self.fields[field.name].empty():
                         setattr(self.instance, field.name, self.fields[field.name].value)
