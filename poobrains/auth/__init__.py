@@ -1002,8 +1002,8 @@ class Administerable(poobrains.storage.Storable, Protected):
         if not hasattr(self, n):
             raise NotImplementedError("Form class %s.%s missing." % (self.__class__.__name__, n))
 
-        form_widget = getattr(self, n)
-        return form_widget(mode=mode)#, name=None, title=None, method=None, action=None)
+        form_class = getattr(self, n)
+        return form_class(mode=mode)#, name=None, title=None, method=None, action=None)
     
 
     @classmethod
@@ -1055,11 +1055,11 @@ class Administerable(poobrains.storage.Storable, Protected):
 
         if flask.request.blueprint == 'admin' and related_model._meta.related_use_form:
             if hasattr(related_model, 'related_form'):
-                form_widget = related_model.related_form
+                form_class = related_model.related_form
             else:
-                form_widget = functools.partial(RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
+                form_class = functools.partial(RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
 
-            f = form_widget(related_field, instance)
+            f = form_class(related_field, instance)
             
             return f.view('full')
 
