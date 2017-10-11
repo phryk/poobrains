@@ -25,8 +25,12 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
 
         if choices is None:
             choices = []
-            for choice in self.storable.select():
-                choices.append(choice)
+            try:
+                for choice in self.storable.select():
+                    choices.append(choice)
+
+            except peewee.OperationalError:
+                pass # assume this is a "no such table" error pre-install
 
         self.choices = choices
 
