@@ -543,6 +543,8 @@ class AddForm(BoundForm):
 
         return self
 
+poobrains.form.AddForm = AddForm
+
 
 class EditForm(AddForm):
     
@@ -559,6 +561,7 @@ class EditForm(AddForm):
     def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         super(EditForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
+poobrains.form.EditForm = EditForm
 
 
 class DeleteForm(BoundForm):
@@ -594,6 +597,8 @@ class DeleteForm(BoundForm):
 
         return flask.redirect(self.model.url('teaser')) # TODO app.admin.get_listing_url?
 
+poobrains.form.DeleteForm = DeleteForm
+
 
 class AddFieldset(AddForm, poobrains.form.Fieldset):
 
@@ -613,6 +618,8 @@ class AddFieldset(AddForm, poobrains.form.Fieldset):
         self.rendered = True
         return super(AddFieldset, self).render(mode)
 
+poobrains.form.AddFieldset = AddFieldset
+
 
 class EditFieldset(EditForm, poobrains.form.Fieldset):
 
@@ -622,6 +629,8 @@ class EditFieldset(EditForm, poobrains.form.Fieldset):
 
         self.rendered = True
         return super(EditFieldset, self).render(mode)
+
+poobrains.form.EditFieldset = EditFieldset
 
 
 class StorableParamType(poobrains.form.types.ParamType):

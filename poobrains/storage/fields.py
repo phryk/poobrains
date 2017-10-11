@@ -22,6 +22,12 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
         super(StorableInstanceParamType, self).__init__()
 
         self.storable = storable
+
+        if choices is None:
+            choices = []
+            for choice in self.storable.select():
+                choices.append(choice)
+
         self.choices = choices
 
 
@@ -45,7 +51,6 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
             self.fail("'%s' is not an approved choice." % value)
 
         return instance
-
 
 poobrains.form.types.StorableInstanceParamType = StorableInstanceParamType
 
