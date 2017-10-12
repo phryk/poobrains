@@ -246,7 +246,7 @@ def minica(lifetime):
 @click.argument('storable', type=types.STORABLE)
 @fake_before_request
 def add(storable):
-        
+
         instance = storable()
 
         click.echo("Addding %s...\n" % (storable.__name__,))
@@ -254,22 +254,28 @@ def add(storable):
 
             if not isinstance(field, peewee.PrimaryKeyField):
 
-                fieldtype = field.form().type
-                if fieldtype is None:
-                    click.secho("Falling back to string for field '%s' % field.name", fg='yellow')
-                    fieldtype = types.STRING
-
                 default = None
 
-                if fieldtype == types.DATETIME:
-                    default = datetime.datetime.now()
+                if field.default:
 
-                value = click.prompt(field.name, type=fieldtype, default=default)
+                    if callable(field.default):
+                        default = field.default()
+                    else:
+                        default = field.default
+
+                elif field.type == types.DATETIME:
+                    default = datetime.datetime.now()
+                
+                elif field.type == types.BOOL:
+                    default = False
+
+                value = click.prompt(field.name, type=field.type, default=default)
 
                 if value != '': # Makes models fall back to defaults for this field
                     setattr(instance, field.name, value) # TODO type enforcement
 
         instance.save(force_insert=True)
+
 
 @app.cli.command()
 @click.argument('storable', type=types.STORABLE)

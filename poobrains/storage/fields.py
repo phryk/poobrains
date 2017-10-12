@@ -22,16 +22,6 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
         super(StorableInstanceParamType, self).__init__()
 
         self.storable = storable
-
-        if choices is None:
-            choices = []
-            try:
-                for choice in self.storable.select():
-                    choices.append(choice)
-
-            except peewee.OperationalError:
-                pass # assume this is a "no such table" error pre-install
-
         self.choices = choices
 
 
@@ -162,8 +152,13 @@ class ForeignKeyField(Field, peewee.ForeignKeyField):
     # NOTE: type set by constructor, because it needs a storable passed in 
     form_widget = ForeignKeyChoice
 
+    def __init__(self, rel_model, **kwargs):
+
+        super(ForeignKeyField, self).__init__(rel_model, **kwargs)
+        self.type = StorableInstanceParamType(rel_model) # basically just needed for the CLI, which checks field.type
+
 
 class BooleanField(Field, peewee.BooleanField):
+
     form_widget = poobrains.form.fields.Checkbox
-
-
+    type = poobrains.form.types.BOOL

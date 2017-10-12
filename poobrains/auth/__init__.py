@@ -411,9 +411,10 @@ class ClientCertForm(poobrains.form.Form):
 
             cert_info.keylength = client_cert.get_pubkey().size() * 8 # .size gives length in byte
             cert_info.fingerprint = client_cert.get_fingerprint('sha512')
-            cert_info.not_after = client_cert.get_not_after().get_datetime()
-            cert_info.not_after.tzinfo = None # is UTC anyways and tzinfo confuses peewee (https://github.com/coleifer/peewee/issues/914)
 
+            bork = client_cert.get_not_after().get_datetime() # contains tzinfo, which confuses peewee ( https://github.com/coleifer/peewee/issues/914)
+
+            cert_info.not_after = datetime.datetime(bork.year, bork.month, bork.day, bork.hour, bork.minute, bork.second)
             r = werkzeug.wrappers.Response(client_cert.as_pem())
             r.mimetype = 'application/x-x509-user-cert'
 
