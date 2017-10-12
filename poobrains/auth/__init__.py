@@ -376,7 +376,7 @@ class ClientCertForm(poobrains.form.Form):
 
 
     def process(self, submit):
-        app.debugger.set_trace()
+
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
