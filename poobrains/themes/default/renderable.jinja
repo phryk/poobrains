@@ -1,3 +1,4 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <article class="content-type-{{ content.__class__.__name__.lower() }} mode-{{ mode }} {{ content.css_class }}">
     
     {% if self.header()|trim %}

@@ -1,4 +1,6 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <input
+    id="{{ content.ref_id }}"
     class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
     type="{% block type %}text{% endblock %}"
     name="{{content.prefix}}.{{ content.name }}"
@@ -8,17 +10,37 @@
         form="{{ content.form.ref_id }}"
     {% endif %}
 
+    {% if content.list_id %}
+        list="{{ content.list_id }}"
+    {% endif %}
+    
     {% if content.placeholder %}
         placeholder="{{ content.placeholder }}"
     {% endif %}
 
     {% if content.value %}
-    value="{% block value %}{{ content.value_string }}{% endblock %}"
+    value="{% block value %}{{ content.value_string(content.value) }}{% endblock %}"
+    {% endif %}
+
+    {% if content.required %}
+    required
+    {% endif %}
+
+    {% if content.multi %}
+    multiple
     {% endif %}
 
     {% block extra_properties %}{% endblock %}
 >
 
+{% if content.choices %}
+<datalist id="{{ list_id }}">
+{% for choice, label in content.choices %}
+    <option value="{{ content.value_string(choice) }}" label="{{ label }}">
+{% endfor %}
+</datalist>
+{% endif %}
+        
 {% if self.help()|trim %}
 {% block help %}
     {% if content.help_text %}

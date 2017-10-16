@@ -6,7 +6,7 @@ class ValidationError(Exception):
     pass
 
 
-class CompoundError(Exception):
+class CompoundError(ValidationError):
 
     errors = None
 
@@ -33,4 +33,8 @@ class CompoundError(Exception):
 
 
     def __len__(self):
-        return len(self.errors)
+        return self.errors.__len__()
+
+
+    def __iter__(self):
+        return self.errors.__iter__()

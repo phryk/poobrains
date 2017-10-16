@@ -1,3 +1,4 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <section class="dashbar">
 {% block content %}
 {% for item in content.items %}

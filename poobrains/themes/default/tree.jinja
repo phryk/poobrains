@@ -1,3 +1,4 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <div class="tree">
     
     <div class="root">{{ content.root.render(content.mode) }}</div>

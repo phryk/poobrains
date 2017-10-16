@@ -1,3 +1,4 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <fieldset name="{{ content.prefix}}.{{ content.name }}">
 
 {% for field in content %}

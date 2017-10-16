@@ -1,3 +1,4 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 {% with list_id = "list-%s-%s"|format(content.prefix, content.name)|replace('.', '-') %}
 
 <input
@@ -10,14 +11,14 @@
     placeholder="{% block placeholder %}{{ content.placeholder }}{% endblock %}"
     {% endif %}
 
-    {% if content.value %}
-    value="{% block value %}{{ content.value_string }}{% endblock %}"
+    {% if not content.empty %}
+    value="{% block value %}{{ content.value_string(content.value) }}{% endblock %}"
     {% endif %}
 >
 
 <datalist id="{{ list_id }}">
-{% for choice, label in content.choices_string %}
-    <option value="{{ choice }}" label="{{ label }}">
+{% for choice, label in content.choices %}
+    <option value="{{ content.value_string(choice) }}" label="{{ label }}">
 {% endfor %}
 </datalist>
 

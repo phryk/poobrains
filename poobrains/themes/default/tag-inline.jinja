@@ -1,1 +1,2 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <a class="tag-inline" href="{{ content.url(quiet=True) }}" title="{{ content.description|truncate }}">{{ content.title }}</a>

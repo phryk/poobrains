@@ -171,19 +171,20 @@ class BaseForm(poobrains.rendering.Renderable):
     @property
     def ref_id(self):
 
-        """ HTML 'id' attribute value to enable fields outside that <form> element. """
+        """ HTML 'id' attribute (to enable assigning fields outside that <form> element). """
 
         if self.custom_id:
             return self.custom_id
 
         if self.prefix:
-            return "%s-%s" % (self.prefix, self.name)
+            return "%s-%s" % (self.prefix.replace('.', '-'), self.name)
+
         return self.name
 
 
     def empty(self): # TODO: find out why I didn't make this @property
         for field in self:
-            if not field.empty():
+            if not field.empty:
                 return False
         return True
 
@@ -227,10 +228,10 @@ class BaseForm(poobrains.rendering.Renderable):
                         else:
                             field.bind(field_values)
 
-                    except click.BadParameter as e:
-                        compound_error.append(e)
-                    except errors.ValidationError as e:
-                        compound_error.append(e)
+                    except errors.CompoundError as ce:
+
+                        for e in ce.errors:
+                            compound_error.append(e)
 
             for name, control in self.controls.iteritems():
                 if isinstance(control, Button):

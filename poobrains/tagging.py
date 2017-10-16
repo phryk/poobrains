@@ -143,15 +143,14 @@ class TagBinding(poobrains.auth.Administerable):
     priority = poobrains.storage.fields.IntegerField()
 
 
-class TaggingField(poobrains.form.fields.MultiChoice):
+class TaggingField(poobrains.form.fields.Select):
     
     def __init__(self, dry=False, **kwargs):
 
-        super(TaggingField, self).__init__(**kwargs)
-
+        kwargs['multi'] = True
         choices = []
 
-        if not dry: # kwargs['dry'] == dry run, don't fill automatically from db
+        if not dry: # kwargs['dry'] means dry run (don't fill choices  from db)
 
             try:
                 for tag in Tag.select():
@@ -160,8 +159,11 @@ class TaggingField(poobrains.form.fields.MultiChoice):
             except (peewee.OperationalError, peewee.ProgrammingError) as e:
                 app.logger.error("Failed building list of tags for TaggingField: %s" % e.message)
 
-        self.choices = choices
-        self.type = poobrains.form.types.StorableInstanceParamType(Tag)
+        kwargs['choices'] = choices
+        kwargs['type'] = poobrains.form.types.StorableInstanceParamType(Tag)
+
+        super(TaggingField, self).__init__(**kwargs)
+
 
 poobrains.form.fields.TaggingField = TaggingField
 
@@ -174,11 +176,13 @@ class TaggingFieldset(poobrains.form.Fieldset):
 
         super(TaggingFieldset, self).__init__()
         if instance._get_pk_value() != None:
-           self.fields['tags'].value = [tag.name for tag in instance.tags] 
+           self.fields['tags'].value = [tag for tag in instance.tags] 
 
 
     def process(self, submit, instance):
-        
+
+        app.debugger.set_trace()
+
         q = TagBinding.delete().where(TagBinding.model == instance.__class__.__name__, TagBinding.handle == instance.handle_string).execute()
         for tag in self.fields['tags'].value:
 
@@ -206,7 +210,7 @@ class Taggable(poobrains.auth.NamedOwned):
 
         f = super(Taggable, self).form(mode=mode)
         if mode != 'delete':
-            setattr(f, 'tags', TaggingFieldset(self))
+            f.tags = TaggingFieldset(self)
         return f
 
 

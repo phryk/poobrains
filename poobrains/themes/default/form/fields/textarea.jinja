@@ -1,1 +1,2 @@
-<textarea name="{{ content.prefix }}.{{ content.name }}" {% if content.placeholder %}placeholder="{{ content.placeholder }}"{% endif %}>{% if content.value_string %}{{ content.value_string }}{% endif %}</textarea>
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
+<textarea name="{{ content.prefix }}.{{ content.name }}" {% if content.placeholder %}placeholder="{{ content.placeholder }}"{% endif %}>{% if not content.empty %}{{ content.value_string(content.value) }}{% endif %}</textarea>

@@ -54,6 +54,25 @@
     }
 }
 
+@keyframes marquee {
+
+    0% {
+        transform: translateX(0%);
+    }
+
+    25% {
+        transform: translateX(-100%);
+    }
+
+    75% {
+        transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(0%);
+    }
+}
+
 @media (min-width: 56rem) {
 
     #logo-link {
@@ -678,6 +697,104 @@ form {
 
 form {
 
+    padding: 0;
+    margin: 0;
+
+    & > div.content > * {
+      display: block;
+      width: 100%;
+    }
+
+    datalist {
+        display: none !important;
+    }
+
+    img {
+        width: auto;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+
+        border: 0;
+        background: $color_background_form;
+        font-size: 1rem;
+        line-height: 150%;
+        color: $color_font_dark;
+        outline: none;
+        transition: background 0.3s ease-in-out, width 0.3s ease-in-out;
+
+        &:hover,
+        &:focus {
+          background: $color_highlight;
+        }
+
+        &.invalid {
+            background: opacify(lighten($color_danger, 15%), -20%);
+        }
+    }
+
+    button {
+
+        cursor: pointer; /* no clue why this isn't the default */
+        white-space: nowrap; /* avoides forms jumping in height when animating their width */
+        overflow: hidden;
+        font-family: 'Ostrich Sans', sans;
+        font-weight: 800;
+        font-size: 1.2rem;
+        min-height: 1.8rem;
+        padding-top: 0.3rem;
+        margin-right: 0.5rem;
+        width: 33%;
+
+        &:last-child {
+            margin-right: 0;
+        }
+
+
+    }
+
+    textarea {
+
+        width: 100%;
+        resize: vertical;
+        background: $color_background_form;
+        min-height: 12rem;
+        font-size: 0.8rem;
+    }
+
+    select {
+
+      option {
+        outline: none;
+      }
+    }
+
+    fieldset {
+        
+        margin: 0.5rem 0;
+        border: 0;
+        padding: 0;
+    }
+
+    & > footer {
+
+        margin-top: 0.5rem;
+        display: flex;
+        flex-direction: row;
+        justify-content: right;
+        background: $color_background_dark;
+
+        button {
+            &:focus,
+            &:hover {
+                width: 100%;
+            }
+        }
+    }
+
     &#DeleteForm {
 
         & > footer {
@@ -883,104 +1000,6 @@ video {
     width: 100%;
 }
 
-form {
-
-    padding: 0;
-    margin: 0;
-
-    & > div.content > * {
-      display: block;
-      width: 100%;
-    }
-
-    datalist {
-        display: none !important;
-    }
-
-    img {
-        width: auto;
-    }
-
-    input,
-    select,
-    textarea,
-    button {
-
-        border: 0;
-        background: $color_background_form;
-        font-size: 1rem;
-        line-height: 150%;
-        color: $color_font_dark;
-        outline: none;
-        transition: background 0.3s ease-in-out, width 0.3s ease-in-out;
-
-        &:hover,
-        &:focus {
-          background: $color_highlight;
-        }
-    }
-
-    button {
-
-        cursor: pointer; /* no clue why this isn't the default */
-        white-space: nowrap; /* avoides forms jumping in height when animating their width */
-        overflow: hidden;
-        font-family: 'Ostrich Sans', sans;
-        font-weight: 800;
-        font-size: 1.2rem;
-        min-height: 1.8rem;
-        padding-top: 0.3rem;
-        margin-right: 0.5rem;
-        width: 33%;
-
-        &:last-child {
-            margin-right: 0;
-        }
-
-
-    }
-
-    textarea {
-
-        width: 100%;
-        resize: vertical;
-        background: $color_background_form;
-        min-height: 12rem;
-        font-size: 0.8rem;
-    }
-
-    select {
-
-      option {
-        outline: none;
-      }
-    }
-
-    fieldset {
-        
-        margin: 0.5rem 0;
-        border: 0;
-        padding: 0;
-    }
-
-    & > footer {
-
-        margin-top: 0.5rem;
-        display: flex;
-        flex-direction: row;
-        justify-content: right;
-        background: $color_background_dark;
-
-        button {
-            &:focus,
-            &:hover {
-                width: 100%;
-            }
-        }
-    }
-
-}
-
 h1,
 h2,
 h3,
@@ -1122,6 +1141,28 @@ ul.tag-list {
             }
         }
     }
+}
+
+span.debug-hint {
+
+    display: inline-block !important;
+    position: absolute !important;
+    z-index: 65535 !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    max-width: 1rem !important;
+    max-height: 1rem !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1rem !important;
+    background: opacify($color_danger, -20%) !important;
+    color: $color_font_dark !important;
+    font-family: 'Open Sans', sans !important;
+    font-size: 0.8rem !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    border-radius: 0.5rem !important;
 }
 
 @import 'custom';

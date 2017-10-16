@@ -1,1 +1,2 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 {{ content.user.name }} / {{ content.permission }} / {{ content.access }} {{ content.menu_actions.render() }}

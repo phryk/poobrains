@@ -430,13 +430,13 @@ class AddForm(BoundForm):
                 if not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field)): # second clause is to avoid problems with name collisions (for instance on "name") 
                     setattr(f, field.name, field.form()) # automatically add the right form field, unless a custom one has been supplied in a child class of AddForm
 
-            f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
-            f.controls['preview'] = poobrains.form.Button('submit', name='preview', value='preview', label='Preview')
-            f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
+        f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
+        f.controls['preview'] = poobrains.form.Button('submit', name='preview', value='preview', label='Preview')
+        f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
 
         return f
 
-    
+
     def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
         
         if not name:
@@ -478,7 +478,7 @@ class AddForm(BoundForm):
             for field in self.model._meta.sorted_fields:
                 if not field.name in self.model._meta.form_blacklist:
                     #if self.fields[field.name].value is not None: # see https://github.com/coleifer/peewee/issues/107
-                    if not self.fields[field.name].empty():
+                    if not self.fields[field.name].empty:
                         setattr(self.instance, field.name, self.fields[field.name].value)
                     elif field.default is not None:
                         setattr(self.instance, field.name, field.default() if callable(field.default) else field.default)

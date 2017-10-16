@@ -1,6 +1,7 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
 
-{% for value, label in content.choices_string %}
+{% for value, label in content.choices %}
 <input
     type="checkbox"
     name="{{ content.prefix }}.{{ content.name }}"
@@ -18,7 +19,7 @@
 
     value="{{ value }}"
 
-    {% if value in content.value_string %}
+    {% if content.selected(value) %}
         checked
     {% endif %}
 >

@@ -1,0 +1,25 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
+<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
+<select
+    id="{{ content.ref_id }}"
+    name="{{ content.prefix }}.{{ content.name }}"
+    {% if content.readonly %}disabled{% endif %}
+    class="{% if content.errors %}invalid{% endif %}"
+    {% if content.multi %}multiple{% endif %}
+>
+
+<option value=''>{{ content.empty_label }}</option>
+{% for value, label in content.choices %}
+    {% if not value is string and value is iterable  %}
+        <optgroup label="{{ label }}">
+            {% for subvalue, sublabel in value %}
+                <option value="{{ content.value_string(subvalue) }}" {% if content.checked(subvalue) %}selected{% endif %}>{{ sublabel }}</option>
+            {% endfor %}
+        </optgroup>
+    {% else %}
+    
+        <option value="{% if value %}{{ content.value_string(value) }}{% endif %}" {% if content.checked(value) %}selected{% endif %}>{{ label }}</option>
+    {% endif %}
+{% endfor %}
+
+</select>

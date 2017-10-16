@@ -210,7 +210,7 @@ poobrains.form.types.PermissionParamType = PermissionParamType
 poobrains.form.types.PERMISSION = PERMISSION
 
 
-class FormPermissionField(poobrains.form.fields.Choice):
+class FormPermissionField(poobrains.form.fields.Select):
 
     default = (None, None)
     type = PERMISSION
@@ -1249,7 +1249,7 @@ class UserPermission(Administerable):
 
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Choice)
+    access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Select)
 
     related_form = UserPermissionRelatedForm
 
@@ -1349,7 +1349,7 @@ class GroupPermission(Administerable):
 
     group = poobrains.storage.fields.ForeignKeyField(Group, null=False, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
-    access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Choice)
+    access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Select)
 
     
     def prepared(self):
