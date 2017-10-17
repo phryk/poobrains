@@ -218,20 +218,17 @@ class BaseForm(poobrains.rendering.Renderable):
                         else:
                             field_values = source[field.name]
 
-                    else:
-                            field_values = field._default
-                    
-                    try:
-                        if isinstance(field, Fieldset):
-                            sub_files = files[field.name] if files.has_key(field.name) else werkzeug.datastructures.MultiDict()
-                            field.bind(field_values, sub_files)
-                        else:
-                            field.bind(field_values)
+                        try:
+                            if isinstance(field, Fieldset):
+                                sub_files = files[field.name] if files.has_key(field.name) else werkzeug.datastructures.MultiDict()
+                                field.bind(field_values, sub_files)
+                            else:
+                                field.bind(field_values)
 
-                    except errors.CompoundError as ce:
+                        except errors.CompoundError as ce:
 
-                        for e in ce.errors:
-                            compound_error.append(e)
+                            for e in ce.errors:
+                                compound_error.append(e)
 
             for name, control in self.controls.iteritems():
                 if isinstance(control, Button):

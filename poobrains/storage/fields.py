@@ -49,7 +49,7 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
 poobrains.form.types.StorableInstanceParamType = StorableInstanceParamType
 
 
-class ForeignKeyChoice(poobrains.form.fields.TextAutoComplete):
+class ForeignKeyChoice(poobrains.form.fields.Text):
 
     """
     Note: This field expects to be bound to a ForeignKeyField.
@@ -60,14 +60,9 @@ class ForeignKeyChoice(poobrains.form.fields.TextAutoComplete):
 
     storable = None
 
-    def __new__(cls, fkfield, *args, **kwargs):
-        return super(ForeignKeyChoice, cls).__new__(cls, *args, **kwargs)
-
-
     def __init__(self, fkfield, choices=None, **kwargs):
 
         self.storable = fkfield.rel_model
-        super(ForeignKeyChoice, self).__init__(**kwargs)
                 
         if not choices:
 
@@ -75,19 +70,12 @@ class ForeignKeyChoice(poobrains.form.fields.TextAutoComplete):
             for choice in self.storable.list('read', flask.g.user):
                 choices.append((choice, choice.title))
 
-        self.choices = choices
+        kwargs['choices'] = choices
 
-        #self.type = poobrains.form.types.Choice(choices = [instance for instance, label in choices])
-        self.type = StorableInstanceParamType(self.storable, choices=[choice for choice, _ in choices])
+        kwargs['type'] = StorableInstanceParamType(self.storable, choices=[choice for choice, _ in choices])
 
+        super(ForeignKeyChoice, self).__init__(**kwargs)
 
-    def validate(self):
-
-        if not self.value is None:
-            if not isinstance(self.value, self.storable):
-                raise poobrains.form.errors.ValidationError("Unknown %s handle '%s'." % (self.storable.__name__, self.value))
-        elif self.required:
-            raise poobrains.form.errors.ValidationError("Field %s is required." % self.name)
 
 poobrains.form.fields.ForeignKeyChoice = ForeignKeyChoice
 

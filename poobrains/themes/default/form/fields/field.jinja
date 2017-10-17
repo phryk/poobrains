@@ -1,4 +1,5 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
+<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
 <input
     id="{{ content.ref_id }}"
     class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
@@ -18,9 +19,7 @@
         placeholder="{{ content.placeholder }}"
     {% endif %}
 
-    {% if content.value %}
     value="{% block value %}{{ content.value_string(content.value) }}{% endblock %}"
-    {% endif %}
 
     {% if content.required %}
     required
@@ -33,13 +32,15 @@
     {% block extra_properties %}{% endblock %}
 >
 
+{% block options %}
 {% if content.choices %}
-<datalist id="{{ list_id }}">
+<datalist id="{{ content.list_id }}">
 {% for choice, label in content.choices %}
     <option value="{{ content.value_string(choice) }}" label="{{ label }}">
 {% endfor %}
 </datalist>
 {% endif %}
+{% endblock %}
         
 {% if self.help()|trim %}
 {% block help %}

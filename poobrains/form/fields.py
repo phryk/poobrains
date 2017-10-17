@@ -42,7 +42,7 @@ class BaseField(object):
 
 
     class Meta:
-        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validators', 'default']
+        clone_props = ['name', 'type', 'multi', 'value', 'choices', 'label', 'placeholder', 'help_text', 'readonly', 'required', 'validators', 'default']
 
 
     def __new__(cls, *args, **kwargs):
@@ -69,13 +69,7 @@ class BaseField(object):
 
         if not multi is None:
             self.multi = multi
-        else:
-            self.multi = False
 
-        if not value is None:
-            self.value = value
-        elif self.multi:
-            self.value = []
 
         if not choices is None:
             self.choices = choices # leave choices of other __init__ intact. <- TODO: what other __init__? did i mean statically defined properties in subclasses?
@@ -83,11 +77,23 @@ class BaseField(object):
         if callable(self.choices):
             self.choices = self.choices()
 
+
         if not default is None:
             self.default = default
-        elif self.multi:
+
+        if self.default is None and self.multi:
             self.default = []
-        
+
+        if callable(self.default):
+            self.default = self.default()
+
+
+        if not value is None:
+            self.value = value
+        else:
+            self.value = self.default
+
+
         if not validators is None:
             self.validators = validators
         else:
@@ -169,6 +175,14 @@ class BaseField(object):
 
         return (self.multi and self.value == []) or self.value is None
 
+    
+    def checked(self, value):
+
+        if self.multi:
+            return value in self.value
+
+        return value == self.value
+
 
     def validate(self):
 
@@ -199,13 +213,15 @@ class BaseField(object):
 
     def bind(self, value):
 
+        app.debugger.set_trace()
+
         compound_error = errors.CompoundError()
 
         empty = value == '' or (self.multi and value == []) # TODO: value in [[], ['']] if <input type="text" multiple> needs it!
 
         if empty:
 
-            self.value = self._default
+            self.value = self.default
 
         else:
 
@@ -215,7 +231,7 @@ class BaseField(object):
                 for subvalue in value:
 
                     try:
-                        self.value.append(self.type.convert(value, None, None))
+                        self.value.append(self.type.convert(subvalue, None, None))
 
                     except errors.BadParameter:
 
@@ -246,12 +262,6 @@ class BaseField(object):
         if len(compound_error):
 
             raise compound_error
-
-
-    @property
-    def _default(self):
-
-        return self.default() if callable(self.default) else self.default
 
 
     def value_string(self, value):
@@ -318,6 +328,7 @@ class TextAutoComplete(Text):
     class Meta:
         clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validators', 'default', 'choices']
 
+
     choices = None
 
     def __init__(self, choices=None, **kwargs):
@@ -363,81 +374,28 @@ class DateTime(Field):
 
 class Select(Field):
 
-    choices = None
     empty_label = 'Please choose'
-    multi = False
     
     class Meta:
-        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validators', 'default', 'choices', 'empty_label', 'multi']
-    
-    def __init__(self, choices=None, type=None, **kwargs):
-        
-        if choices is None:
-            choices = []
-
-        self.choices = []
-
-        if type is None:
-            type = self.type
-
-        try:
-
-            for choice, label in choices:
-                self.choices.append((type.convert(choice, None, None), label))
-
-        except TypeError: # assume we've been passed a list of just values, no  labels
-
-            for choice in choices:
-                self.choices.append((type.convert(choice, None, None), ''))
-        #self.type = types.Choice(choices=[self.type.convert(value) for label, value in choices])
-
-        kwargs['type'] = type
-
-        super(Select, self).__init__(**kwargs)
-
-    
-    def checked(self, value):
-
-        app.debugger.set_trace()
-
-        if self.multi:
-            return value in self.value
-
-        return value == self.value
+        clone_props = Field._meta.clone_props + ['empty_label']
 
 
-class Checkbox(Field):
-
-    class Meta:
-        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validators', 'default', 'checked']
+class Checkbox(Select):
 
     type = types.BOOL
     default = False
-    checked = None
-
-    def __init__(self, *args, **kwargs):
-
-        if kwargs.has_key('checked'):
-            self.checked = kwargs.pop('checked')
-
-        super(Checkbox, self).__init__(*args, **kwargs)
 
 
 class Radio(Checkbox):
-
-    multi = False
+    pass
 
 
 class MultiCheckbox(Select):
 
     multi = True
-    checked = None
     
     def __init__(self, **kwargs):
 
-        if kwargs.has_key('checked'):
-            self.checked = kwargs.pop('checked')
-        
         if not kwargs.has_key('choices'):
             kwargs['choices'] = []
         
