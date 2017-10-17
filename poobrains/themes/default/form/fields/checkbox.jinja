@@ -1,10 +1,32 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-{% if content.multi %}
+<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}
+    {% if content.multi %}
 
-    {% for choice, label in content.choices %}
-    <label>{{ label }}</label>
+        {% for choice, label in content.choices %}
+        <label>{{ label }}</label>
+        <input
+            class="{{ content.ref_id }} {{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
+            type="checkbox"
+            name="{{content.prefix}}.{{ content.name }}"
+            {% if content.readonly %}readonly{% endif %}
+
+            {% if content.form %}
+                form="{{ content.form.ref_id }}"
+            {% endif %}
+
+            value="{{ content.value_string(value) }}"
+
+            {% if content.required %}
+            required
+            {% endif %}
+        >
+        {% endfor %}
+
+    {% else %}
+
     <input
-        class="{{ content.ref_id }} {{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
+        id="{{ content.ref_id }}"
+        class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
         type="checkbox"
         name="{{content.prefix}}.{{ content.name }}"
         {% if content.readonly %}readonly{% endif %}
@@ -13,33 +35,12 @@
             form="{{ content.form.ref_id }}"
         {% endif %}
 
-        value="{{ content.value_string(value) }}"
+        value="{{ content.value_string(content.value) }}"
 
         {% if content.required %}
         required
         {% endif %}
     >
-    {% endfor %}
 
-{% else %}
-
-<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
-<input
-    id="{{ content.ref_id }}"
-    class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
-    type="checkbox"
-    name="{{content.prefix}}.{{ content.name }}"
-    {% if content.readonly %}readonly{% endif %}
-
-    {% if content.form %}
-        form="{{ content.form.ref_id }}"
     {% endif %}
-
-    value="{{ content.value_string(content.value) }}"
-
-    {% if content.required %}
-    required
-    {% endif %}
->
-
-{% endif %}
+</label>

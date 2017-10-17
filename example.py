@@ -26,6 +26,7 @@ class TestForm(poobrains.form.Form):
     foo = poobrains.form.fields.Text()
     bar = TestSubForm()
     optin = poobrains.form.fields.Checkbox(label="Opt-in", default=False, required=True, choices=[(True, None)])
+    multicheck = poobrains.form.fields.Checkbox(label="Check 'em", choices=[('dubs', 'dubs'), ('trips', 'TRIPS'), ('quads', 'QUADS!1!!!!')], multi=True)
     completeme = poobrains.form.fields.Text(label="Lookit me, I can autocomplete without JS!", choices=[('Mr. Foo', 'foo'), ('Mr. Florb', 'florb'), ('Ms. Bar', 'bar')])
     trigger = poobrains.form.Button('submit', label='Hit me!')
 

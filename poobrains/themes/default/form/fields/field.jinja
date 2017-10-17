@@ -1,51 +1,53 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
-<input
-    id="{{ content.ref_id }}"
-    class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
-    type="{% block type %}text{% endblock %}"
-    name="{{content.prefix}}.{{ content.name }}"
-    {% if content.readonly %}readonly{% endif %}
+<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}
+    <input
+        id="{{ content.ref_id }}"
+        class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
+        type="{% block type %}text{% endblock %}"
+        name="{{content.prefix}}.{{ content.name }}"
+        {% if content.readonly %}readonly{% endif %}
 
-    {% if content.form %}
-        form="{{ content.form.ref_id }}"
-    {% endif %}
+        {% if content.form %}
+            form="{{ content.form.ref_id }}"
+        {% endif %}
 
-    {% if content.list_id %}
-        list="{{ content.list_id }}"
-    {% endif %}
-    
-    {% if content.placeholder %}
-        placeholder="{{ content.placeholder }}"
-    {% endif %}
-
-    value="{% block value %}{{ content.value_string(content.value) }}{% endblock %}"
-
-    {% if content.required %}
-    required
-    {% endif %}
-
-    {% if content.multi %}
-    multiple
-    {% endif %}
-
-    {% block extra_properties %}{% endblock %}
->
-
-{% block options %}
-{% if content.choices %}
-<datalist id="{{ content.list_id }}">
-{% for choice, label in content.choices %}
-    <option value="{{ content.value_string(choice) }}" label="{{ label }}">
-{% endfor %}
-</datalist>
-{% endif %}
-{% endblock %}
+        {% if content.list_id %}
+            list="{{ content.list_id }}"
+        {% endif %}
         
-{% if self.help()|trim %}
-{% block help %}
-    {% if content.help_text %}
-       <span class="help">{{ content.help_text }}</span> 
+        {% if content.placeholder %}
+            placeholder="{{ content.placeholder }}"
+        {% endif %}
+
+        value="{% block value %}{{ content.value_string(content.value) }}{% endblock %}"
+
+        {% if content.required %}
+        required
+        {% endif %}
+
+        {% if content.multi %}
+        multiple
+        {% endif %}
+
+        {% block extra_properties %}{% endblock %}
+    >
+
+    {% block options %}
+    {% if content.choices %}
+    <datalist id="{{ content.list_id }}">
+    {% for choice, label in content.choices %}
+        <option value="{{ content.value_string(choice) }}" label="{{ label }}">
+    {% endfor %}
+    </datalist>
     {% endif %}
-{% endblock %}
-{% endif %}
+    {% endblock %}
+            
+    {% if self.help()|trim %}
+    {% block help %}
+        {% if content.help_text %}
+           <span class="help">{{ content.help_text }}</span> 
+        {% endif %}
+    {% endblock %}
+    {% endif %}
+</label>
+

@@ -90,8 +90,8 @@ class BaseField(object):
 
         if not value is None:
             self.value = value
-        else:
-            self.value = self.default
+        #else:
+        #    self.value = self.default
 
 
         if not validators is None:
