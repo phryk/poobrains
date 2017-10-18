@@ -90,8 +90,8 @@ class BaseField(object):
 
         if not value is None:
             self.value = value
-        #else:
-        #    self.value = self.default
+        else:
+            self.value = self.default
 
 
         if not validators is None:
@@ -179,6 +179,7 @@ class BaseField(object):
     def checked(self, value):
 
         if self.multi:
+            app.debugger.set_trace()
             return value in self.value
 
         return value == self.value
@@ -384,6 +385,18 @@ class Checkbox(Select):
 
     type = types.BOOL
     default = False
+
+    @property
+    def type_bool(self):
+        return self.type == types.BOOL
+
+
+    def value_string(self, value):
+
+        if self.type == types.BOOL:
+            return 'true'
+
+        return super(Checkbox, self).value_string(value)
 
 
 class Radio(Checkbox):
