@@ -59,7 +59,7 @@ class BaseForm(poobrains.rendering.Renderable):
         for attr_name in dir(instance):
 
             attr = getattr(instance, attr_name)
-            if isinstance(attr, fields.Field) or isinstance(attr, Fieldset) or isinstance(attr, Button): # FIXME: This should be doable with just one check
+            if isinstance(attr, fields.BaseField) or isinstance(attr, Fieldset) or isinstance(attr, Button): # FIXME: This should be doable with just one check
                 clone_attributes.append((attr_name, attr))
 
         for (attr_name, attr) in sorted(clone_attributes, key=lambda x: getattr(x[1], '_created')): # Get elements in the same order they were defined in, as noted by _created property
