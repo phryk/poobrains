@@ -47,7 +47,7 @@ class BaseField(object):
 
     def __new__(cls, *args, **kwargs):
 
-        instance = super(BaseField, cls).__new__(cls, *args, **kwargs)
+        instance = super(BaseField, cls).__new__(cls, **kwargs)
         instance._created = time.time()
 
         return instance
@@ -57,8 +57,8 @@ class BaseField(object):
 
         self.errors = []
         self.name = name
-        self.label = label if label is not None else name
-        self.placeholder = placeholder if placeholder else self.label
+        self.label = label
+        self.placeholder = placeholder if placeholder else self.name
         self.help_text = help_text
         self.readonly = readonly
         self.required = required
@@ -109,18 +109,6 @@ class BaseField(object):
             self.form._add_external_field(self) # this has to be called *after* self.choices is filled
 
 
-    def __getattr__(self, name):
-
-        if name in ['label', 'placeholder']:
-
-            real_value = super(BaseField, self).__getattr__(name)
-
-            if not real_value and isinstance(self.name, basestring):
-                return self.name.capitalize()
-
-            return real_value
-
-
     def templates(self, mode=None):
 
         tpls = []
@@ -151,9 +139,6 @@ class BaseField(object):
 
         """ HTML 'id' attribute value"""
 
-        if self.custom_id:
-            return self.custom_id
-
         if self.prefix:
             return "%s-%s" % (self.prefix.replace('.', '-'), self.name)
 
@@ -179,7 +164,6 @@ class BaseField(object):
     def checked(self, value):
 
         if self.multi:
-            app.debugger.set_trace()
             return value in self.value
 
         return value == self.value
@@ -213,8 +197,6 @@ class BaseField(object):
 
 
     def bind(self, value):
-
-        app.debugger.set_trace()
 
         compound_error = errors.CompoundError()
 
@@ -324,25 +306,6 @@ class Message(Field):
         pass
 
 
-class TextAutoComplete(Text):
-    
-    class Meta:
-        clone_props = ['name', 'type', 'value', 'label', 'placeholder', 'readonly', 'required', 'validators', 'default', 'choices']
-
-
-    choices = None
-
-    def __init__(self, choices=None, **kwargs):
-        
-        super(TextAutoComplete, self).__init__(**kwargs)
-
-        if choices is None:
-            choices = []
-
-        self.choices = choices
-        self.type = types.Choice([value for value, label in choices]) # FIXME: Changing self.choices in place will lead to inconsistency
-
-
 class ObfuscatedText(Text):
     pass
 
@@ -358,9 +321,17 @@ class Range(Field):
     type = types.INT
 
 
+    def __init__(self, min=0, max=100, **kwargs):
+
+        super(Range, self).__init__(**kwargs)
+
+        self.min = min
+        self.max = max
+
+
     def validate(self):
 
-        super(RangedInteger, self).validate()
+        super(Range, self).validate()
 
         if not self.empty:
 
@@ -381,10 +352,18 @@ class Select(Field):
         clone_props = Field._meta.clone_props + ['empty_label']
 
 
-class Checkbox(Select):
+class Checkbox(Field):
 
     type = types.BOOL
     default = False
+
+    def __init__(self, **kwargs):
+
+        if kwargs.get('multi', False) and kwargs.get('choices', None) is None:
+            kwargs['choices'] = [] # Checkbox must have choices. None passed is valid, because external Checkboxes
+
+        super(Checkbox, self).__init__(**kwargs)
+
 
     @property
     def type_bool(self):
@@ -399,39 +378,13 @@ class Checkbox(Select):
         return super(Checkbox, self).value_string(value)
 
 
-class Radio(Checkbox):
-    pass
-
-
-class MultiCheckbox(Select):
-
-    multi = True
+class Radio(Field):
     
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
 
-        if not kwargs.has_key('choices'):
-            kwargs['choices'] = []
-        
-        if kwargs.has_key('value'):
-
-            if not isinstance(kwargs['value'], list) and not isinstance(kwargs['value'], tuple):
-                kwargs['value'] = [kwargs['value']]
-       
-            for subvalue in kwargs['value']:
-                kwargs['choices'].append(self.type.convert(subvalue, None, None))
-
-
-        super(MultiCheckbox, self).__init__(**kwargs)
-
-    
-    def validate(self):
-
-        for value in self.value:
-            if value != '' and not value in [choice for choice, _ in self.choices]:
-                raise errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name))
-
-            if callable(self.validator):
-                self.validator(value)
+        assert not kwargs.get('multi', False), "Radios buttons can't have multiple values by definition."
+        assert kwargs.get('choices', False), "Radio buttons need choices passed."
+        super(Radio, self).__init__(**kwargs)
 
 
 class Keygen(Field):

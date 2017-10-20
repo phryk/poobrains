@@ -203,7 +203,7 @@ class NotificationControl(poobrains.auth.Protected):
         for notification in pagination.results:
 
             classes = 'read inactive' if notification.read else 'unread active'
-            mark_checkbox = poobrains.form.fields.MultiCheckbox(form=self.form, name='mark', label='', type=poobrains.form.types.StorableInstanceParamType(poobrains.auth.Notification), choices=[(notification.id, None)])
+            mark_checkbox = poobrains.form.fields.Checkbox(form=self.form, name='mark', label='', type=poobrains.form.types.StorableInstanceParamType(poobrains.auth.Notification), choices=[(notification, None)], multi=True)
 
             self.table.append(notification, mark_checkbox, _classes=classes)
 
@@ -224,7 +224,7 @@ class NotificationControl(poobrains.auth.Protected):
             else:
         
                 if len(self.form.fields['mark'].value): # means we have to issue a query
-                    self.form.process(flask.request.form['submit'][len(self.ref_id)+1:])
+                    self.form.process(flask.request.form['submit'][len(self.form.ref_id)+1:])
                     return flask.redirect(flask.request.path)
 
 
@@ -237,7 +237,7 @@ app.site.add_view(NotificationControl, '/~<handle>/notifications/+<int:offset>',
 
 class NotificationForm(poobrains.form.Form):
 
-    mark = poobrains.form.fields.MultiCheckbox(type=poobrains.form.types.StorableInstanceParamType(poobrains.auth.Notification))
+    mark = poobrains.form.fields.Checkbox(type=poobrains.form.types.StorableInstanceParamType(poobrains.auth.Notification), multi=True)
     mark_read = poobrains.form.Button('submit', label='Mark as read')
     delete = poobrains.form.Button('submit', label='Delete')
 

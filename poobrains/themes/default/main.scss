@@ -189,7 +189,7 @@ body {
         flex-direction: column;
         align-self: stretch;
         align-items: center;
-        justify-content: center;
+        justify-content: space-around;
         max-height: 100vh;
         box-sizing: border-box;
         padding: 1rem;
@@ -269,19 +269,15 @@ body {
             bottom: calc(100% - 9.5rem);
             max-height: 7.5rem;
             display: none;
-            
+
+            &:hover,
+            &:focus {
+                outline: none;
+            }
+
             #logo {
                 height: 7.5rem;
                 pointer-events: none;
-            }
-        }
-
-        form {
-
-            & > .content,
-            & > footer {
-                padding: 0;
-                background: transparent;
             }
         }
     }
@@ -548,6 +544,7 @@ nav.menu {
             transition: background 0.3s;
 
             &:hover,
+            &:focus,
             &.active {
                 background: $color_highlight;
             }
@@ -580,10 +577,10 @@ a {
     text-decoration: none;
     transition: color 0.3s;
 
-    &.active,
-    &.trace,
     &:hover,
-    &:focus {
+    &:focus,
+    &.active,
+    &.trace {
         color: $color_highlight;
     }
 }
@@ -678,7 +675,8 @@ form {
                 text-decoration: none;
                 transition: text-shadow 0.3s;
 
-                &:hover {
+                &:hover,
+                &:focus {
                     color: $color_font_dark;
                     text-shadow: 0 0 0.25rem $color_highlight;
                 }
@@ -705,6 +703,17 @@ form {
       width: 100%;
     }
 
+
+    body > header &,
+    main #content > article & {
+
+        & > .content,
+        & > footer {
+            padding: 0;
+            background: transparent;
+        }
+    }
+
     datalist {
         display: none !important;
     }
@@ -713,71 +722,6 @@ form {
         width: auto;
     }
 
-    input,
-    select,
-    textarea,
-    button {
-
-        border: 0;
-        background: $color_background_form;
-        font-size: 1rem;
-        line-height: 150%;
-        color: $color_font_dark;
-        outline: none;
-        transition: background 0.3s ease-in-out, width 0.3s ease-in-out;
-
-        &:hover,
-        &:focus {
-          background: $color_highlight;
-        }
-
-        &.invalid {
-            background: opacify(lighten($color_danger, 15%), -20%);
-        }
-    }
-
-    button {
-
-        cursor: pointer; /* no clue why this isn't the default */
-        white-space: nowrap; /* avoides forms jumping in height when animating their width */
-        overflow: hidden;
-        font-family: 'Ostrich Sans', sans;
-        font-weight: 800;
-        font-size: 1.2rem;
-        min-height: 1.8rem;
-        padding-top: 0.3rem;
-        margin-right: 0.5rem;
-        width: 33%;
-
-        &:last-child {
-            margin-right: 0;
-        }
-
-
-    }
-
-    textarea {
-
-        width: 100%;
-        resize: vertical;
-        background: $color_background_form;
-        min-height: 12rem;
-        font-size: 0.8rem;
-    }
-
-    select {
-
-      option {
-        outline: none;
-      }
-    }
-
-    fieldset {
-        
-        margin: 0.5rem 0;
-        border: 0;
-        padding: 0;
-    }
 
     & > footer {
 
@@ -788,8 +732,8 @@ form {
         background: $color_background_dark;
 
         button {
-            &:focus,
-            &:hover {
+            &:hover,
+            &:focus {
                 width: 100%;
             }
         }
@@ -816,10 +760,9 @@ form {
             outline: none;
             padding: 0 !important;
 
-            &:focus,
-            &:hover {
-            padding: 0 !important;
-
+            &:hover,
+            &:focus {
+                padding: 0 !important;
                 background: desaturate($color_danger, 20%);
                 box-shadow: 0 0.3rem 0 desaturate($color_danger, 80%), 0 0 1rem $color_danger;
                 margin-top: 0.45rem;
@@ -828,8 +771,7 @@ form {
             }
 
             &:active {
-            padding: 0 !important;
-
+                padding: 0 !important;
                 background: $color_danger;
                 box-shadow: 0 0.1rem 0 $color_danger, 0 0 1rem $color_danger;
                 text-shadow: 0 0 1rem opacify($color_danger, -1);
@@ -840,6 +782,74 @@ form {
             }
         }
     }
+}
+
+input,
+select,
+textarea,
+button {
+
+    border: 0;
+    background: $color_background_form;
+    font-size: 1rem;
+    line-height: 150%;
+    color: $color_font_dark;
+    outline: none;
+    transition: background 0.3s ease-in-out, width 0.3s ease-in-out;
+
+    &:hover,
+    &:focus {
+      background: $color_highlight;
+    }
+
+    &:invalid,
+    &.invalid {
+        box-shadow: none; /* override default red border of user agents */
+        background: opacify(lighten($color_danger, 15%), -20%);
+    }
+}
+
+button {
+
+    cursor: pointer; /* no clue why this isn't the default */
+    white-space: nowrap; /* avoides forms jumping in height when animating their width */
+    overflow: hidden;
+    font-family: 'Ostrich Sans', sans;
+    font-weight: 800;
+    font-size: 1.2rem;
+    min-height: 1.8rem;
+    padding-top: 0.3rem;
+    margin-right: 0.5rem;
+    width: 33%;
+
+    &:last-child {
+        margin-right: 0;
+    }
+
+
+}
+
+textarea {
+
+    width: 100%;
+    resize: vertical;
+    background: $color_background_form;
+    min-height: 12rem;
+    font-size: 0.8rem;
+}
+
+select {
+
+  option {
+    outline: none;
+  }
+}
+
+fieldset {
+    
+    margin: 0.5rem 0;
+    border: 0;
+    padding: 0;
 }
 
 article {
@@ -867,7 +877,8 @@ article {
         opacity: 0.8;
         transition: opacity 0.3s ease-in;
 
-        &:hover {
+        &:hover,
+        &:focus {
             opacity: 1;
         }
     }
@@ -910,6 +921,7 @@ article {
                 font-weight: normal;
 
                 &:hover,
+                &:focus,
                 &.active {
                     text-shadow: 0 0 0.25rem opacify($color_highlight, 1);
                 }
@@ -1134,7 +1146,8 @@ ul.tag-list {
             padding: 0.25rem;
             transition: background 0.3s, color 0.3s, padding 0.3s ease-in-out;
 
-            &:hover {
+            &:hover,
+            &:focus {
                 background: $color_highlight;
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;

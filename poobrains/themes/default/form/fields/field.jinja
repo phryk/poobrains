@@ -1,5 +1,5 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}
+<label for="{{ content.ref_id }}">{% if content.label %}{{ content.label }}{% endif %}
     <input
         id="{{ content.ref_id }}"
         class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
@@ -11,7 +11,7 @@
             form="{{ content.form.ref_id }}"
         {% endif %}
 
-        {% if content.list_id %}
+        {% if content.choices %}
             list="{{ content.list_id }}"
         {% endif %}
         

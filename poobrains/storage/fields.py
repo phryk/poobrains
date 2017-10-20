@@ -76,9 +76,7 @@ class ForeignKeyChoice(poobrains.form.fields.Text):
 
         super(ForeignKeyChoice, self).__init__(**kwargs)
 
-
 poobrains.form.fields.ForeignKeyChoice = ForeignKeyChoice
-
 
 
 class Field(poobrains.helpers.ChildAware):

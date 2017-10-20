@@ -26,13 +26,14 @@ class TestForm(poobrains.form.Form):
     foo = poobrains.form.fields.Text()
     bar = TestSubForm()
     optin = poobrains.form.fields.Checkbox(label="Opt-in", default=False, required=True, choices=[(True, None)])
+    radio = poobrains.form.fields.Radio(type=poobrains.form.types.INT, choices=[(1, 'One'), (5, 'Five'), (23, 'Twentythree'), (42, 'Fortytwo')])
     multicheck = poobrains.form.fields.Checkbox(label="Check 'em", type=poobrains.form.types.STRING, choices=[('dubs', 'dubs'), ('trips', 'TRIPS'), ('quads', 'QUADS!1!!!!')], multi=True)
     completeme = poobrains.form.fields.Text(label="Lookit me, I can autocomplete without JS!", choices=[('Mr. Foo', 'foo'), ('Mr. Florb', 'florb'), ('Ms. Bar', 'bar')])
+    ranged = poobrains.form.fields.Range()
     trigger = poobrains.form.Button('submit', label='Hit me!')
 
     def process(self, submit):
 
-        app.debugger.set_trace()
         flask.flash('TestForm.process called!')
         return self
 

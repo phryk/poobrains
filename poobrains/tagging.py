@@ -181,8 +181,6 @@ class TaggingFieldset(poobrains.form.Fieldset):
 
     def process(self, submit, instance):
 
-        app.debugger.set_trace()
-
         q = TagBinding.delete().where(TagBinding.model == instance.__class__.__name__, TagBinding.handle == instance.handle_string).execute()
         for tag in self.fields['tags'].value:
 

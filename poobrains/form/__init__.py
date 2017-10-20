@@ -142,7 +142,7 @@ class BaseForm(poobrains.rendering.Renderable):
         Fields like this can be created by passing a Form object to the Field constructor.
         """
 
-        if isinstance(field, fields.MultiCheckbox) and self.fields.has_key(field.name) and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
+        if isinstance(field, fields.Checkbox) and self.fields.has_key(field.name) and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
             self.fields[field.name].choices.extend(field.choices)
 
         else:

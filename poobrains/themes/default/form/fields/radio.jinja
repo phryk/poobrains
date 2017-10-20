@@ -1,0 +1,8 @@
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
+<label>{% if content.label %}{{ content.label }}{% endif %}
+    {% for choice, label in content.choices %}
+        <label for="{{ content.ref_id }}-{{ content.value_string(choice) }}">{{ label }}
+            <input type="radio" name="{{ content.prefix }}.{{ content.name }}" value="{{ content.value_string(choice) }}" />
+        </label>
+    {% endfor %}
+</label>

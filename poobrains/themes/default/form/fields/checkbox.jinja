@@ -1,29 +1,32 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}
-    {% if content.multi %}
+{% if content.multi %}
 
-        {% for choice, label in content.choices %}
-        <label>{{ label }}</label>
-        <input
-            class="{{ content.ref_id }} {{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
-            type="checkbox"
-            name="{{content.prefix}}.{{ content.name }}"
-            {% if content.readonly %}readonly{% endif %}
+<fieldset>
+    {% if content.label %}<legend>{{ content.label }}</legend>{% endif %}
+    {% for choice, label in content.choices %}
+    <label>{% if label %}{{ label }}</label>{% endif %}
+    <input
+        class="{{ content.ref_id }} {{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
+        type="checkbox"
+        name="{{content.prefix}}.{{ content.name }}"
+        {% if content.readonly %}readonly{% endif %}
 
-            {% if content.form %}
-                form="{{ content.form.ref_id }}"
-            {% endif %}
+        {% if content.form %}
+            form="{{ content.form.ref_id }}"
+        {% endif %}
 
-            value="{{ content.value_string(choice) }}"
+        value="{{ content.value_string(choice) }}"
 
-            {% if content.required %}
-            required
-            {% endif %}
-        >
-        {% endfor %}
+        {% if content.required %}
+        required
+        {% endif %}
+    >
+    {% endfor %}
+</fieldset>
 
-    {% else %}
+{% else %}
 
+<label>{% if content.label %}{{ content.label }}{% endif %}
     <input
         id="{{ content.ref_id }}"
         class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
@@ -41,6 +44,6 @@
         required
         {% endif %}
     >
-
-    {% endif %}
 </label>
+
+{% endif %}

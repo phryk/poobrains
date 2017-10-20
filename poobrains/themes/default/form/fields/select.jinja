@@ -1,14 +1,17 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-<label for="{{ content.prefix }}.{{ content.name }}">{{ content.label }}</label>
+<label for="{{ content.ref_id }}">{% if content.label %}{{ content.label }}{% endif %}
 <select
     id="{{ content.ref_id }}"
     name="{{ content.prefix }}.{{ content.name }}"
-    {% if content.readonly %}disabled{% endif %}
     class="{% if content.errors %}invalid{% endif %}"
+    {% if content.readonly %}disabled{% endif %}
+    {% if content.required %}required{% endif %}
     {% if content.multi %}multiple{% endif %}
 >
 
+{% if not content.multi and content.empty_label %}
 <option value=''>{{ content.empty_label }}</option>
+{% endif %}
 {% for value, label in content.choices %}
     {% if not value is string and value is iterable  %}
         <optgroup label="{{ label }}">

@@ -1,5 +1,4 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-<label for="{{ content.prefix}}.{{ content.name }}">
-  {{ content.label }}
+<label for="{{ content.ref_id }}">{% if content.label %}{{ content.label }}{% endif %}
   <keygen name="{{ content.prefix}}.{{ content.name }}" challenge="{{ content.challenge }}"></keygen>
 </label>
