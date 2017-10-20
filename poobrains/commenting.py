@@ -80,8 +80,8 @@ class Commentable(poobrains.tagging.Taggable):
 
     comments = None
     comments_threaded = None
-    comments_enabled = poobrains.storage.fields.BooleanField(default=False)
-    notify_owner = poobrains.storage.fields.BooleanField(default=False)
+    comments_enabled = poobrains.storage.fields.BooleanField(default=True)
+    notify_owner = poobrains.storage.fields.BooleanField(default=True)
 
     def __init__(self, *args, **kwargs):
 
@@ -114,13 +114,12 @@ class Commentable(poobrains.tagging.Taggable):
 
             try:
                 Comment.permissions['create'].check(flask.g.user) # no form for users who aren't allowed to comment
-                return CommentForm(self.__class__.__name__, self.handle_string, reply_to=reply_to)
+                return CommentForm(instance=self, reply_to=reply_to)
 
             except poobrains.auth.AccessDenied:
                 return poobrains.rendering.RenderString("You are not allowed to post comments.")
 
         return poobrains.rendering.RenderString("Commenting is disabled.")
-
 
 
 @app.expose('/comment/<string:model>/<string:handle>')
@@ -133,15 +132,19 @@ class CommentForm(poobrains.form.Form):
     text = poobrains.form.fields.TextArea(required=True)
     submit = poobrains.form.Button('submit', label='Send comment')
 
-    def __init__(self, model, handle, **kwargs):
+    def __init__(self, model=None, handle=None, instance=None, **kwargs):
+
+        if not isinstance(instance, Commentable):
+
+            assert model and handle, "Either instance (a Commentable instance) or model AND handle must be passed."
+
+            cls = Commentable.class_children_keyed(lower=True)[model]
+            instance = cls.load(handle)
 
         reply_to = kwargs.pop('reply_to') if kwargs.has_key('reply_to') else None
         if isinstance(reply_to, int):
             reply_to = Comment.load(reply_to)
         super(CommentForm, self).__init__(**kwargs)
-
-        cls = Commentable.class_children_keyed()[model]
-        instance = cls.load(handle)
 
         self.instance = instance
         self.fields['reply_to'].value = reply_to

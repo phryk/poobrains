@@ -35,14 +35,14 @@
     }
 
     50% {
-        color: $color_danger;
+        color: desaturate($color_danger, 20%);
         background: opacify(darken(desaturate($color_danger, 50%), 20%), 20%);
         box-shadow: 0 0.1rem 0 opacify($color_danger, -100%), 0 0 1rem opacify($color_danger, -100%);
         text-shadow: 0 0 1rem $color_danger;
     }
 
     99% {
-        color: $color_danger;
+        color: desaturate($color_danger, 20%);
         background: opacify(darken(desaturate($color_danger, 50%), 20%), 20%);
         box-shadow: 0 0.1rem 0 opacify($color_danger, -100%), 0 0 1rem opacify($color_danger, -100%);
         text-shadow: 0 0 1rem $color_danger;
@@ -806,6 +806,10 @@ button {
     &.invalid {
         box-shadow: none; /* override default red border of user agents */
         background: opacify(lighten($color_danger, 15%), -20%);
+    }
+
+    &::-moz-focus-inner { /* Goddammit firefox, this shit has been going on since 2010 */
+        border: 0;
     }
 }
 

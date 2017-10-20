@@ -650,7 +650,7 @@ class StorableParamType(poobrains.form.types.ParamType):
         if isinstance(value, self.baseclass):
             return value # apparently we need this function to be idempotent? Didn't even knew that was a real word.
 
-        storables = {k.lower(): v for k, v in self.baseclass.class_children_keyed().iteritems()}
+        storables = self.baseclass.class_children_keyed(lower=True)
 
         if storables.has_key(value.lower()):
             return storables[value.lower()] # holy shit it's lined up! D:

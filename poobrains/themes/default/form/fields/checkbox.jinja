@@ -4,7 +4,6 @@
 <fieldset>
     {% if content.label %}<legend>{{ content.label }}</legend>{% endif %}
     {% for choice, label in content.choices %}
-    <label>{% if label %}{{ label }}</label>{% endif %}
     <input
         class="{{ content.ref_id }} {{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
         type="checkbox"
@@ -17,16 +16,18 @@
 
         value="{{ content.value_string(choice) }}"
 
+        {% if content.checked(choice) %}checked{% endif %}
+
         {% if content.required %}
         required
         {% endif %}
     >
+    <label>{% if label %}{{ label }}</label>{% endif %}
     {% endfor %}
 </fieldset>
 
 {% else %}
 
-<label>{% if content.label %}{{ content.label }}{% endif %}
     <input
         id="{{ content.ref_id }}"
         class="{{ content.prefix }}-{{ content.name }}{% if content.errors %} invalid{% endif %}"
@@ -40,10 +41,13 @@
 
         value="{{ content.value_string(content.value) }}"
 
+        {% if content.checked(content.value) %}checked{% endif %}
+
         {% if content.required %}
         required
         {% endif %}
     >
-</label>
+    {% if content.label %}<label for="{{ content.ref_id }}">{{ content.label }}</label>{% endif %}
+
 
 {% endif %}

@@ -262,12 +262,13 @@ class ChildAware(object):
 
 
     @classmethod
-    def class_children_keyed(cls):
+    def class_children_keyed(cls, lower=False):
 
         children_keyed = OrderedDict()
 
         for child in cls.class_children():
-            children_keyed[child.__name__] = child
+            key = child.__name__.lower() if lower else child.__name__
+            children_keyed[key] = child
 
         return children_keyed
 

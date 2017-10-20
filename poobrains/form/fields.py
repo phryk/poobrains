@@ -359,8 +359,13 @@ class Checkbox(Field):
 
     def __init__(self, **kwargs):
 
-        if kwargs.get('multi', False) and kwargs.get('choices', None) is None:
-            kwargs['choices'] = [] # Checkbox must have choices. None passed is valid, because external Checkboxes
+        if kwargs.get('multi', False):
+
+            if not kwargs.get('choices', False):
+                kwargs['choices'] = [] # Checkbox must have choices. None passed is valid, because external Checkboxes
+
+            if not kwargs.get('default', False):
+                kwargs['default'] = []
 
         super(Checkbox, self).__init__(**kwargs)
 
@@ -368,6 +373,14 @@ class Checkbox(Field):
     @property
     def type_bool(self):
         return self.type == types.BOOL
+
+
+    def checked(self, value):
+
+        if self.type == types.BOOL:
+            return value == True
+
+        return super(Checkbox, self).checked(value)
 
 
     def value_string(self, value):

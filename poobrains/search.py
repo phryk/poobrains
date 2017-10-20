@@ -109,7 +109,7 @@ class Search(poobrains.auth.Protected):
 
                 if isinstance(app.db, peewee.SqliteDatabase):
                     term = '*%s*' % self.handle.lower()
-                else:
+                else: # postgres
                     term = '%%%s%%' % self.handle.lower()
 
                 if hasattr(administerable._meta, 'search_fields'):

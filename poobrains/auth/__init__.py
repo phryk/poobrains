@@ -31,13 +31,13 @@ def admin_setup():
 
     if not app._got_first_request:
 
-        administerables = Administerable.class_children_keyed()
+        administerables = Administerable.class_children_keyed(lower=True)
 
         for key in sorted(administerables):
 
             cls = administerables[key]
 
-            rule = '%s' % key.lower()
+            rule = key
             actions = functools.partial(admin_listing_actions, cls)
 
             app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)

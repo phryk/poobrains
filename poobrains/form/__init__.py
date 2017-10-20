@@ -97,7 +97,7 @@ class BaseForm(poobrains.rendering.Renderable):
     
     def __setattr__(self, name, value):
 
-        if isinstance(value, fields.Field) or isinstance(value, Fieldset):
+        if isinstance(value, fields.BaseField) or isinstance(value, Fieldset):
             value.name = name
             value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
             self.fields[name] = value
@@ -212,23 +212,31 @@ class BaseForm(poobrains.rendering.Renderable):
                 if not field.readonly:
                     
                     source = files if isinstance(field, fields.File) else values
-                    if source.has_key(field.name):
+                    if not source.has_key(field.name):
+
                         if field.multi:
-                            field_values = source.getlist(field.name)
+                            field_values = werkzeug.datastructures.MultiDict()
+                        elif field.type == types.BOOL:
+                            field_values = False # boolean values via checkbox can only ever be implied false. yay html!
                         else:
-                            field_values = source[field.name]
+                            field_values = ''
 
-                        try:
-                            if isinstance(field, Fieldset):
-                                sub_files = files[field.name] if files.has_key(field.name) else werkzeug.datastructures.MultiDict()
-                                field.bind(field_values, sub_files)
-                            else:
-                                field.bind(field_values)
+                    elif field.multi:
+                        field_values = source.getlist(field.name)
+                    else:
+                        field_values = source[field.name]
 
-                        except errors.CompoundError as ce:
+                    try:
+                        if isinstance(field, Fieldset):
+                            sub_files = files[field.name] if files.has_key(field.name) else werkzeug.datastructures.MultiDict()
+                            field.bind(field_values, sub_files)
+                        else:
+                            field.bind(field_values)
 
-                            for e in ce.errors:
-                                compound_error.append(e)
+                    except errors.CompoundError as ce:
+
+                        for e in ce.errors:
+                            compound_error.append(e)
 
             for name, control in self.controls.iteritems():
                 if isinstance(control, Button):
