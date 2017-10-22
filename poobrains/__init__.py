@@ -19,6 +19,11 @@ from playhouse import db_url
 import peewee
 import scss # pyScss
 
+# imports needed for scss handle_import copy in SCSSCore
+from itertools import product
+from scss.source import SourceFile
+from pathlib import PurePosixPath
+
 # internal imports
 import helpers
 import defaults
@@ -121,6 +126,70 @@ class RegexConverter(werkzeug.routing.BaseConverter):
         self.regex = items[0]
 
 
+class SCSSCore(scss.extension.core.CoreExtension):
+
+    # this function is  a copy of scss.extension.core.CoreExtension.handle_import
+    # with adjusted search_path ordering, meaining this needs to be updated,
+    # at least when there's been a security flaw in this fixed upstream
+    # but how do I find out?
+    def handle_import(self, name, compilation, rule):
+        """Implementation of the core Sass import mechanism, which just looks
+        for files on disk.
+        """
+        # TODO this is all not terribly well-specified by Sass.  at worst,
+        # it's unclear how far "upwards" we should be allowed to go.  but i'm
+        # also a little fuzzy on e.g. how relative imports work from within a
+        # file that's not actually in the search path.
+        # TODO i think with the new origin semantics, i've made it possible to
+        # import relative to the current file even if the current file isn't
+        # anywhere in the search path.  is that right?
+        path = PurePosixPath(name)
+
+        search_exts = list(compilation.compiler.dynamic_extensions)
+        if path.suffix and path.suffix in search_exts:
+            basename = path.stem
+        else:
+            basename = path.name
+        relative_to = path.parent
+        search_path = []  # tuple of (origin, start_from)
+        search_path.extend(
+            (origin, relative_to)
+            for origin in compilation.compiler.search_path
+        )
+        if relative_to.is_absolute():
+            relative_to = PurePosixPath(*relative_to.parts[1:])
+        elif rule.source_file.origin:
+            # Search relative to the current file first, only if not doing an
+            # absolute import
+            search_path.append((
+                rule.source_file.origin,
+                rule.source_file.relpath.parent / relative_to,
+            ))
+
+        for prefix, suffix in product(('_', ''), search_exts):
+            filename = prefix + basename + suffix
+            for origin, relative_to in search_path:
+                relpath = relative_to / filename
+                # Lexically (ignoring symlinks!) eliminate .. from the part
+                # of the path that exists within Sass-space.  pathlib
+                # deliberately doesn't do this, but os.path does.
+                relpath = PurePosixPath(os.path.normpath(str(relpath)))
+
+                if rule.source_file.key == (origin, relpath):
+                    # Avoid self-import
+                    # TODO is this what ruby does?
+                    continue
+
+                path = origin / relpath
+                if not path.exists():
+                    continue
+
+                # All good!
+                # TODO if this file has already been imported, we'll do the
+                # source preparation twice.  make it lazy.
+                return SourceFile.read(origin, relpath)
+
+
 class Poobrain(flask.Flask):
 
     request_class = Request
@@ -202,6 +271,8 @@ class Poobrain(flask.Flask):
         self.site_path = os.getcwd()
         self.resource_extension_whitelist = ['css', 'scss', 'png', 'svg', 'ttf', 'otf', 'woff', 'js', 'jpg']
 
+        self.scss_compiler = scss.Compiler(extensions=(SCSSCore,), root=pathlib.Path('/'), search_path=self.theme_paths)
+
         if self.config.has_key('DATABASE'):
             self.db = db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True)
 
@@ -281,7 +352,7 @@ class Poobrain(flask.Flask):
                 r = flask.Response(
                     flask.render_template(
                         resource,
-                        style=scss.compiler.compile_string("@import 'svg';", root=pathlib.Path('/'), search_path=self.theme_paths)
+                        style=self.scss_compiler.compile_string("@import 'svg';")
                     ),
                     mimetype='image/svg+xml'
                 )
@@ -301,13 +372,12 @@ class Poobrain(flask.Flask):
 
         else:
 
-            #FIXME: I think the iteration isn't even needed as we got Pooprint.jinja_loader? But maybe it should be moved to this class?
             paths = [os.path.join(path, resource) for path in app.theme_paths]
 
             for current_path in paths:
                 if os.path.exists(current_path):
                     if extension == 'scss':
-                        r = flask.Response(scss.compiler.compile_file(current_path, root=pathlib.Path('/'), search_path=self.theme_paths), mimetype='text/css')
+                        r = flask.Response(self.scss_compiler.compile(current_path), mimetype='text/css')
                     else:
                         r = flask.send_from_directory(os.path.dirname(current_path), os.path.basename(current_path))
 
