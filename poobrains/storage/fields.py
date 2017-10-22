@@ -98,6 +98,7 @@ class Field(poobrains.helpers.ChildAware):
         kw['name'] = self.name
         kw['type'] = self.type
         kw['default'] = self.default
+        kw['help_text'] = self.help_text
 
         if self.verbose_name:
             kw['label'] = self.verbose_name
@@ -109,6 +110,9 @@ class Field(poobrains.helpers.ChildAware):
             kw['required'] = True
         else:
             kw['required'] = False
+
+        if self.choices:
+            kw['choices'] = self.choices
 
         return self.form_widget(**kw)
 

@@ -418,15 +418,6 @@ class AddForm(BoundForm):
             if not field.name in f.model._meta.form_blacklist and \
                 not f.fields.has_key(field.name): # means this field was already defined in the class definition for this form
 
-                kw = {}
-                kw['name'] = field.name
-                kw['default'] = field.default
-                
-                if field.null == False and field.default is None:
-                    kw['required'] = True
-                else:
-                    kw['required'] = False
-
                 if not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field)): # second clause is to avoid problems with name collisions (for instance on "name") 
                     setattr(f, field.name, field.form()) # automatically add the right form field, unless a custom one has been supplied in a child class of AddForm
 
