@@ -214,7 +214,7 @@ class BaseForm(poobrains.rendering.Renderable):
                     source = files if isinstance(field, fields.File) else values
                     if not source.has_key(field.name):
 
-                        if field.multi:
+                        if field.multi or isinstance(field, Fieldset):
                             field_values = werkzeug.datastructures.MultiDict()
                         elif field.type == types.BOOL:
                             field_values = False # boolean values via checkbox can only ever be implied false. yay html!
