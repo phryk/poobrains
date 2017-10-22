@@ -1569,7 +1569,10 @@ def notify_dying_cert_owners():
 
         affected_users.add(cert_info.user)
         death_in = cert_info.not_after - now
-        cert_info.user.notify("Your client certificate '%s' is expiring in %d days, %d hours, $d minutes!" % (cert_info.name, death_in.days, death_in.hours, death_in.minutes))
+        days = death_in.days
+        hours = death_in.seconds // 3600
+        minutes = (death_in.seconds - hours * 3600) // 60
+        cert_info.user.notify("Your client certificate '%s' is expiring in %d days, %d hours, %d minutes!" % (cert_info.name, days, hours, minutes))
         click.echo("Notified user '%s' about certificate '%s'" % (cert_info.user.name, cert_info.name))
 
     click.secho("Notified %d users about %d certificates that will soon expire." % (len(affected_users), affected_certs.count()), fg='green')
