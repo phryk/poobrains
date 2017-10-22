@@ -138,7 +138,7 @@ class CommentForm(poobrains.form.Form):
 
             assert model and handle, "Either instance (a Commentable instance) or model AND handle must be passed."
 
-            cls = Commentable.class_children_keyed(lower=True)[model]
+            cls = Commentable.class_children_keyed()[model]
             instance = cls.load(handle)
 
         reply_to = kwargs.pop('reply_to') if kwargs.has_key('reply_to') else None
