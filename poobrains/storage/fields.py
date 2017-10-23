@@ -81,7 +81,7 @@ poobrains.form.fields.ForeignKeyChoice = ForeignKeyChoice
 
 class Field(poobrains.helpers.ChildAware):
 
-    form_widget = poobrains.form.fields.Field
+    form_widget = poobrains.form.fields.Text
     type = poobrains.form.types.STRING
 
     def __init__(self, *args, **kwargs):

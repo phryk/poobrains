@@ -193,7 +193,7 @@ class NotificationControl(poobrains.auth.Protected):
 
         self.form = NotificationForm()
 
-        pagination = poobrains.storage.Pagination([user.notifications_unread, user.notifications.where(poobrains.auth.Notification.read == True)], offset, 'notification_offset')
+        pagination = poobrains.storage.Pagination([user.notifications_unread, user.notifications.where(poobrains.auth.Notification.read == True)], offset, 'site.notification_offset', handle=handle)
 
         self.results = pagination.results
         self.pagination = pagination.menu
