@@ -41,6 +41,8 @@
 
         {% endwith %}
 
+    {% else %}
+        <div class="description">{{ content.description.render() }}</div>
     {% endif %}
 
 {% endblock %}
