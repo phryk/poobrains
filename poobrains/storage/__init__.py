@@ -11,7 +11,7 @@ import werkzeug.routing
 import peewee
 
 # import peewee error classes so projects can match these errors without importing peewee
-from peewee import IntegrityError, DoesNotExist, DataError, DatabaseError, OperationalError, ProgrammingError
+from peewee import CompositeKey, IntegrityError, DoesNotExist, DataError, DatabaseError, OperationalError, ProgrammingError
 
 # parent imports
 #import poobrains
