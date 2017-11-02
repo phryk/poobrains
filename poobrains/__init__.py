@@ -24,6 +24,9 @@ from itertools import product
 from scss.source import SourceFile
 from pathlib import PurePosixPath
 
+# comfort imports to expose flask functionality directly through poobrains
+from flask import g, flash
+
 # internal imports
 import helpers
 import defaults
