@@ -14,7 +14,7 @@ import poobrains.storage
 import poobrains.form
 import poobrains.auth
 
-class UploadForm(poobrains.storage.AddForm):
+class UploadForm(poobrains.auth.AddForm):
    
     upload = poobrains.form.fields.File()
     filename = poobrains.form.fields.Value()

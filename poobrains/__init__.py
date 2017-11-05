@@ -29,6 +29,7 @@ from flask import g, flash
 
 # internal imports
 import helpers
+import errors
 import defaults
 
 db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
@@ -863,12 +864,6 @@ from . import profile
 from . import cli
 
 
-error_descriptions = {
-        403: werkzeug.exceptions.Forbidden.description,
-        404: werkzeug.exceptions.NotFound.description,
-        500: werkzeug.exceptions.InternalServerError.description
-}
-
 class ErrorPage(rendering.Renderable):
 
     title = None
@@ -876,7 +871,7 @@ class ErrorPage(rendering.Renderable):
     code = None
     message = None
 
-    def __init__(self, error):
+    def __init__(self, error, traceback):
 
         super(ErrorPage, self).__init__()
 
@@ -884,11 +879,9 @@ class ErrorPage(rendering.Renderable):
         if hasattr(error, 'code'):
             self.code = error.code
 
-        elif isinstance(error, peewee.DoesNotExist):
-            self.code = 404
-
         else:
-            self.code = '500'
+            # default to 500, but use more specific code if a matching exception is found in app.error_codes
+            self.code = 500
             for cls, code in app.error_codes.iteritems():
                 if isinstance(error, cls):
                     self.code = code
@@ -896,29 +889,30 @@ class ErrorPage(rendering.Renderable):
 
         self.title = "Ermahgerd, %s!" % self.code
 
-        if isinstance(self.error, werkzeug.exceptions.HTTPException):
+        if isinstance(self.error, errors.ExposedError):
+            self.message = error.message
+
+        elif isinstance(self.error, werkzeug.exceptions.HTTPException):
             self.message = error.description
-        else:
-            if app.debug:
+
+        elif app.debug:
                 self.message = error.message # verbatim error messages in debug mode
 
-            elif error_descriptions.has_key(self.code):
-                self.message = error_descriptions[self.code]
-
-            else:
-                self.message = "Weasels on PCP gnawed through our server internals."
-
+        else:
+            self.message = "Weasels on PCP gnawed through our server internals."
 
 
 @helpers.themed
 def errorpage(error):
 
+    tb = None
     app.logger.error('Error %s when accessing %s: %s' % (type(error).__name__, flask.request.path, error.message))
     if app.config['DEBUG']:
         import traceback
-        app.logger.debug(traceback.format_exc())
+        tb = traceback.format_exc()
+        app.logger.debug(tb)
 
-    page = ErrorPage(error)
+    page = ErrorPage(error, traceback=tb)
     return (page, page.code)
 
 
@@ -975,6 +969,7 @@ def robots_txt():
 app.register_error_handler(400, errorpage)
 app.register_error_handler(403, errorpage)
 app.register_error_handler(404, errorpage)
+app.register_error_handler(errors.ExposedError, errorpage)
 app.register_error_handler(peewee.OperationalError, errorpage)
 app.register_error_handler(peewee.IntegrityError, errorpage)
 app.register_error_handler(peewee.DoesNotExist, errorpage)

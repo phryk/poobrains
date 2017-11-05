@@ -1,0 +1,3 @@
+class ExposedError(Exception):
+
+    pass

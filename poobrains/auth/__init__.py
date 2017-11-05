@@ -79,6 +79,261 @@ class CryptoError(werkzeug.exceptions.InternalServerError):
     status_code = 500
 
 
+class BoundForm(poobrains.form.Form):
+
+    mode = None
+    model = None
+    instance = None
+
+    class Meta:
+        abstract = True
+
+    def __new__(cls, model_or_instance, mode=None, prefix=None, name=None, title=None, method=None, action=None):
+
+        f = super(BoundForm, cls).__new__(cls, prefix=prefix, name=name, title=title, method=method, action=action)
+
+        if isinstance(model_or_instance, type(Administerable)): # hacky
+            f.model = model_or_instance
+            f.instance = f.model()
+
+        else:
+            f.instance = model_or_instance
+            f.model = f.instance.__class__
+
+        if hasattr(f.instance, 'menu_actions'):
+            f.menu_actions = f.instance.menu_actions
+
+        if hasattr(f.instance, 'menu_related'):
+            f.menu_related = f.instance.menu_related
+
+        return f
+    
+    
+    def __init__(self, model_or_instance, mode=None, prefix=None, name=None, title=None, method=None, action=None):
+        super(BoundForm, self).__init__(prefix=prefix, name=name, title=title, method=method, action=action)
+        self.mode = mode
+
+
+class AddForm(BoundForm):
+
+    preview = None
+
+    def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
+        f = super(AddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
+
+        for field in f.model._meta.sorted_fields:
+
+            if not field.name in f.model._meta.form_blacklist and \
+                not f.fields.has_key(field.name): # means this field was already defined in the class definition for this form
+
+                if not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field)): # second clause is to avoid problems with name collisions (for instance on "name") 
+                    setattr(f, field.name, field.form()) # automatically add the right form field, unless a custom one has been supplied in a child class of AddForm
+
+        f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
+        f.controls['preview'] = poobrains.form.Button('submit', name='preview', value='preview', label='Preview')
+        f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
+
+        return f
+
+
+    def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
+        
+        if not name:
+            name = '%s-%s' % (self.model.__name__, self.instance.handle_string)
+    
+        super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+
+        if not title:
+    
+            if hasattr(self.instance, 'title') and self.instance.title:
+                self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance.title)
+            elif self.instance.name:
+                self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance.name)
+            elif self.instance.id:
+                self.title = "%s %s #%d" % (self.mode, self.model.__name__, self.instance.id)
+            else:
+                try:
+
+                    if self.instance._get_pk_value():
+                        self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance._get_pk_value())
+                    else:
+                        self.title = "%s %s" % (self.mode, self.model.__name__)
+
+                except Exception as e:
+                    self.title = "%s %s" % (self.mode, self.model.__name__)
+
+        for name, field in self.fields.iteritems():
+            if hasattr(self.instance, name):
+                try:
+                    field.value = getattr(self.instance, name)
+                except Exception as e:
+                    pass
+ 
+
+    def process(self, submit, exceptions=False):
+
+        if not self.readonly:
+            
+            for field in self.model._meta.sorted_fields:
+                if not field.name in self.model._meta.form_blacklist:
+                    #if self.fields[field.name].value is not None: # see https://github.com/coleifer/peewee/issues/107
+                    if not self.fields[field.name].empty:
+                        setattr(self.instance, field.name, self.fields[field.name].value)
+                    elif field.default is not None:
+                        setattr(self.instance, field.name, field.default() if callable(field.default) else field.default)
+                    elif field.null:
+                        setattr(self.instance, field.name, None)
+
+
+            if submit == 'submit':
+
+                try:
+
+                    if self.mode == 'add':
+                        saved = self.instance.save(force_insert=True) # To make sure Administerables with CompositeKey as primary get inserted properly
+                    else:
+                        saved = self.instance.save()
+
+                    if saved:
+                        flask.flash(u"Saved %s %s." % (self.model.__name__, self.instance.handle_string))
+
+                        for fieldset in self.fieldsets:
+
+                            try:
+
+                                fieldset.process(submit, self.instance)
+
+                            except Exception as e:
+
+                                if exceptions:
+                                    raise
+
+                                flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name), 'error')
+                                app.logger.error(u"Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message.decode('utf-8')))
+
+                        try:
+                            return flask.redirect(self.instance.url('edit'))
+                        except LookupError:
+                            return self
+                    else:
+
+                        flask.flash(u"Couldn't save %s." % self.model.__name__)
+
+                except peewee.IntegrityError as e:
+
+                    if exceptions:
+                        raise
+
+                    flask.flash(u'Integrity error: %s' % e.message.decode('utf-8'), 'error')
+                    app.logger.error(u"Integrity error: %s" % e.message.decode('utf-8'))
+
+                except Exception as e:
+
+                    if exceptions:
+                        raise
+
+                    flask.flash(u"Couldn't save %s. %s: %s" % self.model.__name__, type(e).__name__, e.message.decode('utf-8'))
+
+            elif submit == 'preview':
+                self.preview = self.instance.render('full')
+
+        else:
+            flask.flash(u"Not handling readonly form '%s'." % self.name)
+
+        return self
+
+poobrains.form.AddForm = AddForm
+
+
+class EditForm(AddForm):
+    
+    def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+        f = super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+        for pkfield in f.model._meta.get_primary_key_fields():
+            if f.fields.has_key(pkfield.name):
+                f.fields[pkfield.name].readonly = True # Make any primary key fields read-only
+
+        return f
+
+   
+
+    def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
+        super(EditForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+
+poobrains.form.EditForm = EditForm
+
+
+class DeleteForm(BoundForm):
+
+    def __new__(cls, model_or_instance, mode='delete', prefix=None, name=None, title=None, method=None, action=None):
+        
+        f = super(DeleteForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=None, title=title, method=method, action=action)
+
+        f.title = "Delete %s" % f.instance.name
+        f.warning = poobrains.form.fields.Message('deletion_irrevocable', value='Deletion is not revocable. Proceed?')
+        f.submit = poobrains.form.Button('submit', name='submit', value='delete', label=u'☠')
+
+        return f
+
+
+    def __init__(self, model_or_instance, mode='delete', prefix=None, name=None, title=None, method=None, action=None):
+        super(DeleteForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=self.name, title=title, method=method, action=action)
+        if not title:
+            if hasattr(self.instance, 'title') and self.instance.title:
+                self.title = "Delete %s %s" % (self.model.__name__, self.instance.title)
+            else:
+                self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._get_pk_value()))
+
+    
+    def process(self, submit):
+
+        if hasattr(self.instance, 'title') and self.instance.title:
+            message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
+        else:
+            message = "Deleted %s '%s'." % (self.model.__name__, unicode(self.instance._get_pk_value()))
+        self.instance.delete_instance()
+        flask.flash(message)
+
+        return flask.redirect(self.model.url('teaser')) # TODO app.admin.get_listing_url?
+
+poobrains.form.DeleteForm = DeleteForm
+
+
+class AddFieldset(AddForm, poobrains.form.Fieldset):
+
+    rendered = None
+
+
+    def __new__(cls, *args, **kwargs):
+
+        f = super(AddFieldset, cls).__new__(cls, *args, **kwargs)
+        f.controls.clear()
+
+        return f
+    
+
+    def render(self, mode=None):
+
+        self.rendered = True
+        return super(AddFieldset, self).render(mode)
+
+poobrains.form.AddFieldset = AddFieldset
+
+
+class EditFieldset(EditForm, poobrains.form.Fieldset):
+
+    rendered = None
+ 
+    def render(self, mode=None):
+
+        self.rendered = True
+        return super(EditFieldset, self).render(mode)
+
+poobrains.form.EditFieldset = EditFieldset
+
+
+
+
 class Permission(poobrains.helpers.ChildAware):
    
     instance = None
@@ -724,7 +979,7 @@ class RelatedForm(poobrains.form.Form):
         return self
 
 
-class UserPermissionAddForm(poobrains.storage.AddForm):
+class UserPermissionAddForm(AddForm):
 
     
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
@@ -758,7 +1013,7 @@ class UserPermissionAddFieldset(UserPermissionAddForm, poobrains.form.Fieldset):
         return rv
 
 
-class UserPermissionEditFieldset(poobrains.storage.EditFieldset):
+class UserPermissionEditFieldset(EditFieldset):
 
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         return super(UserPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
@@ -783,7 +1038,7 @@ class UserPermissionRelatedForm(RelatedForm):
                 perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
                 perm_mode = 'edit'
 
-                #f.fields[name] = poobrains.storage.EditFieldset(perm_info, mode=perm_mode, name=name)
+                #f.fields[name] = EditFieldset(perm_info, mode=perm_mode, name=name)
                 #f.fields[name] = perm_info.fieldset_edit(mode=perm_mode)
                 fieldset = perm_info.fieldset_edit(mode=perm_mode)
                 fieldset.fields['permission'].readonly = True
@@ -807,7 +1062,7 @@ class UserPermissionRelatedForm(RelatedForm):
         return f
 
 
-class GroupPermissionAddForm(poobrains.storage.AddForm):
+class GroupPermissionAddForm(AddForm):
 
     
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
@@ -835,7 +1090,7 @@ class GroupPermissionAddForm(poobrains.storage.AddForm):
         return self
 
 
-class GroupPermissionEditForm(poobrains.storage.EditForm):
+class GroupPermissionEditForm(EditForm):
 
     def __new__(cls, model_or_instance, *args, **kwargs):
 
@@ -852,7 +1107,7 @@ class GroupPermissionAddFieldset(GroupPermissionAddForm, poobrains.form.Fieldset
         return rv
 
 
-class GroupPermissionEditFieldset(poobrains.storage.EditForm, poobrains.form.Fieldset):
+class GroupPermissionEditFieldset(EditForm, poobrains.form.Fieldset):
 
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         return super(GroupPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
@@ -860,7 +1115,6 @@ class GroupPermissionEditFieldset(poobrains.storage.EditForm, poobrains.form.Fie
 
     def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         super(GroupPermissionEditFieldset, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-
 
 
 #class BaseAdministerable(poobrains.storage.BaseModel, PermissionInjection):
@@ -916,12 +1170,12 @@ class Administerable(poobrains.storage.Storable, Protected):
     
     __metaclass__ = BaseAdministerable
 
-    form_add = poobrains.storage.AddForm # TODO: move form_ into class Meta?
-    form_edit = poobrains.storage.EditForm
-    form_delete = poobrains.storage.DeleteForm
+    form_add = AddForm # TODO: move form_ into class Meta?
+    form_edit = EditForm
+    form_delete = DeleteForm
 
-    fieldset_add = poobrains.storage.AddFieldset
-    fieldset_edit = poobrains.storage.EditFieldset
+    fieldset_add = AddFieldset
+    fieldset_edit = EditFieldset
 
     related_form = RelatedForm # TODO: make naming consistent
 
@@ -929,6 +1183,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         abstract = True
         related_use_form = False # Whether we want to use Administerable.related_form in related view for administration.
         permission_class = Permission
+        form_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
         modes = collections.OrderedDict([
             ('add', 'create'),
