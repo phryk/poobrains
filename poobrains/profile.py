@@ -217,7 +217,7 @@ class NotificationControl(poobrains.auth.Protected):
 
             try:
                 self.form.bind(values, werkzeug.datastructures.MultiDict())
-            except poobrains.form.errors.CompoundError as e:
+            except poobrains.errors.CompoundError as e:
                 for error in e.errors:
                     flask.flash(e.message, 'error')
 

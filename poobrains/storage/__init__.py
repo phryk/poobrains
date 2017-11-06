@@ -126,7 +126,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
     def save(self, *args, **kwargs):
 
         self.validate()
-        super(Model, self).save(*args, **kwargs)
+        return super(Model, self).save(*args, **kwargs)
 
 
     def __repr__(self):

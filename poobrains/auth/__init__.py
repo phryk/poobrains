@@ -19,6 +19,7 @@ import peewee
 # local imports
 from poobrains import app
 import poobrains.helpers
+import poobrains.errors
 import poobrains.mailing
 import poobrains.rendering
 import poobrains.form
@@ -219,6 +220,13 @@ class AddForm(BoundForm):
 
                         flask.flash(u"Couldn't save %s." % self.model.__name__)
 
+                except poobrains.errors.ValidationError as e:
+
+                    flask.flash(e.message, 'error')
+
+                    if e.field:
+                        self.fields[e.field].errors.append(e)
+
                 except peewee.IntegrityError as e:
 
                     if exceptions:
@@ -228,11 +236,12 @@ class AddForm(BoundForm):
                     app.logger.error(u"Integrity error: %s" % e.message.decode('utf-8'))
 
                 except Exception as e:
-
                     if exceptions:
                         raise
 
-                    flask.flash(u"Couldn't save %s. %s: %s" % self.model.__name__, type(e).__name__, e.message.decode('utf-8'))
+                    flask.flash(u"Couldn't save %s for mysterious reasons." % self.model.__name__)
+                    app.logger.error(u"Couldn't save %s. %s: %s" % self.model.__name__, type(e).__name__, e.message.decode('utf-8'))
+
 
             elif submit == 'preview':
                 self.preview = self.instance.render('full')
@@ -485,12 +494,12 @@ class FormPermissionField(poobrains.form.fields.Select):
         permission, access = self.value
 
         if not permission in Permission.class_children_keyed().keys():
-            raise poobrains.form.errors.ValidationError('Unknown permission: %s' % permission)
+            raise poobrains.errors.ValidationError('Unknown permission: %s' % permission)
 
         perm_class = Permission.class_children_keyed()[permission]
         choice_values = [t[0] for t in perm_class.choices]
         if not access in choice_values:
-            raise poobrains.form.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
+            raise poobrains.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
 
 
     def value_string(self, value):

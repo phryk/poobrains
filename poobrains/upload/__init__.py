@@ -43,8 +43,8 @@ class UploadForm(poobrains.auth.AddForm):
         if  not '*' in self.instance.extension_whitelist and\
         upload_file.filename != '' and\
         not extension in self.instance.extension_whitelist:
-            raise poobrains.form.errors.CompoundError(
-                [poobrains.form.errors.ValidationError(
+            raise poobrains.errors.CompoundError(
+                [poobrains.errors.ValidationError(
                     'Invalid file extension: %s. Try one of %s.' % (extension, list(self.instance.extension_whitelist))
                 )]
             )

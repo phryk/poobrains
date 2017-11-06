@@ -121,6 +121,32 @@ class Tag(poobrains.auth.Named):
 
         return pagination
 
+
+    def looping(self, descendants=None):
+
+        """ loop detection """
+
+        if descendants is None:
+            descendants = []
+
+        if self.id in descendants:
+            return True
+
+
+        if self.parent:
+
+            descendants.append(self.id)
+            return self.parent.looping(descendants=descendants)
+
+        return False
+
+
+    def validate(self):
+
+        if self.looping():
+            raise poobrains.errors.ValidationError("'%s' is a descendant of this tag and thus can't be used as parent!" % self.parent.title, field='parent')
+
+
     def save(self, *args, **kwargs):
         if not self.title:
             self.title = self.name.replace('-', ' ').title()

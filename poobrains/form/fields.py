@@ -8,10 +8,10 @@ import flask
 #import poobrains
 from poobrains import app
 import poobrains.helpers
+import poobrains.errors
 import poobrains.rendering
 
 # internal imports
-from . import errors
 from . import types
 
 
@@ -171,7 +171,7 @@ class BaseField(object):
 
     def validate(self):
 
-        compound_error = errors.CompoundError()
+        compound_error = poobrains.errors.CompoundError()
 
         values = self.value if self.multi else [self.value]
 
@@ -180,17 +180,17 @@ class BaseField(object):
             for value in values:
 
                 if self.choices and not value in [choice for choice, _ in self.choices]: # FIXME: I think this will fuck up when using optgroups
-                    compound_error.append(errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name)))
+                    compound_error.append(poobrains.errors.ValidationError("'%s' is not an approved choice for %s.%s" % (self.value, self.prefix, self.name)))
 
                 else: # else because we don't want to clutter error output 
                     for validator in self.validators:
                         try:
                             validator(self.value)
-                        except errors.ValidationError as e:
+                        except poobrains.errors.ValidationError as e:
                             compound_error.append(e)
 
         elif self.required:
-            compound_error.append(errors.ValidationError("Required field '%s' was left empty." % self.name))
+            compound_error.append(poobrains.errors.ValidationError("Required field '%s' was left empty." % self.name))
 
         if len(compound_error):
             raise compound_error
@@ -198,7 +198,7 @@ class BaseField(object):
 
     def bind(self, value):
 
-        compound_error = errors.CompoundError()
+        compound_error = poobrains.errors.CompoundError()
 
         empty = value == '' or (self.multi and value == []) # TODO: value in [[], ['']] if <input type="text" multiple> needs it!
 
@@ -216,9 +216,9 @@ class BaseField(object):
                     try:
                         self.value.append(self.type.convert(subvalue, None, None))
 
-                    except errors.BadParameter:
+                    except poobrains.errors.BadParameter:
 
-                        e = errors.ValidationError("Invalid input '%s' for field %s.%s." % (value, self.prefix, self.name))
+                        e = poobrains.errors.ValidationError("Invalid input '%s' for field %s.%s." % (value, self.prefix, self.name))
                         compound_error.append(e)
                         self.errors.append(e)
 
@@ -227,16 +227,16 @@ class BaseField(object):
                 try:
                     self.value = self.type.convert(value, None, None)
 
-                except errors.BadParameter:
+                except poobrains.errors.BadParameter:
 
-                    e = errors.ValidationError("Invalid input '%s' for field %s.%s." % (value, self.prefix, self.name))
+                    e = poobrains.errors.ValidationError("Invalid input '%s' for field %s.%s." % (value, self.prefix, self.name))
                     compound_error.append(e)
                     self.errors.append(e)
 
         try:
             self.validate()
 
-        except errors.CompoundError as ce:
+        except poobrains.errors.CompoundError as ce:
 
             for e in ce:
                 compound_error.append(e)
@@ -336,7 +336,7 @@ class Range(Field):
         if not self.empty:
 
             if self.value < self.min or self.value > self.max:
-                raise errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, self.value, self.min, self.max))
+                raise poobrains.errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, self.value, self.min, self.max))
 
 
 class DateTime(Field):

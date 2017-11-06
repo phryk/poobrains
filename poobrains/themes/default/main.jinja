@@ -24,7 +24,7 @@
                     {% if messages %}
                         <ul class="messages">
                             {% for category, message in messages %}
-                                <li>{{ message }}</li>
+                                <li class="{{ category }}">{{ message }}</li>
                             {% endfor %}
                         </ul>
                     {% endif %}

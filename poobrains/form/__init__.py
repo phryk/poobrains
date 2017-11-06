@@ -13,6 +13,7 @@ import flask
 # parent imports
 #import poobrains
 from poobrains import app
+import poobrains.errors
 import poobrains.helpers
 import poobrains.rendering
 
@@ -202,7 +203,7 @@ class BaseForm(poobrains.rendering.Renderable):
     def bind(self, values, files):
 
         if not values is None:
-            compound_error = errors.CompoundError()
+            compound_error = poobrains.errors.CompoundError()
 
             actionable_fields = [f for f in self]
             actionable_fields += [self.fields[name] for name in self._external_fields]
@@ -233,7 +234,7 @@ class BaseForm(poobrains.rendering.Renderable):
                         else:
                             field.bind(field_values)
 
-                    except errors.CompoundError as ce:
+                    except poobrains.errors.CompoundError as ce:
 
                         for e in ce.errors:
                             compound_error.append(e)
@@ -346,11 +347,11 @@ class Form(BaseForm):
                 try:
                     return self.process(flask.request.form['submit'][len(self.ref_id)+1:])
 
-                except errors.CompoundError as handling_error:
+                except poobrains.errors.CompoundError as handling_error:
                     for error in handling_error.errors:
                         flask.flash(error.message, 'error')
 
-            except errors.CompoundError as validation_error:
+            except poobrains.errors.CompoundError as validation_error:
                 for error in validation_error.errors:
                     flask.flash(error.message, 'error')
 
