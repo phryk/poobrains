@@ -327,6 +327,10 @@ class Form(BaseForm):
         return instance.view(mode)
 
 
+    def validate(self):
+        pass
+
+
     @poobrains.helpers.themed
     def view(self, mode='full', **kwargs):
 
@@ -343,17 +347,25 @@ class Form(BaseForm):
 
             try:
                 self.bind(values, files)
+                self.validate()
 
                 try:
                     return self.process(flask.request.form['submit'][len(self.ref_id)+1:])
 
-                except poobrains.errors.CompoundError as handling_error:
-                    for error in handling_error.errors:
+                except poobrains.errors.CompoundError as e:
+                    for error in e.errors:
                         flask.flash(error.message, 'error')
 
-            except poobrains.errors.CompoundError as validation_error:
-                for error in validation_error.errors:
+            except poobrains.errors.CompoundError as e:
+                for error in e.errors:
                     flask.flash(error.message, 'error')
+
+            except poobrains.errors.ValidationError as e:
+                flask.flash(e.message, 'error')
+
+                if e.field:
+                    self.fields[e.field].append(e)
+
 
             if not flask.request.form['submit'].startswith(self.ref_id): # means the right form was submitted, should be implied by the path tho…
                 app.logger.error("Form %s: submit button of another form used: %s" % (self.name, flask.request.form['submit']))

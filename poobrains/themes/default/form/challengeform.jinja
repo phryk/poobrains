@@ -1,6 +1,7 @@
 {% extends "form/form.jinja" %}
 
-{% block header %}
+{% block fields %}
     <p>Solve this menial task to prove you're not a robot.</p>
-    <img src="{{ content.challenge.url('raw') }}" />
+    <img class="captcha" src="{{ content.challenge.url('raw') }}" />
+    {{ super() }}
 {% endblock %}

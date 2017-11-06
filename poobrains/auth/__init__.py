@@ -502,11 +502,6 @@ class FormPermissionField(poobrains.form.fields.Select):
             raise poobrains.errors.ValidationError("Unknown access mode '%s' for permission '%s'." % (access, permission))
 
 
-    def value_string(self, value):
-
-        return u"%s.%s" % (value[0], value[1])
-
-
 def admin_listing_actions(cls):
 
     m = poobrains.rendering.Menu('actions')

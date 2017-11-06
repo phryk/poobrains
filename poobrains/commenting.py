@@ -285,49 +285,49 @@ class ChallengeForm(poobrains.form.Form):
 
         super(ChallengeForm, self).__init__()
         self.challenge = challenge
+        
+
+    def validate(self):
+        
+        if not self.fields['response'].value == self.challenge.captcha:
+            self.challenge.captcha = self.challenge.__class__.captcha.default()
+            self.challenge.save()
+            raise poobrains.errors.ValidationError("A robot could do this better and cheaper than you.")
 
 
     def process(self, submit):
 
-        if self.fields['response'].value == self.challenge.captcha:
+        try:
 
-            try:
+            cls = Commentable.class_children_keyed()[self.challenge.model]
+            instance = cls.load(self.challenge.handle)
 
-                cls = Commentable.class_children_keyed()[self.challenge.model]
-                instance = cls.load(self.challenge.handle)
+        except KeyError:
+            flask.flash(u"WRONG!1!!", 'error')
+            app.logger.error("Challenge %s refers to non-existant model!" % self.challenge.name)
+            return flask.redirect('/')
 
-            except KeyError:
-                flask.flash(u"WRONG!1!!", 'error')
-                return flask.redirect('/')
+        except peewee.DoesNotExist:
+            flask.flash(u"The thing you wanted to comment on does not exist anymore.")
+            return flask.redirect(cls.url('teaser'))
 
-            except peewee.DoesNotExist:
-                flask.flash(u"The thing you wanted to comment on does not exist anymore.")
-                return flask.redirect(cls.url('teaser'))
+        comment = Comment()
+        comment.model = self.challenge.model
+        comment.handle = self.challenge.handle
+        comment.reply_to = self.challenge.reply_to
+        comment.author = self.challenge.author
+        comment.text = self.challenge.text
 
-            comment = Comment()
-            comment.model = self.challenge.model
-            comment.handle = self.challenge.handle
-            comment.reply_to = self.challenge.reply_to
-            comment.author = self.challenge.author
-            comment.text = self.challenge.text
+        if comment.save():
+            flask.flash(u"Your comment has been saved.")
 
-            if comment.save():
-                flask.flash(u"Your comment has been saved.")
+            if instance.notify_owner:
+                instance.owner.notify("New comment on [%s/%s] by %s." % (self.challenge.model, self.challenge.handle, self.challenge.author))
+            
+            self.challenge.delete_instance() # commit glorious seppuku
+            return flask.redirect(instance.url('full'))
 
-                if instance.notify_owner:
-                    instance.owner.notify("New comment on [%s/%s] by %s." % (self.challenge.model, self.challenge.handle, self.challenge.author))
-                
-                self.challenge.delete_instance() # commit glorious seppuku
-                return flask.redirect(instance.url('full'))
-
-            flask.flash(u"Your comment could not be saved.", 'error')
-
-        else:
-
-            flask.flash(u"WRONG.", 'error')
-            self.challenge.captcha = self.challenge.__class__.captcha.default()
-            self.challenge.save()
-            return flask.redirect(self.challenge.url('full'))
+        flask.flash(u"Your comment could not be saved.", 'error')
 
 
 @app.cron

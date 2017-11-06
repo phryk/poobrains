@@ -219,6 +219,7 @@ body {
 
         nav.menu.main {
 
+            padding: 1rem 0;
 
             ul {
                 display: flex;
@@ -241,7 +242,7 @@ body {
                             content: "█";
                             margin-left: 0.25rem;
                             vertical-align: 15%;
-                            font-size: 75%;
+                            font-size: 64%;
                             text-shadow: $color_highlight 0 0 1rem;
                             opacity: 0;
                         }
@@ -1092,6 +1093,13 @@ div.comment {
                 max-height: 100vh;
             }
         }
+    }
+}
+
+form#ChallengeForm {
+
+    img.captcha {
+        width: auto;
     }
 }
 
