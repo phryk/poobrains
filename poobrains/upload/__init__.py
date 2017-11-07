@@ -51,7 +51,7 @@ class UploadForm(poobrains.auth.AddForm):
 
 
     def process(self, submit):
-        
+
         force = self.fields['force'].value
         upload_file = self.fields['upload'].value
         filename = self.fields['filename'].value
@@ -83,11 +83,22 @@ class UploadForm(poobrains.auth.AddForm):
             try:
                 upload_file.save(file_path)
 
+                if self.mode == 'edit':
+
+                    try:
+                        os.remove(self.instance.file_path)
+                    except OSError as e:
+                        app.logger.debug(u"Could not delete old file '%s' for %s '%s': " % (self.filename, self.__class__.__name__, self.name))
+
             except IOError as e:
 
                 flask.flash(u"Failed saving file '%s'." % filename, 'error')
                 app.logger.error(u"Failed saving file: %s\n%s: %s / %s / %s" % (filename, type(e).__name__, e.message, e.strerror, e.filename))
                 return self # stop handling, show form within same request
+
+        elif self.mode == 'edit':
+
+            self.fields['filename'].value = self.instance.filename # to avoid super call removing the current filename if no new file was supplied
 
         try:
             return super(UploadForm, self).process(submit, exceptions=True)
@@ -152,6 +163,11 @@ class File(poobrains.auth.NamedOwned):
         
         else:
             return poobrains.helpers.ThemedPassthrough(super(File, self).view(mode=mode, handle=handle)) # FIXME: themed and protected called twice
+
+
+    @property
+    def file_path(self):
+        return os.path.join(self.path, self.filename)
 
 
     def delete_instance(self, *args, **kwargs):

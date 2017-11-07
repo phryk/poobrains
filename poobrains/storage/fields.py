@@ -121,6 +121,14 @@ class IntegerField(Field, peewee.IntegerField):
     type = poobrains.form.types.INT
 
 
+class FloatField(Field, peewee.FloatField):
+    type = poobrains.form.types.FLOAT
+
+
+class DoubleField(Field, peewee.DoubleField):
+    type = poobrains.form.types.FLOAT
+
+
 class CharField(Field, peewee.CharField):
     type = poobrains.form.types.STRING
 
