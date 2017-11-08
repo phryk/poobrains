@@ -28,3 +28,11 @@ class Datapoint(poobrains.storage.Model):
     y = poobrains.storage.fields.DoubleField()
     error_upper = poobrains.storage.fields.FloatField(verbose_name="Upper margin of error")
     error_lower = poobrains.storage.fields.FloatField(verbose_name="Lower margin of error")
+
+
+class DatasetForm(poobrains.auth.AddForm):
+
+    def __init__(self, *args, **kwargs):
+
+        super(DatasetForm, self)
+        turn down for what 

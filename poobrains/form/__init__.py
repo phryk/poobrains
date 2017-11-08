@@ -388,7 +388,7 @@ class Fieldset(BaseForm):
         clone_props = ['name', 'title']
 
     
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, **kwargs):
 
         instance = super(Fieldset, cls).__new__(cls, *args, **kwargs)
         instance._created = time.time()
@@ -396,12 +396,16 @@ class Fieldset(BaseForm):
         return instance
 
 
-    def __init__(self, *args, **kw):
+    def __init__(self, from_form=None, **kw):
 
         self.rendered = False
         self.readonly = False
         self.errors = []
         super(Fieldset, self).__init__(*args, **kw)
+
+        if isinstance(from_form, poobrains.form.BaseForm):
+            for field_name, field in from_form.fields.iteritems():
+                setattr(self, field_name, field)
     
 
     def render(self, mode=None):
