@@ -17,21 +17,41 @@ g = example.poobrains.auth.Group.load('administrators')
 #    print "Saved News test-%d" % i
 
 
-dataset = example.poobrains.svg.Dataset()
-dataset.owner = u
-dataset.group = g
-dataset.name = 'sine'
-dataset.title = 'Give me a sine'
-dataset.description = 'And Eris spoke "Okay, I guess."'
-dataset.x_label = 'EX'
-dataset.y_label = 'VAI'
-dataset.save()
+sine = example.poobrains.svg.Dataset()
+sine.owner = u
+sine.group = g
+sine.name = 'sine'
+sine.title = 'Give me a sine'
+sine.description = 'And Eris spoke "Okay, I guess."'
+sine.label_x = 'Sine X'
+sine.label_y = 'Sine Y'
+sine.save()
 
-for i in range(0,1000):
+fucksgiven = example.poobrains.svg.Dataset()
+fucksgiven.owner = u
+fucksgiven.group = g
+fucksgiven.name = 'fucksgiven'
+fucksgiven.title = 'Fucks given'
+fucksgiven.description = "Fucks given over time"
+fucksgiven.label_x = "Time"
+fucksgiven.label_y = "Fucks given"
+fucksgiven.save()
+
+
+sine_steps = 32
+for i in range(0,sine_steps):
 
     dp = example.poobrains.svg.Datapoint()
-    dp.dataset = dataset
+    dp.dataset = sine
     dp.x = i
-    dp.y = math.sin(i*0.05)
+    dp.y = math.sin(i/float(sine_steps) * 2 * math.pi)
 
     dp.save(force_insert=True)
+
+
+    fuck = example.poobrains.svg.Datapoint()
+    fuck.dataset = fucksgiven
+    fuck.x = i
+    fuck.y = 0
+
+    fuck.save(force_insert=True)

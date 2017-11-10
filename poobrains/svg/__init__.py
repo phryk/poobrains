@@ -36,8 +36,8 @@ class Dataset(poobrains.commenting.Commentable):
 
     title = poobrains.storage.fields.CharField()
     description = poobrains.md.MarkdownField(null=True)
-    x_label = poobrains.storage.fields.CharField(verbose_name="Label for the x-axis")
-    y_label = poobrains.storage.fields.CharField(verbose_name="Label for the y-axis")
+    label_x = poobrains.storage.fields.CharField(verbose_name="Label for the x-axis")
+    label_y = poobrains.storage.fields.CharField(verbose_name="Label for the y-axis")
 
 
 class DatapointFieldset(poobrains.form.Fieldset):
@@ -118,14 +118,27 @@ class Plot(SVG):
     def normalize_x(self, value):
 
         span = self.max_x - self.min_x
-        factor = 100.0 / span
+        if span == 0.0:
+            return 50
 
-        return (value - self.min_x) * factor
+        return (value - self.min_x) * (100 / span)
 
 
     def normalize_y(self, value):
 
         span = self.max_y - self.min_y
-        factor = 100.0 / span
+        if span == 0.0:
+            return 50
 
-        return (value - self.min_y) * factor
+        return (value - self.min_y) * (100 / span)
+
+    @property
+    def label_x(self):
+
+        return u' / '.join([dataset.label_x for dataset in self.datasets])
+
+
+    @property
+    def label_y(self):
+
+        return u' / '.join([dataset.label_y for dataset in self.datasets])

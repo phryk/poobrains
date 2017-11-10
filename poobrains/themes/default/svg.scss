@@ -54,6 +54,47 @@ path#icon {
     stroke: $color_highlight;
 }
 
-circle {
-    fill: $color_highlight;
+.plot {
+
+    background: $color_background_dark;
+
+    .grid {
+
+        line {
+            stroke: opacify($color_font_light, -80%);
+            stroke-width: 2px;
+        }
+    }
+
+    .axis-label {
+
+        font-size: 14px;
+        fill: $color_font_light;
+
+        &.axis-y {
+            transform-origin: 0px 330px;
+            transform: rotate(-90deg) translate(5px, 15px);
+        }
+    }
+
+    .dataset {
+
+        transition: opacity 0.3s linear;
+        opacity: 0.5;
+
+        &:hover,
+        &:focus,
+        &:target {
+            opacity: 1;
+        }
+
+        circle {
+            fill: $color_highlight;
+        }
+
+        line {
+            stroke: $color_font_light;
+            stroke-width: 3px;
+        }
+    }
 }
