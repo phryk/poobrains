@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg id="hexascroll" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewbox="0 0 1920 1080" version="1.1" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <style>
+        {{ content.style }}
+    </style>
+
+    {% for dataset in content.datasets %}
+    <g class="dataset">
+        {% for datapoint in dataset.datapoints %}
+            <circle cx="{{ content.normalize_x(datapoint.x) }}%" cy="{{ content.normalize_y(datapoint.y) }}%" r="10" />
+        {% endfor %}
+    </g>
+    {% endfor %}

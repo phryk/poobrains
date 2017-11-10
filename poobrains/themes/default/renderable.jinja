@@ -9,7 +9,7 @@
                     {% if url %}
                         <h2><a href="{{ url }}" title="{{ content.title }}">{{ content.title }}</a></h2>
                     {% else %}
-                        <h2>{{ content.title }}</h2>
+                        <h2 title="{{ content.title }}">{{ content.title }}</h2>
                     {% endif %}
                 {% endwith %}
             {% endif %}

@@ -388,7 +388,7 @@ class Fieldset(BaseForm):
         clone_props = ['name', 'title']
 
     
-    def __new__(cls, **kwargs):
+    def __new__(cls, *args, **kwargs):
 
         instance = super(Fieldset, cls).__new__(cls, *args, **kwargs)
         instance._created = time.time()
@@ -396,16 +396,13 @@ class Fieldset(BaseForm):
         return instance
 
 
-    def __init__(self, from_form=None, **kw):
+    def __init__(self, *args, **kw):
 
         self.rendered = False
         self.readonly = False
         self.errors = []
         super(Fieldset, self).__init__(*args, **kw)
 
-        if isinstance(from_form, poobrains.form.BaseForm):
-            for field_name, field in from_form.fields.iteritems():
-                setattr(self, field_name, field)
     
 
     def render(self, mode=None):
@@ -427,6 +424,31 @@ class Fieldset(BaseForm):
                     field.value = getattr(value, field.name)
         else:
             super(Fieldset, self).__setattr__(name, value)
+
+
+class ProxyFieldset(Fieldset):
+
+    """ A fieldset wrapping a form object """
+
+    form = None
+
+    def __init__(self, form, **kwargs):
+
+        super(ProxyFieldset, self).__init__(**kwargs)
+        self.form = form
+        self.fields = form.fields # TODO: is this done by reference? will probably fuck up if not.
+
+
+    def bind(self, value):
+        self.form.bind(value)
+
+
+    def validate(self):
+        self.form.validate()
+
+
+    def process(self, submit):
+        self.form.process(submit)
 
 
 class Button(poobrains.rendering.Renderable):

@@ -703,6 +703,8 @@ form {
             a {
                 display: block;
                 color: $color_font_dark;
+                overflow: hidden;
+                text-overflow: ellipsis;
                 text-decoration: none;
                 transition: text-shadow 0.3s;
 

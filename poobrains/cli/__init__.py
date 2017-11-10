@@ -298,7 +298,7 @@ def delete(storable):
 
         handle = instance.handle_string
 
-        if instance.delete_instance():
+        if instance.delete_instance(recursive=True):
             click.echo("Deleted %s %s" % (storable.__name__, handle))
 
         else:

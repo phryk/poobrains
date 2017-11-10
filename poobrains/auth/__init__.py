@@ -201,7 +201,6 @@ class AddForm(BoundForm):
                         for fieldset in self.fieldsets:
 
                             try:
-
                                 fieldset.process(submit, self.instance)
 
                             except Exception as e:
@@ -240,7 +239,7 @@ class AddForm(BoundForm):
                         raise
 
                     flask.flash(u"Couldn't save %s for mysterious reasons." % self.model.__name__)
-                    app.logger.error(u"Couldn't save %s. %s: %s" % self.model.__name__, type(e).__name__, e.message.decode('utf-8'))
+                    app.logger.error(u"Couldn't save %s. %s: %s" % (self.model.__name__, type(e).__name__, e.message.decode('utf-8')))
 
 
             elif submit == 'preview':
@@ -300,7 +299,7 @@ class DeleteForm(BoundForm):
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
         else:
             message = "Deleted %s '%s'." % (self.model.__name__, unicode(self.instance._get_pk_value()))
-        self.instance.delete_instance()
+        self.instance.delete_instance(recursive=True)
         flask.flash(message)
 
         return flask.redirect(self.model.url('teaser')) # TODO app.admin.get_listing_url?
@@ -971,13 +970,12 @@ class RelatedForm(poobrains.form.Form):
    
     def process(self, submit):
         if not self.readonly:
-            for field in self.fields.itervalues():
-                if isinstance(field, poobrains.form.Fieldset):
-                    try:
-                        field.process(submit)
-                    except Exception as e:
-                        flask.flash(u"Failed to process fieldset '%s.%s'." % (field.prefix, field.name))
-                        app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
+            for fieldset in self.fieldsets:
+                try:
+                    field.process(submit)
+                except Exception as e:
+                    flask.flash(u"Failed to process fieldset '%s.%s'." % (field.prefix, field.name))
+                    app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
                         
             #return flask.redirect(flask.request.url)
         return self
@@ -1627,6 +1625,11 @@ class GroupPermission(Administerable):
             f.fields['access'].choices = self.permission_class.choices 
 
         return f
+
+
+    @property
+    def title(self):
+        return "%s-%s" % (self.group.name, self.permission)
 
 
 class ClientCertToken(Administerable, Protected):

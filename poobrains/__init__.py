@@ -25,7 +25,7 @@ from scss.source import SourceFile
 from pathlib import PurePosixPath
 
 # comfort imports to expose flask functionality directly through poobrains
-from flask import g, flash
+from flask import g, flash, abort
 
 # internal imports
 import helpers
@@ -344,10 +344,10 @@ class Poobrain(flask.Flask):
             extension = extension[-1]
 
         else:
-            flask.abort(404)
+            abort(404)
 
         if extension not in self.resource_extension_whitelist:
-            flask.abort(404) # extension not allowed
+            abort(404) # extension not allowed
 
 
         if extension == 'svg':
@@ -371,7 +371,7 @@ class Poobrain(flask.Flask):
                 )
 
             except jinja2.exceptions.TemplateNotFound:
-                flask.abort(404)
+                abort(404)
 
 
         else:
@@ -390,7 +390,7 @@ class Poobrain(flask.Flask):
             r.cache_control.max_age = app.config['CACHE_LONG']
             return r
             
-        flask.abort(404)
+        abort(404)
 
 
     def request_setup(self):
@@ -859,6 +859,7 @@ from . import auth
 from . import upload
 from . import tagging
 from . import commenting
+from . import svg
 from . import search
 from . import profile
 from . import cli
