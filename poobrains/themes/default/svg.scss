@@ -98,3 +98,18 @@ path#icon {
         }
     }
 }
+
+.map {
+
+    .country {
+
+        stroke: $color_background_light;
+        fill: $color_background_dark;
+        opacity: 0.8;
+        transition: opacity 0.3s linear;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+}
