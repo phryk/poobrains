@@ -13,7 +13,6 @@ import werkzeug
 import click
 import flask
 
-#from flask.signals import appcontext_pushed # TODO: needed?
 import jinja2
 from playhouse import db_url
 import peewee
@@ -25,7 +24,7 @@ from scss.source import SourceFile
 from pathlib import PurePosixPath
 
 # comfort imports to expose flask functionality directly through poobrains
-from flask import g, flash, abort
+from flask import Response, g, flash, abort
 
 # internal imports
 import helpers

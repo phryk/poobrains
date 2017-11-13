@@ -56,6 +56,8 @@ class Renderable(poobrains.helpers.ChildAware):
 
     def instance_url(self, mode='full', quiet=False, **url_params):
         
+        app.debugger.set_trace()
+        
         if getattr(self, 'handle', False): 
             url_params['handle'] = self.handle
 

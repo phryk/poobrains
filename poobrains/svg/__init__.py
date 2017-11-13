@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import math
+import os
+import collections
 
-from poobrains import app, abort
+from poobrains import Response, app, abort
+import poobrains.helpers
 import poobrains.rendering
 import poobrains.storage
 import poobrains.tagging
@@ -10,10 +13,44 @@ import poobrains.commenting
 
 class SVG(poobrains.rendering.Renderable):
     
+    handle = None # needed so that app.expose registers a route with extra param, this is kinda hacky…
+    
+    class Meta:
+
+        modes = collections.OrderedDict([
+            ('teaser', 'read'),
+            ('full', 'read'),
+            ('raw', 'read'),
+            ('inline', 'read')
+        ])
+    
     style = None
 
-    def __init__(self, name=None, css_class=None):
+    def __init__(self, handle=None, mode=None, **kwargs):
+
+        super(SVG, self).__init__(**kwargs)
+
+        self.handle = handle
         self.style = app.scss_compiler.compile_string("@import 'svg';")
+
+
+    @poobrains.helpers.themed
+    def view(self, mode=None, handle=None):
+
+        if mode == 'raw':
+            
+            response = Response(self.render('raw'))
+            response.headers['Content-Disposition'] = u'filename="%s"' % 'map.svg'
+            
+            # Disable "public" mode caching downstream (nginx, varnish) in order to hopefully not leak restricted content
+            response.cache_control.public = False
+            response.cache_control.private = True
+            response.cache_control.max_age = app.config['CACHE_LONG']
+
+            return response
+        
+        else:
+            return poobrains.helpers.ThemedPassthrough(super(SVG, self).view(mode=mode, handle=handle))
 
 
 class DatasetForm(poobrains.auth.AddForm):
@@ -86,7 +123,6 @@ class Datapoint(poobrains.storage.Model):
 @app.expose('/svg/plot')
 class Plot(SVG):
 
-    handle = None # needed so that app.expose registers a route with extra param, this is kinda hacky…
     datasets = None
     min_x = None
     max_x = None
@@ -244,12 +280,11 @@ class MapDatapoint(poobrains.tagging.Taggable):
 @app.expose('/svg/map')
 class Map(SVG):
 
-    handle = None # needed so that app.expose registers a route with extra param, this is kinda hacky…
     datasets = None
 
     def __init__(self, handle=None, mode=None, **kwargs):
-        app.debugger.set_trace()
-        super(Map, self).__init__(**kwargs)
+        
+        super(Map, self).__init__(handle=handle, mode=mode, **kwargs)
         self.datasets = []
 
         if handle is None:
@@ -259,3 +294,7 @@ class Map(SVG):
 
         for name in dataset_names:
             self.datasets.append(MapDataset.load(name))
+
+for cls in set([SVG]).union(SVG.class_children()):
+    rule = os.path.join("/svg/", cls.__name__.lower(), '<handle>', 'raw')
+    app.site.add_view(cls, rule, mode='raw')
