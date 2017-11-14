@@ -136,7 +136,7 @@ html {
     width: 100%;
     min-height: 100vh;
     overflow-y: scroll; /* always show vertical scrollbar, viewport dependant widths stay the same */
-    background-image: url('/theme/bg.svg'), linear-gradient(45deg, opacify($color_background_dark, 0.2), $color_highlight);
+    background-image: url('/theme/bg.svg'), linear-gradient(45deg, lighten(opacify($color_background_dark, 100%), 15%), mix($color_highlight, $color_background_dark, 25%));
     /*background-image: url('/theme/pooscape-probablyold.svg'), linear-gradient(to bottom, opacify($color_background_dark, 0.2), darken(opacify($color_highlight, 0.2), 40%) 100%);*/
     /*background-image: url('/theme/test.png');*/
     background-color: #333;

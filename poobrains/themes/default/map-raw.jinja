@@ -472,6 +472,17 @@
         <path class="country"  d='m536.54143 642.40704c0 2.21859-1.9012 4.01388-4.2506 4.01388s-4.2505-1.79529-4.2505-4.01388c0-2.22151 1.9011-4.01389 4.2505-4.01389s4.2506 1.7953 4.2506 4.01389z' stroke-width='1.51328313'  />
         <path class="country" d='m545.57891 643.66225c0 2.21859-1.9012 4.01388-4.2506 4.01388s-4.2505-1.79529-4.2505-4.01388c0-2.22151 1.9011-4.01389 4.2505-4.01389s4.2506 1.7953 4.2506 4.01389z' stroke-width='1.51328313'   />
     </g> <!-- / .map -->
+
+    {% for dataset in content.datasets %}
+    <g class="map-dataset">
+        {% for datapoint in dataset.datapoints %} 
+        <g class="map-datapoint">
+            <circle class="marker" cx="{{ datapoint.x }}%" cy="{{ datapoint.y }}%" r="2px" />
+            <text x="{{ datapoint.x }}%" y="{{ datapoint.y }}%">{{ datapoint.name }} - {{ datapoint.latitude }} / {{ datapoint.longitude }}</text>
+        </g>
+        {% endfor %}
+    </g>
+    {% endfor %}
 </svg>
 
 

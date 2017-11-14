@@ -103,13 +103,56 @@ path#icon {
 
     .country {
 
-        stroke: $color_background_light;
-        fill: $color_background_dark;
-        opacity: 0.8;
-        transition: opacity 0.3s linear;
+        stroke: opacify($color_background_light, -20%);
+        stroke-width: 0.1rem;
+        stroke-miterlimit: 1;
+        fill: opacify($color_background_dark, -20%);
+        transition: fill 0.3s linear, stroke 0.3s linear;
 
         &:hover {
-            opacity: 1;
+            stroke: $color_highlight;
+            fill: mix($color_highlight, $color_background_dark, 25%);
         }
+
+        g,
+        path {
+            stroke-width: 0.1rem;
+        }
+
+    }
+}
+
+.map-dataset {
+
+    .map-datapoint {
+
+        .marker {
+            fill: $color_background_light;
+        }
+
+        text {
+            display: none;
+            opacity: 0;
+            fill: $color_font_light;
+            font-size: 1rem;
+            transform: translateY(1rem);
+            transition: opacity 0.3s linear;
+        }
+
+        &:hover {
+
+            .marker {
+                fill: $color_highlight;
+            }
+
+            text {
+                display: block;
+                opacity: 1;
+                text-shadow: 0 0 0.25rem #000;
+                background: #111;
+            }
+        }
+
+
     }
 }

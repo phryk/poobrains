@@ -252,8 +252,11 @@ class MapDatapoint(poobrains.tagging.Taggable):
     def x(self):
 
         if not self.longitude is None:
+            normalization_factor = 20038300.0 # maximum result
             r_major=6378137.000
-            return r_major*math.radians(self.longitude)
+            #r_major = 100
+            x = r_major*math.radians(self.longitude)
+            return 50 + 50 * (x / normalization_factor)
 
 
     @property
@@ -261,10 +264,14 @@ class MapDatapoint(poobrains.tagging.Taggable):
 
         if not self.latitude is None:
 
-            if self.latitude>89.5:self.lat=89.5
+            normalization_factor = 15433199.0
+
+            if self.latitude>89.5:self.latitude=89.5
             if self.latitude<-89.5:self.latitude=-89.5
             r_major=6378137.000
             r_minor=6356752.3142
+            #r_major=100
+            #r_minor=100
             temp=r_minor/r_major
             eccent=math.sqrt(1-temp**2)
             phi=math.radians(self.latitude)
@@ -274,7 +281,7 @@ class MapDatapoint(poobrains.tagging.Taggable):
             con=((1.0-con)/(1.0+con))**com
             ts=math.tan((math.pi/2-phi)/2)/con
             y=0-r_major*math.log(ts)
-            return y
+            return 50 + 50 * (y / normalization_factor)
 
 
 @app.expose('/svg/map')
