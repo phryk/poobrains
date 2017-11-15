@@ -71,8 +71,8 @@ def fill_map():
     m.description = 'Test MapDataset automatically created from fill.py'
     m.save()
 
-    for lat in range(-90, 91, 5):
-        for lon in range(-180, 181, 5):
+    for lat in range(-90, 91, 10):
+        for lon in range(-180, 181, 10):
             dp = example.poobrains.svg.MapDatapoint()
             dp.owner = u
             dp.group = g

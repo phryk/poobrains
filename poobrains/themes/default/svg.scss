@@ -127,7 +127,7 @@ path#icon {
     .map-datapoint {
 
         .marker {
-            fill: $color_background_light;
+            fill: transparentize($color_background_light, 40%);
         }
 
         text {
@@ -135,7 +135,7 @@ path#icon {
             opacity: 0;
             fill: $color_font_light;
             font-size: 1rem;
-            transform: translateY(1rem);
+            /*transform: translateY(1rem);*/
             transition: opacity 0.3s linear;
         }
 
@@ -148,7 +148,7 @@ path#icon {
             text {
                 display: block;
                 opacity: 1;
-                text-shadow: 0 0 0.25rem #000;
+                text-shadow: 0 0 0.5rem #000, 0 0 0.5rem #000, 0 0 0.5rem #000, 0 0 0.5rem #000;
                 background: #111;
             }
         }
