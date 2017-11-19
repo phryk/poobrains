@@ -405,7 +405,9 @@ def insert(storable, filepath, skip_pk):
                     setattr(instance, field.name, field.rel_model.select().where(field.rel_model.id == record[actual_name])[0])
 
             else:
-                setattr(instance, field.name, field.type.convert(record[field.name], None, None))
+
+                if record.has_key(field.name): # only fill fields for which we actually have values
+                    setattr(instance, field.name, field.type.convert(record[field.name], None, None))
 
         instance.save(force_insert=True)
         echo("Saved %s" % instance)
