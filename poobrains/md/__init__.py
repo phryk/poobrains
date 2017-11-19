@@ -45,6 +45,8 @@ class MarkdownField(poobrains.storage.fields.TextField):
         super(MarkdownField, self).add_to_class(model_class, name)
         setattr(model_class, name, MarkdownFieldDescriptor(self))
 
+poobrains.storage.fields.MarkdownField = MarkdownField
+
 
 class DisplayRenderable(markdown.inlinepatterns.Pattern):
 
