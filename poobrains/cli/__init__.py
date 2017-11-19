@@ -358,11 +358,11 @@ class ASVIterator(object):
                 raise StopIteration('ASV File was fully read.')
 
             elif char == chr(0x1F): # unit separator, means the current column was fully read
-                row.append(current_token if len(current_token) else None)
+                row.append(current_token)
                 current_token = u''
 
             elif char == chr(0x1E): # record separator, means we have reached the end of the line (or rather record)
-                row.append(current_token if len(current_token) else None)
+                row.append(current_token)
                 return row
 
             else:
@@ -399,7 +399,7 @@ def insert(storable, filepath, skip_pk):
 
                 actual_name = "%s_id" % field.name
 
-                if record[actual_name] is None:
+                if record[actual_name] == u'':
                     setattr(instance, field.name, None)
                 else:
                     setattr(instance, field.name, field.rel_model.select().where(field.rel_model.id == record[actual_name])[0])
@@ -407,7 +407,11 @@ def insert(storable, filepath, skip_pk):
             else:
 
                 if record.has_key(field.name): # only fill fields for which we actually have values
-                    setattr(instance, field.name, field.type.convert(record[field.name], None, None))
+
+                    if field.null and record[field.name] == u'':
+                        setattr(instance, field.name, None) # insert NULL for empty strings if allowed, cleaner than just spamming the db with empty strings
+                    else:
+                        setattr(instance, field.name, field.type.convert(record[field.name], None, None))
 
         instance.save(force_insert=True)
         echo("Saved %s" % instance)
