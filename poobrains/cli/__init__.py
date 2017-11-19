@@ -4,6 +4,7 @@ import collections
 import os
 import datetime
 import functools
+import codecs # so we can open a file as utf-8 in order to parse ASV for importing data
 import peewee
 import OpenSSL
 import gnupg
@@ -11,6 +12,7 @@ import flask
 import click
 import jinja2
 
+from click import argument, option, echo, confirm
 from playhouse import db_url
 db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
 
@@ -45,28 +47,28 @@ def fake_before_request(function):
 
 @app.cli.command()
 def test():
-    click.echo("Running test command!")
+    echo("Running test command!")
 
 
 @app.cli.command()
-@click.option('--domain', prompt="Domain this site will be run under?", default="localhost")
-@click.option('--database', default="sqlite:///%s.db" % project_name) # NOTE: If you change this you'll have to change in the main __init__.py as well
-@click.option('--keylength', prompt="Length for cryptographic keys (in bits)", default=4096)
-@click.option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
-@click.option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
-@click.option('--mail-address', prompt="Site email address") # FIXME: needs a regexp check
-@click.option('--mail-server', prompt="Site email server") # FIXME: needs regexp check, maybe connection check
-@click.option('--mail-port', prompt="Site email server port", type=int)
-@click.option('--mail-user', prompt="Site email account username")
-@click.option('--mail-password', prompt="Site email password")
-@click.option('--admin-mail-address', prompt="Admin email address") # FIXME: needs a regexp check
-@click.option('--admin-cert-name', prompt="Admin login certificate name", default="%s-initial" % project_name) # FIXME: needs a regexp check
-@click.option('--gnupg-homedir', prompt="gnupg homedir, relative to project root (corresponds to gpgs' --homedir)", default="gnupg")
-@click.option('--gnupg-binary', default=None)
-@click.option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
+@option('--domain', prompt="Domain this site will be run under?", default="localhost")
+@option('--database', default="sqlite:///%s.db" % project_name) # NOTE: If you change this you'll have to change in the main __init__.py as well
+@option('--keylength', prompt="Length for cryptographic keys (in bits)", default=4096)
+@option('--deployment', prompt="Please choose your way of deployment for automatic config generation", type=click.Choice(['uwsgi+nginx', 'custom']), default='uwsgi+nginx')
+@option('--deployment-os', prompt="What OS are you deploying to?", type=click.Choice(['linux', 'freebsd']), default=lambda: os.uname()[0].lower())
+@option('--mail-address', prompt="Site email address") # FIXME: needs a regexp check
+@option('--mail-server', prompt="Site email server") # FIXME: needs regexp check, maybe connection check
+@option('--mail-port', prompt="Site email server port", type=int)
+@option('--mail-user', prompt="Site email account username")
+@option('--mail-password', prompt="Site email password")
+@option('--admin-mail-address', prompt="Admin email address") # FIXME: needs a regexp check
+@option('--admin-cert-name', prompt="Admin login certificate name", default="%s-initial" % project_name) # FIXME: needs a regexp check
+@option('--gnupg-homedir', prompt="gnupg homedir, relative to project root (corresponds to gpgs' --homedir)", default="gnupg")
+@option('--gnupg-binary', default=None)
+@option('--gnupg-passphrase', prompt="gnupg passphrase (used to create a keypair)", default=lambda: poobrains.helpers.random_string_light(64))
 def install(**options):
 
-        if click.confirm("Really execute installation procedure?"):
+        if confirm("Really execute installation procedure?"):
 
             options['project_name'] = project_name
             options['project_dir'] = app.site_path
@@ -77,18 +79,18 @@ def install(**options):
                 for model in models:
                     app.db.create_tables([model])
 
-            click.echo("Database tables created!\n")
+            echo("Database tables created!\n")
 
-            click.echo("Creating Group 'anonsanonymous'…\n")
+            echo("Creating Group 'anonsanonymous'…\n")
             anons = poobrains.auth.Group()
             anons.name = 'anonsanonymous'
             
             if not anons.save(force_insert=True):
                 raise ShellException("Failed creating Group 'anonsanonymous'!")
-            click.echo("Successfully created Group 'anonsanonymous'.\n")
+            echo("Successfully created Group 'anonsanonymous'.\n")
 
 
-            click.echo("Creating Group 'administrators' with all permissions granted…\n")
+            echo("Creating Group 'administrators' with all permissions granted…\n")
             admins = poobrains.auth.Group()
             admins.name = 'administrators'
             
@@ -97,16 +99,16 @@ def install(**options):
                 if 'grant' in choice_values:
                     access = 'grant'
                 else:
-                    click.echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
+                    echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
                     break
 
-                #click.echo("Adding permission %s: %s\n" % (cls.__name__, access))
+                #echo("Adding permission %s: %s\n" % (cls.__name__, access))
                 admins.own_permissions[cls.__name__] = access
             
             if not admins.save(force_insert=True):
                 raise ShellException("Failed creating Group 'administrators'!")
 
-            click.echo("Successfully saved Group 'administrators'.\n")
+            echo("Successfully saved Group 'administrators'.\n")
 
 
             anon = poobrains.auth.User()
@@ -115,9 +117,9 @@ def install(**options):
             anon.groups.append(anons)
             if not anon.save(force_insert=True):
                 raise ShellException("Failed creating User 'anonymous'!")
-            click.echo("Successfully created User 'anonymous'.\n")
+            echo("Successfully created User 'anonymous'.\n")
 
-            click.echo("Creating administrator account…\n")
+            echo("Creating administrator account…\n")
             root = poobrains.auth.User()
             root.name = 'root'
             root.mail = options['admin_mail_address']
@@ -127,17 +129,17 @@ def install(**options):
                 
                 raise ShellException("Couldn't save administrator. Please try again or fix according bugs.")
 
-            click.echo("Successfully created administrator account.\n")
+            echo("Successfully created administrator account.\n")
 
             t = poobrains.auth.ClientCertToken()
             t.user = root
             t.cert_name = options['admin_cert_name']
 
             if t.save():
-                click.echo("Admin certificate token is: %s\n" % click.style(t.token, fg="cyan", bold=True))
+                echo("Admin certificate token is: %s\n" % click.style(t.token, fg="cyan", bold=True))
 
             
-            click.echo("We'll now configure GPG for sending encrypted mail.\n")
+            echo("We'll now configure GPG for sending encrypted mail.\n")
 
             if options['gnupg_binary']:
                 gpg = gnupg.GPG(binary=options['gnupg_binary'], homedir=options['gnupg_homedir'])
@@ -145,7 +147,7 @@ def install(**options):
                 gpg = gnupg.GPG(homedir=options['gnupg_homedir'])
 
 
-            click.echo("Creating trustdb, if it doesn't exist\n")
+            echo("Creating trustdb, if it doesn't exist\n")
             gpg.create_trustdb()
             site_gpg_info = gpg.gen_key_input(
                 name_email = options['mail_address'],
@@ -155,10 +157,10 @@ def install(**options):
                 passphrase = options['gnupg_passphrase']
             )
 
-            click.echo("Generating PGP key for this site. This will probably take a pretty long while. Go get a sammich.\n")
+            echo("Generating PGP key for this site. This will probably take a pretty long while. Go get a sammich.\n")
             gpg.gen_key(site_gpg_info)
             
-            click.echo("Probably created site PGP key! \o/")
+            echo("Probably created site PGP key! \o/")
 
             config = mkconfig('config', **options) 
             config_fd = open(os.path.join(app.root_path, 'config.py'), 'w')
@@ -172,29 +174,29 @@ def install(**options):
                 uwsgi_ini_fd = open(os.path.join(app.root_path, uwsgi_ini_filename), 'w')
                 uwsgi_ini_fd.write(uwsgi_ini)
                 uwsgi_ini_fd.close()
-                click.echo("UWSGI .ini file was written to %s" % click.style(uwsgi_ini_filename, fg='green'))
+                echo("UWSGI .ini file was written to %s" % click.style(uwsgi_ini_filename, fg='green'))
 
                 nginx_conf = mkconfig('nginx', **options)
                 nginx_conf_filename = '%s.nginx.conf' % options['project_name']
                 nginx_conf_fd = open(os.path.join(app.root_path, nginx_conf_filename), 'w')
                 nginx_conf_fd.write(nginx_conf)
                 nginx_conf_fd.close()
-                click.echo("nginx config snippet was written to %s" % click.style(nginx_conf_filename, fg='green'))
+                echo("nginx config snippet was written to %s" % click.style(nginx_conf_filename, fg='green'))
 
-            click.echo("Installation complete!\n")
+            echo("Installation complete!\n")
 
 
 @app.cli.command()
-@click.option('--lifetime', prompt="How long should this CA live (in seconds, 0 means infinite)?", default=0)
+@option('--lifetime', prompt="How long should this CA live (in seconds, 0 means infinite)?", default=0)
 def minica(lifetime):
 
-    click.echo("Generating keypair.")
+    echo("Generating keypair.")
 
     keypair = OpenSSL.crypto.PKey()
     keypair.generate_key(OpenSSL.crypto.TYPE_RSA, app.config['CRYPTO_KEYLENGTH'])
 
 
-    click.echo("Generating certificate")
+    echo("Generating certificate")
     cert = OpenSSL.crypto.X509()
     cert.get_issuer().commonName = app.config['DOMAIN'] # srsly pyOpenSSL?
     cert.get_issuer().C = 'AQ'
@@ -224,32 +226,32 @@ def minica(lifetime):
         raise click.Abort()
 
 
-    click.echo("Creating directory '%s'." % tls_dir)
+    echo("Creating directory '%s'." % tls_dir)
     os.mkdir(os.path.join(tls_dir))
 
-    click.echo("Creating certificate file")
+    echo("Creating certificate file")
     cert_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
     fd = open(os.path.join(tls_dir, 'cert.pem'), 'w')
     fd.write(cert_pem)
     fd.close()
 
-    click.echo("Private Key:")
+    echo("Private Key:")
     key_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, keypair)
     fd = open(os.path.join(tls_dir, 'key.pem'), 'w')
     fd.write(key_pem)
     fd.close()
 
-    click.echo("All done! :)")
+    echo("All done! :)")
 
 
 @app.cli.command()
-@click.argument('storable', type=types.STORABLE)
+@argument('storable', type=types.STORABLE)
 @fake_before_request
 def add(storable):
 
         instance = storable()
 
-        click.echo("Addding %s...\n" % (storable.__name__,))
+        echo("Addding %s...\n" % (storable.__name__,))
         for field in storable._meta.sorted_fields:
 
             if not isinstance(field, peewee.PrimaryKeyField):
@@ -278,7 +280,7 @@ def add(storable):
 
 
 @app.cli.command()
-@click.argument('storable', type=types.STORABLE)
+@argument('storable', type=types.STORABLE)
 @fake_before_request
 def list(storable):
 
@@ -288,24 +290,122 @@ def list(storable):
 
 
 @app.cli.command()
-@click.argument('storable', type=types.STORABLE)
+@argument('storable', type=types.STORABLE)
 @fake_before_request
 def delete(storable):
 
     instance = click.prompt("%s handle" % storable.__name__, type=types.StorableInstanceParamType(storable))
-    click.echo(instance)
-    if click.confirm("Really delete this %s?" % storable.__name__):
+    echo(instance)
+    if confirm("Really delete this %s?" % storable.__name__):
 
         handle = instance.handle_string
 
         if instance.delete_instance(recursive=True):
-            click.echo("Deleted %s %s" % (storable.__name__, handle))
+            echo("Deleted %s %s" % (storable.__name__, handle))
 
         else:
-            click.echo("Could not delete %s %s." % (storable.__name__, handle))
+            echo("Could not delete %s %s." % (storable.__name__, handle))
 
 
 @app.cli.command()
 def cron():
 
     app.cron_run()
+
+
+class ASV(object):
+
+    filepath = None
+
+    def __init__(self, filepath):
+
+        self.filepath = filepath
+
+
+    def __iter__(self):
+
+        return ASVIterator(self)
+
+
+class ASVIterator(object):
+
+    asv = None
+    fd = None
+
+    def __init__(self, asv):
+
+        self.asv = asv
+        self.fd = codecs.open(self.asv.filepath, 'r', encoding='utf-8')
+        self.keys = self.next_list()
+    
+    
+    def __del__(self):
+        self.fd.close()
+
+
+    def next_list(self):
+
+        """ Get the next record of the file as list """
+
+        row = []
+        current_token = u''
+
+        while True:
+
+            char = self.fd.read(1) # read one byte, NOTE: In unicode 1 byte != 1 char. Will this fuck up? WHO KNOWS!?
+
+            if len(char) == 0:
+                raise StopIteration('ASV File was fully read.')
+
+            elif char == chr(0x1F): # unit separator, means the current column was fully read
+                row.append(current_token if len(current_token) else None)
+                current_token = u''
+
+            elif char == chr(0x1E): # record separator, means we have reached the end of the line (or rather record)
+                row.append(current_token if len(current_token) else None)
+                return row
+
+            else:
+                current_token += char
+
+
+    def next(self):
+
+        return collections.OrderedDict(zip(self.keys, self.next_list()))
+
+
+@app.cli.command()
+@argument('storable', type=types.STORABLE)
+@argument('filepath', type=types.Path(exists=True))
+@option('--skip-pk', type=types.BOOL, default=False, is_flag=True)
+def insert(storable, filepath, skip_pk):
+
+    fields = storable._meta.sorted_fields
+    data = ASV(filepath)
+
+    for record in data:
+        echo(record)
+
+        instance = storable()
+
+        for field in fields:
+            
+            if isinstance(field, poobrains.storage.fields.PrimaryKeyField):
+
+                if not skip_pk:
+                    setattr(instance, field.name, int(record[field.name]))
+
+            elif isinstance(field, poobrains.storage.fields.ForeignKeyField):
+
+                actual_name = "%s_id" % field.name
+
+                if record[actual_name] is None:
+                    setattr(instance, field.name, None)
+                else:
+                    setattr(instance, field.name, field.rel_model.select().where(field.rel_model.id == record[actual_name])[0])
+
+            else:
+                setattr(instance, field.name, field.type.convert(record[field.name], None, None))
+
+        instance.save(force_insert=True)
+        echo("Saved %s" % instance)

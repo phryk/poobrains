@@ -4,10 +4,10 @@
 import flask
 import peewee
 
-from peewee import Check
+from peewee import PrimaryKeyField, Check
 
 # parent imports
-#import poobrains
+from poobrains import app
 import poobrains.helpers
 import poobrains.form
 
@@ -37,9 +37,9 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
         try:
             instance = self.storable.load(value)
 
-        except Exception:
+        except self.storable.DoesNotExist:
 
-            self.fail("Invalid handle '%s' for %s." % (value, self.storable.__name__))
+            self.fail("No such %s: %s." % (self.storable.__name__, value))
 
         if self.choices is not None and instance not in self.choices:
             self.fail("'%s' is not an approved choice." % value)
@@ -147,13 +147,14 @@ class DateTimeField(Field, peewee.DateTimeField):
 
 class ForeignKeyField(Field, peewee.ForeignKeyField):
 
-    # NOTE: type set by constructor, because it needs a storable passed in 
     form_widget = ForeignKeyChoice
 
-    def __init__(self, rel_model, **kwargs):
+    def add_to_class(self, model_class, name):
+    
+        # NOTE: type set in here because it needs a Storable class passed in 
 
-        super(ForeignKeyField, self).__init__(rel_model, **kwargs)
-        self.type = StorableInstanceParamType(rel_model) # basically just needed for the CLI, which checks field.type
+        super(ForeignKeyField, self).add_to_class(model_class, name)
+        self.type = StorableInstanceParamType(model_class if self.rel_model == 'self' else self.rel_model) # basically just needed for the CLI, which checks field.type
 
 
 class BooleanField(Field, peewee.BooleanField):
