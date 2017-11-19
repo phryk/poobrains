@@ -374,11 +374,11 @@ class ASVIterator(object):
         return collections.OrderedDict(zip(self.keys, self.next_list()))
 
 
-@app.cli.command()
+@app.cli.command(name='import')
 @argument('storable', type=types.STORABLE)
 @argument('filepath', type=types.Path(exists=True))
 @option('--skip-pk', type=types.BOOL, default=False, is_flag=True)
-def insert(storable, filepath, skip_pk):
+def import_(storable, filepath, skip_pk):
 
     fields = storable._meta.sorted_fields
     data = ASV(filepath)
