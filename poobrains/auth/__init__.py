@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""
+The authentication system.
+
+This module implements permissions/access control and administration functionality.
+"""
+
 # external imports
 import functools
 import collections

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+""" The tagging system. """
+
 import collections
 import peewee
 import flask
@@ -16,6 +18,10 @@ import poobrains.md
 
 #@app.expose('/tag/', mode='full')
 class Tag(poobrains.auth.Named):
+
+    """
+    A tag. Tags can form hierarchies. You can build a forest, but loops are forbidden.
+    """
 
     title = poobrains.storage.fields.CharField()
     parent = poobrains.storage.fields.ForeignKeyField('self', null=True, constraints=[peewee.Check('parent_id <> id')]) # FIXME: Yes, this is no proper protection against loops

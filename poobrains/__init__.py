@@ -1,5 +1,7 @@
 # -*-  coding: utf-8 -*-
 
+""" A webframework for aspiring media terrorists. """
+
 import os
 import sys
 import types
@@ -862,6 +864,7 @@ from . import svg
 from . import search
 from . import profile
 from . import cli
+from . import doc
 
 
 class ErrorPage(rendering.Renderable):

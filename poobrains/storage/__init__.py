@@ -138,6 +138,10 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
 
 class Storable(Model, poobrains.rendering.Renderable):
 
+    """
+    A `Renderable` `Model` associated to a single table in the database.
+    """
+
     class Meta:
         abstract = True
         modes = collections.OrderedDict([('full', 'read')])
