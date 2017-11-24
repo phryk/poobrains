@@ -3,6 +3,7 @@
 import string
 import random
 import functools
+import codecs # so we can open a file as utf-8 in order to parse ASV for importing data
 import werkzeug
 import peewee
 import flask
@@ -386,3 +387,86 @@ class CustomOrderedDict(dict):
 
     def keys(self):
         return self.order
+
+
+class ASVReader(object):
+
+    filepath = None
+
+    def __init__(self, filepath):
+
+        super(ASVReader, self).__init__()
+        self.filepath = filepath
+
+
+    def __iter__(self):
+
+        return ASVIterator(self)
+
+
+class ASVIterator(object):
+
+    asv = None
+    fd = None
+
+    def __init__(self, asv):
+
+        self.asv = asv
+        self.fd = codecs.open(self.asv.filepath, 'r', encoding='utf-8')
+        self.keys = self.next_list()
+    
+    
+    def __del__(self):
+        self.fd.close()
+
+
+    def next_list(self):
+
+        """ Get the next record of the file as list """
+
+        record = []
+        current_token = u''
+
+        while True:
+
+            char = self.fd.read(1) # one unicode char, no matter how many bytes, compliments of the codecs module
+
+            if len(char) == 0:
+                raise StopIteration('ASV File was fully read.')
+
+            elif char == chr(0x1F): # unit separator, means the current column was fully read
+                record.append(current_token)
+                current_token = u''
+
+            elif char == chr(0x1E): # record separator, means we have reached the end of the line (or rather record)
+                record.append(current_token)
+                return record
+
+            else:
+                current_token += char
+
+
+    def next(self):
+
+        return OrderedDict(zip(self.keys, self.next_list()))
+
+
+class ASVWriter(object):
+
+    fd = None
+
+    unit_separator = unicode(chr(0x1F)) # probably needed in order not to fail the join on records with unicode chars
+    record_terminator = unicode(chr(0x1E)) # unicode for consistency
+
+
+    def __init__(self, filepath):
+
+        self.fd = codecs.open(filepath, 'a', encoding='utf-8')
+
+    def write_record(self, record):
+
+        self.fd.write("%s%s" % (self.unit_separator.join(record), self.record_terminator))
+
+
+    def __del__(self):
+        self.fd.close()

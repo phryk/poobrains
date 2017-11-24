@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import collections
 import os
 import datetime
 import functools
-import codecs # so we can open a file as utf-8 in order to parse ASV for importing data
 import peewee
 import OpenSSL
 import gnupg
@@ -313,67 +311,6 @@ def cron():
     app.cron_run()
 
 
-class ASV(object):
-
-    filepath = None
-
-    def __init__(self, filepath):
-
-        self.filepath = filepath
-
-
-    def __iter__(self):
-
-        return ASVIterator(self)
-
-
-class ASVIterator(object):
-
-    asv = None
-    fd = None
-
-    def __init__(self, asv):
-
-        self.asv = asv
-        self.fd = codecs.open(self.asv.filepath, 'r', encoding='utf-8')
-        self.keys = self.next_list()
-    
-    
-    def __del__(self):
-        self.fd.close()
-
-
-    def next_list(self):
-
-        """ Get the next record of the file as list """
-
-        row = []
-        current_token = u''
-
-        while True:
-
-            char = self.fd.read(1) # read one byte, NOTE: In unicode 1 byte != 1 char. Will this fuck up? WHO KNOWS!?
-
-            if len(char) == 0:
-                raise StopIteration('ASV File was fully read.')
-
-            elif char == chr(0x1F): # unit separator, means the current column was fully read
-                row.append(current_token)
-                current_token = u''
-
-            elif char == chr(0x1E): # record separator, means we have reached the end of the line (or rather record)
-                row.append(current_token)
-                return row
-
-            else:
-                current_token += char
-
-
-    def next(self):
-
-        return collections.OrderedDict(zip(self.keys, self.next_list()))
-
-
 @app.cli.command(name='import')
 @argument('storable', type=types.STORABLE)
 @argument('filepath', type=types.Path(exists=True))
@@ -381,37 +318,78 @@ class ASVIterator(object):
 def import_(storable, filepath, skip_pk):
 
     fields = storable._meta.sorted_fields
-    data = ASV(filepath)
+    data = poobrains.helpers.ASVReader(filepath)
 
-    for record in data:
-        echo(record)
+    with click.progressbar(data, label="Importing as %s" % storable.__name__, item_show_func=lambda x: x.values()[0] if x else '') as data_proxy: 
 
-        instance = storable()
+        for record in data_proxy:
 
-        for field in fields:
-            
-            if isinstance(field, poobrains.storage.fields.PrimaryKeyField):
+            instance = storable()
 
-                if not skip_pk:
-                    setattr(instance, field.name, int(record[field.name]))
+            for field in fields:
+                
+                if isinstance(field, poobrains.storage.fields.PrimaryKeyField):
 
-            elif isinstance(field, poobrains.storage.fields.ForeignKeyField):
+                    if not skip_pk:
+                        setattr(instance, field.name, int(record[field.name]))
 
-                actual_name = "%s_id" % field.name
+                elif isinstance(field, poobrains.storage.fields.ForeignKeyField):
 
-                if record[actual_name] == u'':
-                    setattr(instance, field.name, None)
-                else:
-                    setattr(instance, field.name, field.rel_model.select().where(field.rel_model.id == record[actual_name])[0])
+                    actual_name = "%s_id" % field.name
 
-            else:
-
-                if record.has_key(field.name): # only fill fields for which we actually have values
-
-                    if field.null and record[field.name] == u'':
-                        setattr(instance, field.name, None) # insert NULL for empty strings if allowed, cleaner than just spamming the db with empty strings
+                    if record[actual_name] == u'':
+                        setattr(instance, field.name, None)
                     else:
-                        setattr(instance, field.name, field.type.convert(record[field.name], None, None))
+                        setattr(instance, field.name, field.rel_model.select().where(field.rel_model.id == record[actual_name])[0])
 
-        instance.save(force_insert=True)
-        echo("Saved %s" % instance)
+                else:
+
+                    if record.has_key(field.name): # only fill fields for which we actually have values
+
+                        if field.null and record[field.name] == u'':
+                            setattr(instance, field.name, None) # insert NULL for empty strings if allowed, cleaner than just spamming the db with empty strings
+                        else:
+                            setattr(instance, field.name, field.type.convert(record[field.name], None, None))
+
+            instance.save(force_insert=True)
+
+    echo("Complete!")
+
+
+@app.cli.command(name='export')
+@argument('storable', type=types.STORABLE)
+@argument('filepath', type=types.Path(exists=False))
+@option('--skip-pk', type=types.BOOL, default=False, is_flag=True)
+def export(storable, filepath, skip_pk):
+
+    fields = storable._meta.sorted_fields
+    writer = poobrains.helpers.ASVWriter(filepath)
+
+    header = []
+    for field in fields:
+
+        value = field.name
+        if isinstance(field, poobrains.storage.fields.ForeignKeyField):
+            value += '_id' # TODO: Find out if this can ever not be '_id'
+
+        header.append(value)
+
+
+    writer.write_record(header) # write the header which is used to identify fields in imports
+
+    with click.progressbar(storable.select(), label="Exporting", item_show_func=lambda x: x.title if x else '') as data_proxy: 
+        for instance in data_proxy:
+
+            record = []
+            for field in fields:
+                
+                value = getattr(instance, field.name)
+
+                if isinstance(field, poobrains.storage.fields.ForeignKeyField):
+                    value = value._get_pk_value()
+
+                record.append(unicode(value))
+
+            writer.write_record(record)
+
+    echo("Complete!")
