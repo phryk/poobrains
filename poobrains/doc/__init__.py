@@ -1,9 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+The documentation system.
+"""
+
+import os
+import sys
 import string
+import codecs # needed to open files with utf-8 encoding
 import inspect
 import pkgutil
 import pydoc
 
 from poobrains import app
+import poobrains.errors
 import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
@@ -12,27 +21,36 @@ import poobrains.md
 
 def clean(text):
 
+    """ mainly for cleaning < and > from `Repr`s """
+
     return text.replace('<', '&lt;').replace('>', '&gt;')
 
 
 def getdoc(obj):
 
-    return clean(pydoc.getdoc(obj))
+    return pydoc.getdoc(obj) # TODO: determine whether we want to clean <,> here
+    #return clean(pydoc.getdoc(obj))
 
 
-class MDRepr(pydoc.TextRepr):
+class MDRepr(pydoc.TextRepr, object):
 
     def repr_string(self, x, level):
         app.debugger.set_trace()
         return clean(super(MDRepr, self).repr_string(x, level))
 
-    def reor1(self, x, level):
+    def repr1(self, x, level):
         app.debugger.set_trace()
+        return clean(super(MDRepr, self).repr1(x, level))
 
 
 class DocMD(pydoc.Doc):
 
-    """ 200% doc """
+    """ 
+    200% doc
+
+    A pydoc.Doc subclass that outputs documentation as markdown.
+
+    """
 
     _repr_instance = MDRepr()
     repr = _repr_instance.repr
@@ -170,17 +188,18 @@ class DocMD(pydoc.Doc):
             result = result + self.section('DATA', string.join(contents, '\n'))
 
         if hasattr(object, '__version__'):
-            version = _binstr(object.__version__)
+            version = pydoc._binstr(object.__version__)
             if version[:11] == '$' + 'Revision: ' and version[-1:] == '$':
                 version = strip(version[11:-1])
             result = result + self.section('VERSION', version)
         if hasattr(object, '__date__'):
-            result = result + self.section('DATE', _binstr(object.__date__))
+            result = result + self.section('DATE', pydoc._binstr(object.__date__))
         if hasattr(object, '__author__'):
-            result = result + self.section('AUTHOR', _binstr(object.__author__))
+            result = result + self.section('AUTHOR', pydoc._binstr(object.__author__))
         if hasattr(object, '__credits__'):
-            result = result + self.section('CREDITS', _binstr(object.__credits__))
-        return clean(result)
+            result = result + self.section('CREDITS', pydoc._binstr(object.__credits__))
+        #return clean(result)
+        return result
 
     def docclass(self, object, name=None, mod=None, *ignored):
         """Produce text documentation for a given class object."""
@@ -384,17 +403,12 @@ class DocMD(pydoc.Doc):
         return line
 
 
-@app.route('/doctest')
-@poobrains.helpers.themed
-def doctest():
-
-    doc = DocMD()
-    return poobrains.md.MarkdownString(doc.document(poobrains.storage.Storable))
-
-
 @app.expose('/doc/')
 class Documentation(poobrains.auth.Protected):
 
+    """
+    A `Renderable` that can created and render module documentation on the fly.
+    """
 
     handle = None
     title = None
@@ -402,30 +416,32 @@ class Documentation(poobrains.auth.Protected):
 
     def __init__(self, handle=None, **kwargs):
 
-
         super(Documentation, self).__init__(**kwargs)
+        app.debugger.set_trace()
 
-        doc = DocMD()
 
         self.handle = handle
+        md_path = os.path.join(app.poobrain_path, 'doc', '%s.md' % handle)
 
-        addr = handle.split('.')
-        
         if handle is None:
             import __main__
-            subject = getattr(__main__)
+            doc = DocMD()
+            subject = __main__
+            text = doc.document(subject)
 
-        elif addr[0] == 'poobrains':
+        elif os.path.exists(md_path):
 
-            if len(addr) == 1:
-                subject = poobrains
+            self.title = handle.title()
+            text = codecs.open(md_path, 'r', encoding='utf-8').read()
 
-            else:
-                subject = getattr(poobrains, addr[1])
+        elif sys.modules.has_key(handle):
+            
+            doc = DocMD()
+            subject = sys.modules[handle]
+            self.title = subject.__name__
+            text = doc.document(subject)
 
         else:
-            import __main__
-            subject = getattr(__main__, addr[0])
+            raise poobrains.errors.ExposedError("Whoops.")
 
-        self.title = subject.__name__
-        self.text = poobrains.md.MarkdownString(doc.document(subject))
+        self.text = poobrains.md.MarkdownString(text)

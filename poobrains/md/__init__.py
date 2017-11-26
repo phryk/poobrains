@@ -89,9 +89,10 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
                         return instance.render()
 
                 except Exception:
-                    pass # fall back to default handling (giving shit back unchanged)
+                    return jinja2.Markup(u'<span class="markdown-error">%s could not be loaded.</span>' % cls.__name__)
 
-            return match.group(0)
+            else:
+                return jinja2.Markup(u"<span class=\"markdown-error\">Don't know what %s is.</span>" % cls.__name__)
 
         return super(DisplayRenderable, self).handleMatch(match)
 
@@ -102,7 +103,7 @@ class DisplayRenderableExtension(markdown.Extension):
 
         md.inlinePatterns.add(
             self.__class__.__name__,
-            DisplayRenderable('!\[(.*?)/(.*?)]'),
+            DisplayRenderable('\!\[(.*?)/(.*?)]'),
             '<reference'
         )
 
