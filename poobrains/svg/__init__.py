@@ -40,6 +40,7 @@ class SVG(poobrains.rendering.Renderable):
         if mode == 'raw':
             
             response = Response(self.render('raw'))
+            response.headers['Content-Type'] = u'image/svg+xml'
             response.headers['Content-Disposition'] = u'filename="%s"' % 'map.svg'
             
             # Disable "public" mode caching downstream (nginx, varnish) in order to hopefully not leak restricted content
@@ -247,15 +248,20 @@ class MapDatapoint(poobrains.tagging.Taggable):
 
     # mercator calculation shamelessly thieved from the osm wiki
     # http://wiki.openstreetmap.org/wiki/Mercator
+    # NOTE: I *think* this is WGS84?
+    # NOTE: r_minor seems to have been WGS84 but missed a few decimal places
 
     @property
     def x(self):
 
         if not self.longitude is None:
-            normalization_factor = 20038300.0 # maximum result
+            #normalization_factor = 20038300.0 # pulled from some stackoverflow post
+            normalization_factor = 20037508.3428
+
             r_major=6378137.000
             #r_major = 100
             x = r_major*math.radians(self.longitude)
+            app.logger.debug('MERCATOR X: %s' % str(x))
             return 50 + 50 * (x / normalization_factor)
 
 
@@ -264,12 +270,12 @@ class MapDatapoint(poobrains.tagging.Taggable):
 
         if not self.latitude is None:
 
-            normalization_factor = 15433199.0
-
+            #normalization_factor = 15433199.0 # pulled from some stackoverflow post
+            normalization_factor = 19994838.114 # this is the value this function would return for 85.0511° without normalization, which should™ make the map square
             if self.latitude>89.5:self.latitude=89.5
             if self.latitude<-89.5:self.latitude=-89.5
             r_major=6378137.000
-            r_minor=6356752.3142
+            r_minor=6356752.3142518
             #r_major=100
             #r_minor=100
             temp=r_minor/r_major
@@ -281,7 +287,8 @@ class MapDatapoint(poobrains.tagging.Taggable):
             con=((1.0-con)/(1.0+con))**com
             ts=math.tan((math.pi/2-phi)/2)/con
             y=0-r_major*math.log(ts)
-            return 50 + 50 * (y / normalization_factor)
+            app.logger.debug('MERCATOR Y: %s' % str(y))
+            return 50 - 50 * (y / normalization_factor)
 
 
 @app.expose('/svg/map')

@@ -101,6 +101,11 @@ path#icon {
 
 .map {
 
+
+    .ocean {
+        fill: darken($color_highlight, 45%);
+    }
+
     .country {
 
         stroke: opacify($color_background_light, -20%);
@@ -127,7 +132,9 @@ path#icon {
     .map-datapoint {
 
         .marker {
-            fill: transparentize($color_background_light, 20%);
+            /*fill: transparentize($color_background_light, 20%);*/
+            fill: $color_highlight;
+            radius: 10px !important;
         }
 
         text {

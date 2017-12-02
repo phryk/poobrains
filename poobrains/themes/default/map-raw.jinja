@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<svg xmlns:osb='http://www.openswatchbook.org/uri/2009/osb' xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xml:space='preserve' xmlns:cc='http://creativecommons.org/ns#' viewBox='0 0 1000 776' width="1000" height="776" version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:dc='http://purl.org/dc/elements/1.1/'>
+<svg xmlns:osb='http://www.openswatchbook.org/uri/2009/osb' xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xml:space='preserve' xmlns:cc='http://creativecommons.org/ns#' viewBox='0 0 1000 997' width="1000" height="997" version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:dc='http://purl.org/dc/elements/1.1/'>
     <metadata>
         <rdf:RDF>
             <cc:Work rdf:about=''>
                 <dc:format>image/svg+xml</dc:format>
-                <dc:type rdf:resource='http://purl.org/dc/dcmitype/StillImage' />
+                <dc:type rdf:resource='http://purl.org/dc/dcmitype/InteractiveResource' />
                 <dc:title />
             </cc:Work>
         </rdf:RDF>
@@ -16,6 +16,7 @@
     </style>
 
     <g class="map">
+        <rect class="ocean" x="0" y="0" width="100%" height="100%" />
         {% include 'world.jinja' %}
     </g> <!-- / .map -->
 
@@ -23,7 +24,7 @@
     <g class="map-dataset">
         {% for datapoint in dataset.datapoints %} 
         <g class="map-datapoint">
-            <circle class="marker" cx="{{ datapoint.x }}%" cy="{{ datapoint.y }}%" r="5px" />
+            <circle class="marker" cx="{{ datapoint.x }}%" cy="{{ datapoint.y }}%" r="3px" />
             <text x="{{ datapoint.x }}%" y="{{ datapoint.y }}%"> [{{ datapoint.latitude }} / {{ datapoint.longitude }}]: {{ datapoint.description }}</text>
         </g>
         {% endfor %}
