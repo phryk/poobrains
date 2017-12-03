@@ -47,6 +47,8 @@ def fill_datasets():
 
         dp = example.poobrains.svg.Datapoint()
         dp.dataset = sine
+        dp.owner = u
+        dp.group = g
         dp.x = i
         dp.y = math.sin(i/float(sine_steps) * 2 * math.pi)
 
@@ -55,6 +57,8 @@ def fill_datasets():
 
         fuck = example.poobrains.svg.Datapoint()
         fuck.dataset = fucksgiven
+        fuck.owner = u
+        fuck.group = g
         fuck.x = i
         fuck.y = 0
 

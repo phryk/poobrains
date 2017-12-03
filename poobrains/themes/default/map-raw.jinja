@@ -4,7 +4,7 @@
     <metadata>
         <rdf:RDF>
             <cc:Work rdf:about=''>
-                <dc:format>image/svg+xml</dc:format>
+                <dc:format>image/svg+html</dc:format>
                 <dc:type rdf:resource='http://purl.org/dc/dcmitype/InteractiveResource' />
                 <dc:title />
             </cc:Work>
@@ -25,7 +25,7 @@
         {% for datapoint in dataset.datapoints %} 
         <g class="map-datapoint">
             <circle class="marker" cx="{{ datapoint.x }}%" cy="{{ datapoint.y }}%" r="3px" />
-            <text x="{{ datapoint.x }}%" y="{{ datapoint.y }}%"> [{{ datapoint.latitude }} / {{ datapoint.longitude }}]: {{ datapoint.description }}</text>
+            <text x="{{ datapoint.x }}%" y="{{ datapoint.y }}%"> [{{ datapoint.latitude }} / {{ datapoint.longitude }}]: {{ datapoint.description.render() }}</text>
         </g>
         {% endfor %}
     </g>

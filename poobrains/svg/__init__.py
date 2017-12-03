@@ -4,14 +4,14 @@ import math
 import os
 import collections
 
-from poobrains import Response, app, abort
+from poobrains import Response, app, abort, flash, g
 import poobrains.helpers
-import poobrains.rendering
 import poobrains.storage
+import poobrains.auth
 import poobrains.tagging
 import poobrains.commenting
 
-class SVG(poobrains.rendering.Renderable):
+class SVG(poobrains.auth.Protected):
     
     handle = None # needed so that app.expose registers a route with extra param, this is kinda hacky…
     
@@ -70,7 +70,6 @@ class DatasetForm(poobrains.auth.AddForm):
         setattr(self, 'datapoint-add', DatapointFieldset(Datapoint()))
 
 
-
 class Dataset(poobrains.commenting.Commentable):
 
     form_edit = DatasetForm
@@ -79,6 +78,11 @@ class Dataset(poobrains.commenting.Commentable):
     description = poobrains.md.MarkdownField(null=True)
     label_x = poobrains.storage.fields.CharField(verbose_name="Label for the x-axis")
     label_y = poobrains.storage.fields.CharField(verbose_name="Label for the y-axis")
+
+
+    @property
+    def authorized_datapoints(self):
+        return Datapoint.list('read', g.user).where(Datapoint.dataset == self)
 
 
 class DatapointFieldset(poobrains.form.Fieldset):
@@ -108,7 +112,7 @@ class DatapointFieldset(poobrains.form.Fieldset):
             self.datapoint.save(force_insert=True)
 
 
-class Datapoint(poobrains.storage.Model):
+class Datapoint(poobrains.auth.Owned):
 
     class Meta:
         order_by = ['dataset', 'x']
@@ -147,13 +151,14 @@ class Plot(SVG):
         #all_datapoints = [dp for dp in ds.datapoints for ds in self.datasets]
         all_datapoints = []
         for dataset in self.datasets:
-            for datapoint in dataset.datapoints:
+            for datapoint in Datapoint.list('read', g.user).where(Datapoint.dataset << self.datasets):
                 all_datapoints.append(datapoint)
 
         self.min_x = min([dp.x for dp in all_datapoints])
         self.max_x = max([dp.x for dp in all_datapoints])
         self.min_y = min([dp.y for dp in all_datapoints])
         self.max_y = max([dp.y for dp in all_datapoints])
+
 
     def normalize_x(self, value):
 
@@ -307,7 +312,14 @@ class Map(SVG):
         dataset_names = handle.split(',')
 
         for name in dataset_names:
-            self.datasets.append(MapDataset.load(name))
+
+            try:
+                ds = MapDataset.load(name)
+                if ds.permissions['read'].check(g.user):
+                    self.datasets.append(ds)
+            except (MapDataset.DoesNotExist, poobrains.auth.AccessDenied):
+                flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
+
 
 for cls in set([SVG]).union(SVG.class_children()):
     rule = os.path.join("/svg/", cls.__name__.lower(), '<handle>', 'raw')

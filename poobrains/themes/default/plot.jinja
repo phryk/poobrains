@@ -18,16 +18,16 @@
         <g class="dataset" title="{{ dataset.title }}">
 
 
-            {% for i in range(0, dataset.datapoints|length) %}
+            {% for i in range(0, dataset.authorized_datapoints|length) %}
 
-                {% with datapoint = dataset.datapoints[i] %}
+                {% with datapoint = dataset.authorized_datapoints[i] %}
                     <g class="datapoint">
                         <circle class="point"cx="{{ content.normalize_x(datapoint.x) }}%" cy="{{ content.normalize_y(datapoint.y) }}%" r="8" />
                         <!-- TODO: error margins -->
                     </g>
 
-                    {% if i < (dataset.datapoints|length - 1) %}
-                    {% with next_datapoint = dataset.datapoints[i + 1] %}
+                    {% if i < (dataset.authorized_datapoints|length - 1) %}
+                    {% with next_datapoint = dataset.authorized_datapoints[i + 1] %}
                     <line
                         x1="{{ content.normalize_x(datapoint.x) }}%"
                         y1="{{ content.normalize_y(datapoint.y) }}%"
