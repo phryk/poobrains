@@ -7,5 +7,5 @@
 {% endblock %}
 
 {% block content %}
-    <a href="{{ content.url('raw') }}">{{ content.filename }}</a>
+    <a href="{{ content.url('raw') }}">{{ content.filename }}</a> <span class="file-size">{{ content.file_size_pretty }}</span>
 {% endblock %}

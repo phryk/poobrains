@@ -1,5 +1,5 @@
 @import 'colors';
-
+@import 'fonts';
 
 
 @keyframes scroll {
@@ -23,6 +23,10 @@
     100% {
         transform: scale(1);
     }
+}
+
+text {
+    font-family: 'Open Sans', sans;
 }
 
 svg#hexascroll {
@@ -109,7 +113,7 @@ path#icon {
     .country {
 
         stroke: opacify($color_background_light, -20%);
-        stroke-width: 0.1rem;
+        stroke-width: 1px;
         stroke-miterlimit: 1;
         fill: opacify($color_background_dark, -20%);
         transition: fill 0.3s linear, stroke 0.3s linear;
@@ -133,29 +137,46 @@ path#icon {
 
         .marker {
             /*fill: transparentize($color_background_light, 20%);*/
-            fill: $color_highlight;
-            radius: 10px !important;
+            fill: desaturate($color_highlight, 50%);
+            z-index: 9000;
+            stroke: transparentize($color_background_light, 100%);
+            stroke-width: 10px;
+            transition: fill 0.3s linear, stroke 0.3s linear;
         }
 
-        text {
+        .infobox {
             display: none;
             opacity: 0;
             fill: $color_font_light;
             font-size: 1rem;
             /*transform: translateY(1rem);*/
             transition: opacity 0.3s linear;
+
+            &.html {
+                body {
+                    background: $color_background_dark;
+                    color: $color_font_light;
+                    padding: 1rem;
+
+                    h1 {
+                        margin-top: 0;
+                        font-size: 120%;
+                    }
+                }
+            }
         }
 
         &:hover {
 
             .marker {
-                fill: $color_highlight;
+                fill: $color_background_light;
+                stroke: $color_highlight;
             }
 
-            text {
+            .infobox {
+                z-index: 9001;
                 display: block;
                 opacity: 1;
-                text-shadow: 0 0 0.5rem #000, 0 0 0.5rem #000, 0 0 0.5rem #000, 0 0 0.5rem #000;
                 background: #111;
             }
         }

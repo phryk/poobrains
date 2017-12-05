@@ -280,6 +280,9 @@ class Value(BaseField):
 
 class Field(BaseField, poobrains.rendering.Renderable):
 
+    class Meta:
+        abstract = True
+
     rendered = None
 
     def render(self):
@@ -289,10 +292,15 @@ class Field(BaseField, poobrains.rendering.Renderable):
 
 
 class Text(Field):
-    pass
+
+    class Meta:
+        abstract = True
 
 
 class Message(Field):
+
+    class Meta:
+        abstract = True
 
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__, self.value)
@@ -307,14 +315,21 @@ class Message(Field):
 
 
 class ObfuscatedText(Text):
-    pass
+
+    class Meta:
+        abstract = True
 
 
 class TextArea(Text):
-    pass
+
+    class Meta:
+        abstract = True
 
 
 class Range(Field):
+
+    class Meta:
+        abstract = True
 
     min = None
     max = None
@@ -341,6 +356,9 @@ class Range(Field):
 
 class DateTime(Field):
 
+    class Meta:
+        abstract = True
+
     type = types.DATETIME
 
 
@@ -353,6 +371,9 @@ class Select(Field):
 
 
 class Checkbox(Field):
+
+    class Meta:
+        abstract = True
 
     type = types.BOOL
     default = False
@@ -392,6 +413,9 @@ class Checkbox(Field):
 
 
 class Radio(Field):
+
+    class Meta:
+        abstract = True
     
     def __init__(self, *args, **kwargs):
 
@@ -401,6 +425,9 @@ class Radio(Field):
 
 
 class Keygen(Field):
+
+    class Meta:
+        abstract = True
     
     challenge = None
 
@@ -417,4 +444,6 @@ class Keygen(Field):
 
 
 class File(Field):
-    pass
+
+    class Meta:
+        abstract = True

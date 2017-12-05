@@ -156,6 +156,24 @@ def is_secure(f):
     return substitute
 
 
+def pretty_bytes(bytecount):
+
+    """
+    Return a human readable representation given a size in bytes.
+    """
+
+    units = ['Byte', 'Kilobyte', 'Megabyte', 'Gigabyte', 'Terabyte']
+
+    value = bytecount
+    for unit in units:
+        if value / 1024.0 < 1:
+            break
+
+        value /= 1024.0
+
+    return "%.2f %s" % (value, unit)
+
+
 class ThemedPassthrough(object):
 
     themed = None

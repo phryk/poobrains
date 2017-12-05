@@ -114,6 +114,7 @@ class UploadForm(poobrains.auth.AddForm):
 
 class File(poobrains.auth.NamedOwned):
 
+    file_size = None
     form_add = UploadForm
     form_edit = UploadForm
     path = None
@@ -145,6 +146,11 @@ class File(poobrains.auth.NamedOwned):
 
         return super(File, self).__setattr__(name, value)
 
+
+    def prepared(self):
+        self.file_size = os.path.getsize(self.file_path)
+
+
     @poobrains.auth.protected
     @poobrains.helpers.themed
     def view(self, mode=None, handle=None):
@@ -168,6 +174,13 @@ class File(poobrains.auth.NamedOwned):
     @property
     def file_path(self):
         return os.path.join(self.path, self.filename)
+
+    
+    @property
+    def file_size_pretty(self):
+        size = self.file_size if self.file_size != None else 0
+
+        return poobrains.helpers.pretty_bytes(size) 
 
 
     def delete_instance(self, *args, **kwargs):

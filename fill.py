@@ -42,7 +42,7 @@ def fill_datasets():
     fucksgiven.save()
 
 
-    sine_steps = 32
+    sine_steps = 33
     for i in range(0,sine_steps):
 
         dp = example.poobrains.svg.Datapoint()
@@ -50,7 +50,7 @@ def fill_datasets():
         dp.owner = u
         dp.group = g
         dp.x = i
-        dp.y = math.sin(i/float(sine_steps) * 2 * math.pi)
+        dp.y = math.sin(i/float(sine_steps-1) * 2 * math.pi)
 
         dp.save(force_insert=True)
 

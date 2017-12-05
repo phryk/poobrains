@@ -78,7 +78,6 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
                         
                         except:
                             return jinja2.Markup(md.convert("*You are not allowed to view an instance of %s that was placed here.*" % cls.__name__))
-
                     if instance._meta.modes.has_key('inline'):
                         return instance.render('inline')
                     elif instance._meta.modes.has_key('teaser'):
@@ -88,7 +87,8 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
                     else:
                         return instance.render()
 
-                except Exception:
+                except Exception as e:
+                    app.logger.debug(e)
                     return jinja2.Markup(u'<span class="markdown-error">%s could not be loaded.</span>' % cls.__name__)
 
             else:
@@ -109,7 +109,7 @@ class DisplayRenderableExtension(markdown.Extension):
 
 
 md = app.config['MARKDOWN_CLASS'](
-    output_format=app.config['MARKDOWN_OUTPUT'],
+    output_format='xhtml5', # xml-style in order not to fuck too much with <foreignObject> HTML in SVG (see svg.Map for example)
     extensions=[DisplayRenderableExtension()] + app.config['MARKDOWN_EXTENSIONS']
 )
 

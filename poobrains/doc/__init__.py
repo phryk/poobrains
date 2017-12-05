@@ -35,11 +35,9 @@ def getdoc(obj):
 class MDRepr(pydoc.TextRepr, object):
 
     def repr_string(self, x, level):
-        app.debugger.set_trace()
         return clean(super(MDRepr, self).repr_string(x, level))
 
     def repr1(self, x, level):
-        app.debugger.set_trace()
         return clean(super(MDRepr, self).repr1(x, level))
 
 
@@ -74,7 +72,6 @@ class DocMD(pydoc.Doc):
 
 
     def listing(self, items):
-        app.debugger.set_trace()
         return u"\n" + u"\n* ".join(items)
 
 
@@ -417,8 +414,6 @@ class Documentation(poobrains.auth.Protected):
     def __init__(self, handle=None, **kwargs):
 
         super(Documentation, self).__init__(**kwargs)
-        app.debugger.set_trace()
-
 
         self.handle = handle
         md_path = os.path.join(app.poobrain_path, 'doc', '%s.md' % handle)

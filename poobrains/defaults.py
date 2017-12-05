@@ -31,4 +31,3 @@ CACHE_LONG = 60 * 60 * 24 * 7 # a week
 
 MARKDOWN_CLASS = md_default.pooMarkdown
 MARKDOWN_EXTENSIONS = ['markdown.extensions.codehilite', 'markdown.extensions.fenced_code', 'markdown.extensions.tables']
-MARKDOWN_OUTPUT = 'html5'

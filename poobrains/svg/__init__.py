@@ -136,28 +136,35 @@ class Plot(SVG):
 
     def __init__(self, handle=None, mode=None, **kwargs):
 
-        super(Plot, self).__init__(**kwargs)
-        self.datasets = []
+        super(Plot, self).__init__(handle=handle, mode=mode, **kwargs)
 
         if handle is None:
             abort(404)
 
+        self.datasets = []
         dataset_names = handle.split(',')
 
         for name in dataset_names:
-            self.datasets.append(Dataset.load(name))
 
-        
-        #all_datapoints = [dp for dp in ds.datapoints for ds in self.datasets]
-        all_datapoints = []
-        for dataset in self.datasets:
-            for datapoint in Datapoint.list('read', g.user).where(Datapoint.dataset << self.datasets):
-                all_datapoints.append(datapoint)
+            try:
+                ds = Dataset.load(name)
+                if ds.permissions['read'].check(g.user):
+                    self.datasets.append(ds)
+            except (Dataset.DoesNotExist, poobrains.auth.AccessDenied):
+                flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
 
-        self.min_x = min([dp.x for dp in all_datapoints])
-        self.max_x = max([dp.x for dp in all_datapoints])
-        self.min_y = min([dp.y for dp in all_datapoints])
-        self.max_y = max([dp.y for dp in all_datapoints])
+        all_x = []
+        all_y = []
+
+        for datapoint in Datapoint.list('read', g.user).where(Datapoint.dataset << self.datasets):
+            all_x.append(datapoint.x)
+            all_y.append(datapoint.y)
+
+        if len(all_x):
+            self.min_x = min(all_x)
+            self.max_x = max(all_x)
+            self.min_y = min(all_y)
+            self.max_y = max(all_y)
 
 
     def normalize_x(self, value):
@@ -175,7 +182,8 @@ class Plot(SVG):
         if span == 0.0:
             return 50
 
-        return (value - self.min_y) * (100 / span)
+        return 100 - (value - self.min_y) * (100 / span)
+
 
     @property
     def label_x(self):
@@ -211,6 +219,11 @@ class MapDataset(poobrains.commenting.Commentable):
 
     title = poobrains.storage.fields.CharField()
     description = poobrains.md.MarkdownField(null=True)
+
+
+    @property
+    def authorized_datapoints(self):
+        return MapDatapoint.list('read', g.user).where(MapDatapoint.dataset == self)
 
 
 class MapDatapointFieldset(poobrains.form.Fieldset):
@@ -275,14 +288,11 @@ class MapDatapoint(poobrains.tagging.Taggable):
 
         if not self.latitude is None:
 
-            #normalization_factor = 15433199.0 # pulled from some stackoverflow post
             normalization_factor = 19994838.114 # this is the value this function would return for 85.0511° without normalization, which should™ make the map square
             if self.latitude>89.5:self.latitude=89.5
             if self.latitude<-89.5:self.latitude=-89.5
             r_major=6378137.000
             r_minor=6356752.3142518
-            #r_major=100
-            #r_minor=100
             temp=r_minor/r_major
             eccent=math.sqrt(1-temp**2)
             phi=math.radians(self.latitude)
@@ -304,11 +314,11 @@ class Map(SVG):
     def __init__(self, handle=None, mode=None, **kwargs):
         
         super(Map, self).__init__(handle=handle, mode=mode, **kwargs)
-        self.datasets = []
 
         if handle is None:
             abort(404)
 
+        self.datasets = []
         dataset_names = handle.split(',')
 
         for name in dataset_names:
