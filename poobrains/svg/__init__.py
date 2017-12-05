@@ -32,6 +32,13 @@ class SVG(poobrains.auth.Protected):
 
         self.handle = handle
         self.style = app.scss_compiler.compile_string("@import 'svg';")
+    
+    
+    def templates(self, mode=None):
+
+        app.debugger.set_trace()
+        r = super(SVG, self).templates(mode=mode)
+        return ["svg/%s" % template for template in r]
 
 
     @poobrains.helpers.themed
@@ -273,13 +280,10 @@ class MapDatapoint(poobrains.tagging.Taggable):
     def x(self):
 
         if not self.longitude is None:
-            #normalization_factor = 20038300.0 # pulled from some stackoverflow post
             normalization_factor = 20037508.3428
 
             r_major=6378137.000
-            #r_major = 100
             x = r_major*math.radians(self.longitude)
-            app.logger.debug('MERCATOR X: %s' % str(x))
             return 50 + 50 * (x / normalization_factor)
 
 
@@ -302,7 +306,6 @@ class MapDatapoint(poobrains.tagging.Taggable):
             con=((1.0-con)/(1.0+con))**com
             ts=math.tan((math.pi/2-phi)/2)/con
             y=0-r_major*math.log(ts)
-            app.logger.debug('MERCATOR Y: %s' % str(y))
             return 50 - 50 * (y / normalization_factor)
 
 

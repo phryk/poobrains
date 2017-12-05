@@ -5,6 +5,8 @@
         {{ content.style }}
     </style>
 
+    {% include "svg/defs.jinja" %}
+
     <svg class="plot-inner" x="20" y="20" width="580" height="310" viewBox="0 0 580 310">
         <g class="grid">
         {% for i in range(0,11) %}
@@ -22,7 +24,7 @@
 
                 {% with datapoint = dataset.authorized_datapoints[i] %}
                     <g class="datapoint">
-                        <circle class="point" cx="{{ content.normalize_x(datapoint.x) }}%" cy="{{ content.normalize_y(datapoint.y) }}%" r="8" />
+                        <use class="marker" href="#plot-marker" x="{{ content.normalize_x(datapoint.x) }}%" y="{{ content.normalize_y(datapoint.y) }}%" />
                         <!-- TODO: error margins -->
                     </g>
 
