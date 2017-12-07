@@ -12,6 +12,16 @@ TOKEN_VALIDITY = 600
 MAX_TOKENS = 5 # maximum number of allowed clientcert tokens for a single user
 CERT_LIFETIME = 60 * 60 * 24 * 7 # TODO: Shouldn't this be user-selectable at time of certificate provisioning?
 
+SVG_PLOT_WIDTH = 620
+SVG_PLOT_HEIGHT = 350
+SVG_PLOT_PADDING = 20
+
+# NOTE/WARNING: if you change svg map dimensions, you will fuck up coordinates unless you generate a fitting themes/default/svg/world.jinja!
+SVG_MAP_WIDTH = 620
+SVG_MAP_HEIGHT = 618
+SVG_MAP_INFOBOX_WIDTH = 200
+SVG_MAP_INFOBOX_HEIGHT = 200
+
 SMTP_HOST = None # str, ip address or dns name
 SMTP_PORT = 587 # int
 SMTP_STARTTLS = True

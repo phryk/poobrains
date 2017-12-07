@@ -36,7 +36,6 @@ class SVG(poobrains.auth.Protected):
     
     def templates(self, mode=None):
 
-        app.debugger.set_trace()
         r = super(SVG, self).templates(mode=mode)
         return ["svg/%s" % template for template in r]
 
@@ -88,6 +87,11 @@ class Dataset(poobrains.commenting.Commentable):
 
 
     @property
+    def ref_id(self):
+        return "dataset-%s" % self.name
+
+
+    @property
     def authorized_datapoints(self):
         return Datapoint.list('read', g.user).where(Datapoint.dataset == self)
 
@@ -131,9 +135,19 @@ class Datapoint(poobrains.auth.Owned):
     error_lower = poobrains.storage.fields.FloatField(help_text="Lower margin of error", default=0.0)
     error_upper = poobrains.storage.fields.FloatField(help_text="Upper margin of error", default=0.0)
 
+    @property
+    def ref_id(self):
+        return "dataset-%s-%s" % (self.dataset.name, self.x)
+
 
 @app.expose('/svg/plot')
 class Plot(SVG):
+
+    width = None
+    height = None
+    padding = None
+    inner_width = None
+    inner_height = None
 
     datasets = None
     min_x = None
@@ -147,6 +161,12 @@ class Plot(SVG):
 
         if handle is None:
             abort(404)
+        
+        self.width = app.config['SVG_PLOT_WIDTH']
+        self.height = app.config['SVG_PLOT_HEIGHT']
+        self.padding = app.config['SVG_PLOT_PADDING']
+        self.inner_width = self.width - (2 * self.padding)
+        self.inner_height = self.height - (2 * self.padding)
 
         self.datasets = []
         dataset_names = handle.split(',')
@@ -178,18 +198,18 @@ class Plot(SVG):
 
         span = self.max_x - self.min_x
         if span == 0.0:
-            return 50
+            return self.inner_width / 2.0
 
-        return (value - self.min_x) * (100 / span)
+        return (value - self.min_x) * (self.inner_width / span)
 
 
     def normalize_y(self, value):
 
         span = self.max_y - self.min_y
         if span == 0.0:
-            return 50
+            return self.inner_height / 2.0
 
-        return 100 - (value - self.min_y) * (100 / span)
+        return self.inner_height - (value - self.min_y) * (self.inner_height / span)
 
 
     @property
@@ -264,11 +284,23 @@ class MapDatapointFieldset(poobrains.form.Fieldset):
 
 class MapDatapoint(poobrains.tagging.Taggable):
 
+    width = None
+    height = None
+
     dataset = poobrains.storage.fields.ForeignKeyField(MapDataset, related_name='datapoints')
     title = poobrains.storage.fields.CharField()
     description = poobrains.md.MarkdownField(null=True)
     latitude = poobrains.storage.fields.DoubleField()
     longitude = poobrains.storage.fields.DoubleField()
+
+
+    def __init__(self, *args, **kwargs):
+
+        super(MapDatapoint, self).__init__(*args, **kwargs)
+        self.width = app.config['SVG_MAP_WIDTH']
+        self.height = app.config['SVG_MAP_HEIGHT']
+        self.infobox_width = app.config['SVG_MAP_INFOBOX_WIDTH']
+        self.infobox_height = app.config['SVG_MAP_INFOBOX_HEIGHT']
 
 
     # mercator calculation shamelessly thieved from the osm wiki
@@ -280,11 +312,13 @@ class MapDatapoint(poobrains.tagging.Taggable):
     def x(self):
 
         if not self.longitude is None:
+
             normalization_factor = 20037508.3428
 
             r_major=6378137.000
             x = r_major*math.radians(self.longitude)
-            return 50 + 50 * (x / normalization_factor)
+            #return 50 + 50 * (x / normalization_factor)
+            return (self.width  / 2.0) + (self.width / 2.0) * (x / normalization_factor)
 
 
     @property
@@ -306,20 +340,39 @@ class MapDatapoint(poobrains.tagging.Taggable):
             con=((1.0-con)/(1.0+con))**com
             ts=math.tan((math.pi/2-phi)/2)/con
             y=0-r_major*math.log(ts)
-            return 50 - 50 * (y / normalization_factor)
+            #return 50 - 50 * (y / normalization_factor)
+            return (self.height / 2.0) - (self.height / 2.0) * (y / normalization_factor)
+
+
+    @property
+    def infobox_x(self):
+        max_x = self.width - self.infobox_width - 10
+        return self.x if self.x < max_x else max_x
+
+
+    @property
+    def infobox_y(self):
+        max_y = self.height - self.infobox_height - 10
+        return self.y if self.y < max_y else max_y
 
 
 @app.expose('/svg/map')
 class Map(SVG):
+    
+    width = None
+    height = None
 
     datasets = None
 
     def __init__(self, handle=None, mode=None, **kwargs):
         
         super(Map, self).__init__(handle=handle, mode=mode, **kwargs)
-
+        
         if handle is None:
             abort(404)
+
+        self.width = app.config['SVG_MAP_WIDTH']
+        self.height = app.config['SVG_MAP_HEIGHT']
 
         self.datasets = []
         dataset_names = handle.split(',')

@@ -59,6 +59,19 @@ path#icon {
     stroke: $color_highlight;
 }
 
+
+/** Datavis stuff below this **/
+
+.marker {
+
+    opacity: 0.8;
+    fill: desaturate($color_highlight, 20%);
+    stroke-width: 2px;
+    stroke: transparentize($color_background_light, 100%);
+    transition: opacity 0.3s linear, fill 0.3s linear, stroke 0.3s linear;
+
+}
+
 .plot {
 
     background: $color_background_dark;
@@ -76,24 +89,38 @@ path#icon {
 
         .dataset {
 
-            transition: opacity 0.3s linear;
-            opacity: 0.5;
+            .dataset-line {
+                opacity: 0.3;
+                stroke: $color_font_light;
+                stroke-width: 2px;
+                fill: none;
+                transition: opacity 0.3s linear;
+            }
 
             &:hover,
             &:focus,
             &:target {
-                opacity: 1;
-            }
 
-            .marker {
-                z-index: 9000;
-                fill: $color_highlight;
-            }
+                .dataset-line {
+                    opacity: 0.8;
+                }
 
-            line {
-                z-index: 100;
-                stroke: $color_font_light;
-                stroke-width: 2px;
+            }
+        
+            .datapoint {
+                opacity: 0.7;
+
+                &:hover,
+                &:focus,
+                &:target {
+
+                    .marker {
+
+                        opacity: 1;
+                        fill: $color_highlight;
+                        stroke: $color_background_light;
+                    }
+                }
             }
         }
     }
@@ -104,7 +131,7 @@ path#icon {
         fill: $color_font_light;
 
         &.axis-y {
-            transform-origin: 0px 330px;
+            /*transform-origin: 0px 330px;*/
             transform: rotate(-90deg) translate(5px, 15px);
         }
     }
@@ -142,52 +169,73 @@ path#icon {
 
     .map-datapoint {
 
-        .marker {
-            /*fill: transparentize($color_background_light, 20%);*/
-            fill: desaturate($color_highlight, 50%);
-            z-index: 9000;
-            stroke: transparentize($color_background_light, 100%);
-            stroke-width: 10px;
-            transition: fill 0.3s linear, stroke 0.3s linear;
-        }
-
         .infobox {
+
             display: none;
             opacity: 0;
             fill: $color_font_light;
             font-size: 1rem;
             /*transform: translateY(1rem);*/
-            transition: opacity 0.3s linear;
+            transition: opacity 3s linear;
+
+            &.fallback {
+
+                overflow-y: scroll;
+
+                .background {
+                    fill: $color_background_dark;
+                }
+
+                text {
+                    stroke: $color_font_light;
+                    font-size: 14px;
+                    font-weight: lighter;
+                }
+
+                .heading {
+                    font-weight: bold;
+                }
+            }
 
             &.html {
                 body {
+                    margin: 0;
+                    padding: 10px;
+                    overflow-y: auto;
+                    height: calc(100% - 20px);
                     background: $color_background_dark;
                     color: $color_font_light;
-                    padding: 1rem;
+                    font-family: 'Open Sans', sans;
 
                     h1 {
                         margin-top: 0;
                         font-size: 120%;
                     }
+
+                    .footer {
+                        font-size: 80%;
+                    }
                 }
             }
         }
 
-        &:hover {
+        &:hover,
+        &:focus,
+        &:target {
+
+            cursor: help;
 
             .marker {
-                fill: $color_background_light;
-                stroke: $color_highlight;
+                opacity: 1;
+                fill: $color_highlight;
+                stroke: $color_background_light;
             }
 
             .infobox {
-                z-index: 9001;
                 display: block;
                 opacity: 1;
                 background: #111;
             }
         }
-
-
     }
 }

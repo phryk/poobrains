@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
-<svg class="plot" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" width="620" height="350" viewbox="0 0 100% 100%" version="1.1" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<svg class="plot" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" width="{{ content.width }}" height="{{ content.height }}" viewbox="0 0 100% 100%" version="1.1" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <style>
         {{ content.style }}
     </style>
 
     {% include "svg/defs.jinja" %}
 
-    <svg class="plot-inner" x="20" y="20" width="580" height="310" viewBox="0 0 580 310">
+    <svg class="plot-inner" x="{{ content.padding }}" y="{{ content.padding }}" width="{{ content.inner_width }}" height="{{ content.inner_height }}" viewBox="0 0 100% 100%">
         <g class="grid">
         {% for i in range(0,11) %}
             {% set percentage = i * 10 %}
@@ -17,33 +17,28 @@
         </g>
 
         {% for dataset in content.datasets %}
-        <g class="dataset" title="{{ dataset.title }}">
+        <g id="{{ dataset.ref_id }}" class="dataset">
 
+            <path class="dataset-line" d="
+                M {{ content.normalize_x(dataset.authorized_datapoints[0].x) }} {{ content.normalize_y(dataset.authorized_datapoints[0].y) }}
+                {% for datapoint in dataset.authorized_datapoints %}L {{ content.normalize_x(datapoint.x) }} {{ content.normalize_y(datapoint.y) }} {% endfor %}
+            " />
 
             {% for i in range(0, dataset.authorized_datapoints|length) %}
 
                 {% with datapoint = dataset.authorized_datapoints[i] %}
-                    <g class="datapoint">
-                        <use class="marker" href="#plot-marker" x="{{ content.normalize_x(datapoint.x) }}%" y="{{ content.normalize_y(datapoint.y) }}%" />
+                <g id="{{ datapoint.ref_id }}" class="datapoint">
+                        <use href="#marker" class="marker" x="{{ content.normalize_x(datapoint.x) }}" y="{{ content.normalize_y(datapoint.y) }}" />
                         <!-- TODO: error margins -->
                     </g>
 
-                    {% if i < (dataset.authorized_datapoints|length - 1) %}
-                    {% with next_datapoint = dataset.authorized_datapoints[i + 1] %}
-                    <line
-                        x1="{{ content.normalize_x(datapoint.x) }}%"
-                        y1="{{ content.normalize_y(datapoint.y) }}%"
-                        x2="{{ content.normalize_x(next_datapoint.x) }}%"
-                        y2="{{ content.normalize_y(next_datapoint.y) }}%" />
-                    {% endwith %}
-                    {% endif %}
                 {% endwith %}
             {% endfor %}
         </g>
         {% endfor %}
     </svg>
 
-    <text class="axis-label axis-x" x="20" y="350">{{ content.label_x }}</text>
-    <text class="axis-label axis-y" x="0" y="330">{{ content.label_y }}</text>
+    <text class="axis-label axis-x" x="{{ content.padding }}" y="{{ content.height }}">{{ content.label_x }}</text>
+    <text class="axis-label axis-y" style="transform-origin: 0  {{ content.inner_height + content.padding }}px" x="0" y="{{ content.inner_height + content.padding }}">{{ content.label_y }}</text>
 
 </svg>
