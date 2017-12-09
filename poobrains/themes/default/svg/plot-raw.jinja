@@ -28,9 +28,27 @@
 
                 {% with datapoint = dataset.authorized_datapoints[i] %}
                 <g id="{{ datapoint.ref_id }}" class="datapoint">
-                        <use href="#marker" class="marker" x="{{ content.normalize_x(datapoint.x) }}" y="{{ content.normalize_y(datapoint.y) }}" />
-                        <!-- TODO: error margins -->
+
+                    <g class="error">
+
+                        {% if datapoint.error_upper %}
+                        <g class="upper">
+                            <line x1="{{ content.normalize_x(datapoint.x) }}" y1="{{ content.normalize_y(datapoint.y) }}" x2="{{ content.normalize_x(datapoint.x) }}" y2="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" />
+                            <line x1="{{ content.normalize_x(datapoint.x) - 5 }}" y1="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" x2="{{ content.normalize_x(datapoint.x) + 5 }}" y2="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" />
+                        </g>
+                        {% endif %}
+
+                        {% if datapoint.error_lower %}
+                        <g class="lower">
+                            <line x1="{{ content.normalize_x(datapoint.x) }}" y1="{{ content.normalize_y(datapoint.y) }}" x2="{{ content.normalize_x(datapoint.x) }}" y2="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" />
+                            <line x1="{{ content.normalize_x(datapoint.x) - 5 }}" y1="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" x2="{{ content.normalize_x(datapoint.x) + 5 }}" y2="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" />
+                        </g>
+                        {% endif %}
+
                     </g>
+
+                    <use href="#marker" class="marker" x="{{ content.normalize_x(datapoint.x) }}" y="{{ content.normalize_y(datapoint.y) }}" />
+                </g>
 
                 {% endwith %}
             {% endfor %}

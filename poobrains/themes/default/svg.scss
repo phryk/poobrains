@@ -87,7 +87,7 @@ path#icon {
             }
         }
 
-        .dataset {
+        g.dataset {
 
             .dataset-line {
                 opacity: 0.3;
@@ -107,8 +107,18 @@ path#icon {
 
             }
         
-            .datapoint {
+            g.datapoint {
                 opacity: 0.7;
+
+                g.error {
+                    /* not quite sure why i need to supply those things again in here. firefox fuckup? something to do with <g> scoping (but why haven't i noticed it elsewhere then? */
+                    opacity: 0.3;
+                    transition: opacity 0.3s linear;
+                    line {
+                        stroke: $color_font_light;
+                        stroke-width: 2px;
+                    }
+                }
 
                 &:hover,
                 &:focus,
@@ -119,6 +129,10 @@ path#icon {
                         opacity: 1;
                         fill: $color_highlight;
                         stroke: $color_background_light;
+                    }
+
+                    g.error {
+                        opacity: 1;
                     }
                 }
             }

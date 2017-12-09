@@ -180,18 +180,29 @@ class Plot(SVG):
             except (Dataset.DoesNotExist, poobrains.auth.AccessDenied):
                 flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
 
-        all_x = []
-        all_y = []
 
         for datapoint in Datapoint.list('read', g.user).where(Datapoint.dataset << self.datasets):
-            all_x.append(datapoint.x)
-            all_y.append(datapoint.y)
 
-        if len(all_x):
-            self.min_x = min(all_x)
-            self.max_x = max(all_x)
-            self.min_y = min(all_y)
-            self.max_y = max(all_y)
+            y_lower = datapoint.y
+            if datapoint.error_lower:
+                y_lower -= datapoint.error_lower
+
+            y_upper = datapoint.y
+            if datapoint.error_upper:
+                y_upper += datapoint.error_upper
+
+
+            if self.min_x is None or datapoint.x < self.min_x:
+                self.min_x = datapoint.x
+
+            if self.max_x is None or datapoint.x > self.max_x:
+                self.max_x = datapoint.x
+               
+            if self.min_y is None or y_lower < self.min_y:
+                self.min_y = y_lower
+
+            if self.max_y is None or y_upper > self.max_y:
+                self.max_y = y_upper
 
 
     def normalize_x(self, value):
