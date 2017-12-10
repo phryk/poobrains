@@ -1,4 +1,5 @@
 import math
+import random
 import example
 
 
@@ -60,7 +61,11 @@ def fill_datasets():
         fuck.owner = u
         fuck.group = g
         fuck.x = i
-        fuck.y = 0
+        fuck.y = random.randint(-100,100) / 100.0
+        if fuck.y < 0:
+            fuck.error_upper = abs(fuck.y)
+        else:
+            fuck.error_lower = abs(fuck.y)
 
         fuck.save(force_insert=True)
 

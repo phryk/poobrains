@@ -9,10 +9,12 @@
 
     <svg class="plot-inner" x="{{ content.padding }}" y="{{ content.padding }}" width="{{ content.inner_width }}" height="{{ content.inner_height }}" viewBox="0 0 100% 100%">
         <g class="grid">
-        {% for i in range(0,11) %}
-            {% set percentage = i * 10 %}
-            <line class="horizontal" x1="{{ percentage }}%" y1="0%" x2="{{ percentage }}%" y2="100%" />
-            <line class="vertical" x1="0%" y1="{{ percentage }}%" x2="100%" y2="{{ percentage }}%" />
+        {% for x in content.grid_x %}
+            <line class="horizontal" x1="{{ content.normalize_x(x) }}" y1="0%" x2="{{ content.normalize_x(x) }}" y2="100%" />
+        {% endfor %}
+
+        {% for y in content.grid_y %}
+            <line class="vertical" x1="0%" y1="{{ content.normalize_y(y) }}" x2="100%" y2="{{ content.normalize_y(y) }}" />
         {% endfor %}
         </g>
 

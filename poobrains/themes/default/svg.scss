@@ -83,7 +83,8 @@ path#icon {
 
             line {
                 stroke: opacify($color_font_light, -80%);
-                stroke-width: 2px;
+                stroke-width: 1px;
+                stroke-linecap: butt; /* butts lol */
             }
         }
 

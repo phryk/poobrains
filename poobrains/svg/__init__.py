@@ -84,7 +84,8 @@ class Dataset(poobrains.commenting.Commentable):
     description = poobrains.md.MarkdownField(null=True)
     label_x = poobrains.storage.fields.CharField(verbose_name="Label for the x-axis")
     label_y = poobrains.storage.fields.CharField(verbose_name="Label for the y-axis")
-
+    #grid_step_x = poobrains.storage.fields.DoubleField(default=1.0)
+    #grid_step_y = poobrains.storage.fields.DoubleField(default=1.0)
 
     @property
     def ref_id(self):
@@ -154,6 +155,8 @@ class Plot(SVG):
     max_x = None
     min_y = None
     max_y = None
+    span_x = None
+    span_y = None
 
     def __init__(self, handle=None, mode=None, **kwargs):
 
@@ -204,23 +207,24 @@ class Plot(SVG):
             if self.max_y is None or y_upper > self.max_y:
                 self.max_y = y_upper
 
+        self.span_x = self.max_x - self.min_x
+        self.span_y = self.max_y - self.min_y
+
 
     def normalize_x(self, value):
 
-        span = self.max_x - self.min_x
-        if span == 0.0:
+        if self.span_x == 0.0:
             return self.inner_width / 2.0
 
-        return (value - self.min_x) * (self.inner_width / span)
+        return (value - self.min_x) * (self.inner_width / self.span_x)
 
 
     def normalize_y(self, value):
 
-        span = self.max_y - self.min_y
-        if span == 0.0:
+        if self.span_y == 0.0:
             return self.inner_height / 2.0
 
-        return self.inner_height - (value - self.min_y) * (self.inner_height / span)
+        return self.inner_height - (value - self.min_y) * (self.inner_height / self.span_y)
 
 
     @property
@@ -233,6 +237,40 @@ class Plot(SVG):
     def label_y(self):
 
         return u' / '.join([dataset.label_y for dataset in self.datasets])
+
+
+    @property
+    def grid_x(self):
+
+        grid_step = 10 ** (int(math.log10(self.span_x)) - 1)
+
+        offset = (self.min_x % grid_step) * grid_step # distance from start of plot to first line on the grid
+        start = self.min_x + offset
+
+        x = start
+        coords = [x]
+        while x < self.max_x:
+            x += grid_step
+            coords.append(x)
+
+        return coords
+
+
+    @property
+    def grid_y(self):
+        
+        grid_step = 10 ** (int(math.log10(self.span_y)) - 1)
+
+        offset = (self.min_y % grid_step) * grid_step # distance from start of plot to first line on the grid
+        start = self.min_y + offset
+
+        y = start
+        coords = [y]
+        while y < self.max_y:
+            y += grid_step
+            coords.append(y)
+
+        return coords
 
 
 class MapDatasetForm(poobrains.auth.AddForm):
