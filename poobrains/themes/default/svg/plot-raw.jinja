@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
 <svg class="plot" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" width="{{ content.width }}" height="{{ content.height }}" viewbox="0 0 100% 100%" version="1.1" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <style>
         {{ content.style }}
@@ -7,58 +6,118 @@
 
     {% include "svg/defs.jinja" %}
 
+    <text class="axis-label axis-x" x="{{ content.padding }}" y="{{ content.plot_height + content.padding + 20 }}" dominant-baseline="hanging">{{ content.label_x }}</text>
+    <text class="axis-label axis-y" style="transform-origin: 0 {{ content.plot_height + content.padding }}px" x="0" y="{{ content.plot_height + content.padding }}">{{ content.label_y }}</text>
+
     <svg class="plot-inner" x="{{ content.padding }}" y="{{ content.padding }}" width="{{ content.inner_width }}" height="{{ content.inner_height }}" viewBox="0 0 100% 100%">
         <g class="grid">
-        {% for x in content.grid_x %}
-            <line class="horizontal" x1="{{ content.normalize_x(x) }}" y1="0%" x2="{{ content.normalize_x(x) }}" y2="100%" />
-        {% endfor %}
+            {% for i in range(0, content.grid_x|length) %}
 
-        {% for y in content.grid_y %}
-            <line class="vertical" x1="0%" y1="{{ content.normalize_y(y) }}" x2="100%" y2="{{ content.normalize_y(y) }}" />
-        {% endfor %}
-        </g>
+                {% set x = content.grid_x[i] %}
+                
+                {% set highlighted = i % (content.grid_x|length / 4)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
 
-        {% for dataset in content.datasets %}
-        <g id="{{ dataset.ref_id }}" class="dataset">
+                <line class="grid-x{% if highlighted %} highlighted{% endif %}" x1="{{ content.normalize_x(x) }}" y1="0%" x2="{{ content.normalize_x(x) }}" y2="{{ content.plot_height }}" />
+                
+                {% if highlighted %}
+                    <text class="grid-label axis-x" x="{{ content.normalize_x(x) }}" y="{{ content.plot_height }}" dominant-baseline="hanging">{{ x }}</text>
+                {% endif %}
+            {% endfor %}
 
-            <path class="dataset-line" d="
-                M {{ content.normalize_x(dataset.authorized_datapoints[0].x) }} {{ content.normalize_y(dataset.authorized_datapoints[0].y) }}
-                {% for datapoint in dataset.authorized_datapoints %}L {{ content.normalize_x(datapoint.x) }} {{ content.normalize_y(datapoint.y) }} {% endfor %}
-            " />
-
-            {% for i in range(0, dataset.authorized_datapoints|length) %}
-
-                {% with datapoint = dataset.authorized_datapoints[i] %}
-                <g id="{{ datapoint.ref_id }}" class="datapoint">
-
-                    <g class="error">
-
-                        {% if datapoint.error_upper %}
-                        <g class="upper">
-                            <line x1="{{ content.normalize_x(datapoint.x) }}" y1="{{ content.normalize_y(datapoint.y) }}" x2="{{ content.normalize_x(datapoint.x) }}" y2="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" />
-                            <line x1="{{ content.normalize_x(datapoint.x) - 5 }}" y1="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" x2="{{ content.normalize_x(datapoint.x) + 5 }}" y2="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" />
-                        </g>
-                        {% endif %}
-
-                        {% if datapoint.error_lower %}
-                        <g class="lower">
-                            <line x1="{{ content.normalize_x(datapoint.x) }}" y1="{{ content.normalize_y(datapoint.y) }}" x2="{{ content.normalize_x(datapoint.x) }}" y2="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" />
-                            <line x1="{{ content.normalize_x(datapoint.x) - 5 }}" y1="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" x2="{{ content.normalize_x(datapoint.x) + 5 }}" y2="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" />
-                        </g>
-                        {% endif %}
-
-                    </g>
-
-                    <use href="#marker" class="marker" x="{{ content.normalize_x(datapoint.x) }}" y="{{ content.normalize_y(datapoint.y) }}" />
-                </g>
-
-                {% endwith %}
+            {% for i in range(0, content.grid_y|length) %}
+                {% set y = content.grid_y[i] %}
+                {% set highlighted = i % (content.grid_y|length / 4)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
+                <line class="grid-y{% if highlighted %} highlighted{% endif %}" x1="0%" y1="{{ content.normalize_y(y) }}" x2="100%" y2="{{ content.normalize_y(y) }}" />
+                {% if highlighted %}
+                <text class="grid-label axis-y" style="transform-origin: 0 {{ content.normalize_y(y) }}px" x="0" y="{{ content.normalize_y(y) }}" dominant-baseline="hanging">{{ y }}</text>
+                {% endif %}
             {% endfor %}
         </g>
-        {% endfor %}
+
+        <g class="datasets">
+        {% for idx in range(0, content.datasets|length) %}
+
+            {% set dataset = content.datasets[idx] %}
+
+            <g id="{{ dataset.ref_id }}" class="dataset">
+
+                <a class="dataset-link" href="#{{ dataset.ref_id }}">
+                    <text class="dataset-name" x="{{ content.inner_width  }}" y="{{ 10 + (idx * 20) }}" text-anchor="end">{{ dataset.title }}</text>
+                </a>
+
+                <g class="dataset-description">
+
+                    <switch> <!-- switch uses first item with supported (or no) requiredExtensions -->
+                        <foreignObject class="html" requiredExtensions="http://www.w3.org/1999/xhtml" x="0" y="{{ content.plot_height + content.padding }}" width="100%" height="{{ content.description_height }}px"> {# either render HTML #}
+                            <body xmlns="http://www.w3.org/1999/xhtml">
+                                <h1>{{ dataset.title }}</h1>
+                                <div class="description">{{ dataset.description.render() }}</div>
+                            </body>
+                        </foreignObject>
+                        
+                        <svg class="fallback" x="0" y="{{ content.plot_height + content.padding }}" width="100%" height="{{ content.description_height }}"> {# or fall back to an SVG representation that shows the markdown plainly #}
+
+                            <text x="0" y="20" class="heading" width="100%">{{ dataset.title }}</text>
+
+                            {% set lines = dataset.description.split("\n") %}
+
+                            <g class="description">
+                            {% for linenum in range(1, lines|length + 1) %}
+                                {% set line = lines[linenum - 1] %}
+                                <text x="10" y="{{ 25 + 5 + (20 * linenum) }}">{{ line }}</text>
+                            {% endfor %}
+                            </g>
+
+                        </svg>
+
+                    </switch>
+                </g>
+                
+                <a class="dataset-link" href="#{{ dataset.ref_id }}">
+                    <path class="dataset-line" d="
+                        M {{ content.normalize_x(dataset.authorized_datapoints[0].x) }} {{ content.normalize_y(dataset.authorized_datapoints[0].y) }}
+                        {% for datapoint in dataset.authorized_datapoints %}L {{ content.normalize_x(datapoint.x) }} {{ content.normalize_y(datapoint.y) }} {% endfor %}
+                    " />
+                </a>
+
+                {% for i in range(0, dataset.authorized_datapoints|length) %}
+
+                    {% with datapoint = dataset.authorized_datapoints[i] %}
+
+                    <a href="#{{ datapoint.ref_id }}">
+                        <g id="{{ datapoint.ref_id }}" class="datapoint">
+
+                            <g class="error">
+
+                                {% if datapoint.error_upper %}
+                                <g class="upper">
+                                    <line x1="{{ content.normalize_x(datapoint.x) }}" y1="{{ content.normalize_y(datapoint.y) }}" x2="{{ content.normalize_x(datapoint.x) }}" y2="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" />
+                                    <line x1="{{ content.normalize_x(datapoint.x) - 5 }}" y1="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" x2="{{ content.normalize_x(datapoint.x) + 5 }}" y2="{{ content.normalize_y(datapoint.y + datapoint.error_upper) }}" />
+                                </g>
+                                {% endif %}
+
+                                {% if datapoint.error_lower %}
+                                <g class="lower">
+                                    <line x1="{{ content.normalize_x(datapoint.x) }}" y1="{{ content.normalize_y(datapoint.y) }}" x2="{{ content.normalize_x(datapoint.x) }}" y2="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" />
+                                    <line x1="{{ content.normalize_x(datapoint.x) - 5 }}" y1="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" x2="{{ content.normalize_x(datapoint.x) + 5 }}" y2="{{ content.normalize_y(datapoint.y - datapoint.error_lower) }}" />
+                                </g>
+                                {% endif %}
+
+                            </g>
+
+                            <use href="#marker" class="marker" x="{{ content.normalize_x(datapoint.x) }}" y="{{ content.normalize_y(datapoint.y) }}" />
+
+                            <text class="datapoint-value" x="{{ content.normalize_x(datapoint.x) + 5 }}" y="{{ content.normalize_y(datapoint.y) - 20 }}">{{ datapoint.y }}</text>
+
+                        </g>
+                    </a>
+
+                    {% endwith %}
+                {% endfor %}
+            </g>
+        {% endfor %}i
+        </g> <!-- /datasets -->
     </svg>
 
-    <text class="axis-label axis-x" x="{{ content.padding }}" y="{{ content.height }}">{{ content.label_x }}</text>
-    <text class="axis-label axis-y" style="transform-origin: 0  {{ content.inner_height + content.padding }}px" x="0" y="{{ content.inner_height + content.padding }}">{{ content.label_y }}</text>
 
 </svg>

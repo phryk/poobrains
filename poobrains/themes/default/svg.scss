@@ -1,5 +1,5 @@
 @import 'colors';
-
+@import 'palette'; /* algorithmic palette to visually link related info */
 
 @keyframes scroll {
 
@@ -26,7 +26,7 @@
     }
 }
 
-text {
+svg {
     font-family: 'Open Sans', sans;
 }
 
@@ -60,7 +60,48 @@ path#icon {
 }
 
 
-/** Datavis stuff below this **/
+/** #DATAVIS# **/
+
+/* infotexts / html embeds / general stuff*/
+
+.fallback {
+
+    overflow-y: scroll;
+
+    .background {
+        fill: $color_background_dark;
+    }
+
+    text {
+        stroke: $color_font_light;
+        font-size: 14px;
+        font-weight: lighter;
+    }
+
+    .heading {
+        font-weight: bold;
+    }
+}
+
+.html {
+    body {
+        margin: 0;
+        padding: 10px;
+        overflow-y: auto;
+        height: calc(100% - 20px);
+        color: $color_font_light;
+
+        h1 {
+            margin-top: 0;
+            font-size: 120%;
+        }
+
+        .footer {
+            font-size: 80%;
+        }
+    }
+}
+
 
 .marker {
 
@@ -72,6 +113,8 @@ path#icon {
 
 }
 
+
+/* ## PLOTS ## */
 .plot {
 
     background: $color_background_dark;
@@ -85,55 +128,175 @@ path#icon {
                 stroke: opacify($color_font_light, -80%);
                 stroke-width: 1px;
                 stroke-linecap: butt; /* butts lol */
+
+                &.highlighted {
+                    stroke: opacify($color_font_light, -50%);
+                }
+            }
+
+            .grid-label {
+                fill: $color_font_light;
+                font-size: 12px;
+
+                &.axis-y {
+                    transform: rotate(-90deg) translate(5px, -15px);
+                }
             }
         }
 
-        g.dataset {
+        g.datasets {
 
-            .dataset-line {
-                opacity: 0.3;
-                stroke: $color_font_light;
-                stroke-width: 2px;
-                fill: none;
-                transition: opacity 0.3s linear;
-            }
+            g.dataset {
 
-            &:hover,
-            &:focus,
-            &:target {
-
-                .dataset-line {
-                    opacity: 0.8;
+                .dataset-name {
+                    fill: $color_font_light;
+                    transition: fill 0.3s linear;
                 }
 
-            }
-        
-            g.datapoint {
-                opacity: 0.7;
+                .dataset-description {
 
-                g.error {
-                    /* not quite sure why i need to supply those things again in here. firefox fuckup? something to do with <g> scoping (but why haven't i noticed it elsewhere then? */
-                    opacity: 0.3;
-                    transition: opacity 0.3s linear;
-                    line {
-                        stroke: $color_font_light;
-                        stroke-width: 2px;
+                    transform: translateY(1000px);
+                    transition: transform 0.3s linear;
+
+                    .html {
+
+                        body {
+
+                            margin: 0;
+                            padding: 0;
+                            height: 100%;
+                            color: $color_font_light;
+                            overflow-y: auto;
+                        }
                     }
+
+                    .fallback {
+
+                        overflow-y: auto;
+
+                        text {
+                            fill: $color_font_light;
+                        }
+                    }
+                }
+
+                .dataset-line {
+                    opacity: 0.4;
+                    stroke-width: 2px;
+                    fill: none;
+                    transition: opacity 0.3s linear;
                 }
 
                 &:hover,
                 &:focus,
                 &:target {
 
-                    .marker {
-
+                    .dataset-line {
                         opacity: 1;
-                        fill: $color_highlight;
-                        stroke: $color_background_light;
                     }
 
+                }
+
+                &:target { /* dataset descriptions should only be shown when they are referenced by #fragment */
+                    .dataset-description {
+                        transform: translateY(0);
+                    }
+                }
+            
+                g.datapoint {
+                    opacity: 0.7;
+
                     g.error {
-                        opacity: 1;
+                        /* not quite sure why i need to supply those things again in here. firefox fuckup? something to do with <g> scoping (but why haven't i noticed it elsewhere then? */
+                        opacity: 0.3;
+                        transition: opacity 0.3s linear;
+                        line {
+                            stroke-width: 2px;
+                        }
+                    }
+                        
+                    text.datapoint-value {
+                        opacity: 0;
+                        pointer-events: none; /* means :hover won't trigger on this and we can animate opacity properly (as opposed to using display: none) */
+                        stroke: $color_font_light;
+                        stroke-width: 4px;
+                        paint-order: stroke;
+                        transition: display 0.3s linear, opacity 0.3s linear;
+                    }
+
+                    &:hover,
+                    &:focus,
+                    &:target {
+
+                        .marker {
+
+                            opacity: 1;
+                            stroke: opacify($color_background_light, 100%);
+                        }
+
+                        g.error {
+                            opacity: 1;
+                        }
+
+                        text.datapoint-value {
+
+                            display: initial;
+                            opacity: 1;
+                        }
+                    }
+                }
+            }
+
+            /* palettize datasets */
+            @for $i from 1 through $palette_size {
+
+                $color: nth($palette, $i);
+
+                g.dataset:nth-child(#{$i}n+#{$i}) {
+                
+                    .dataset-name {
+                        fill: desaturate($color, 50%);
+                    }
+
+
+                    .dataset-line {
+                        stroke: desaturate(opacify($color, 100%), 80%);
+                    }
+                        
+                    g.datapoint {
+
+                        .marker {
+                            fill: desaturate($color, 20%);
+                        }
+
+                        g.error {
+                            line {
+                                stroke: desaturate(opacify($color, 100%), 80%);
+                            }
+                        }
+
+                        text.datapoint-value {
+                            fill: darken($color, 30%);
+                        }
+
+                        &:hover,
+                        &:focus,
+                        &:target {
+
+                            .marker {
+                                fill: $color;
+                            }
+                        }
+                    }
+
+                    &:hover,
+                    &:focus,
+                    &:target {
+
+                        .dataset-name {
+                            fill: $color;
+                        }
+
                     }
                 }
             }
@@ -150,8 +313,11 @@ path#icon {
             transform: rotate(-90deg) translate(5px, 15px);
         }
     }
+
 }
 
+
+/* ## MAPS ## */
 
 .map {
 
@@ -191,47 +357,8 @@ path#icon {
             fill: $color_font_light;
             font-size: 1rem;
             /*transform: translateY(1rem);*/
-            transition: opacity 3s linear;
+            transition: opacity 0.3s linear;
 
-            &.fallback {
-
-                overflow-y: scroll;
-
-                .background {
-                    fill: $color_background_dark;
-                }
-
-                text {
-                    stroke: $color_font_light;
-                    font-size: 14px;
-                    font-weight: lighter;
-                }
-
-                .heading {
-                    font-weight: bold;
-                }
-            }
-
-            &.html {
-                body {
-                    margin: 0;
-                    padding: 10px;
-                    overflow-y: auto;
-                    height: calc(100% - 20px);
-                    background: $color_background_dark;
-                    color: $color_font_light;
-                    font-family: 'Open Sans', sans;
-
-                    h1 {
-                        margin-top: 0;
-                        font-size: 120%;
-                    }
-
-                    .footer {
-                        font-size: 80%;
-                    }
-                }
-            }
         }
 
         &:hover,
@@ -250,7 +377,16 @@ path#icon {
                 display: block;
                 opacity: 1;
                 background: #111;
+
+                .html body {
+                    background: $color_background_dark;
+                }
+
+                .fallback .background {
+                    fill: $color_background_dark;
+                }
             }
         }
     }
 }
+

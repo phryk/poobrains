@@ -47,7 +47,7 @@ class SVG(poobrains.auth.Protected):
             
             response = Response(self.render('raw'))
             response.headers['Content-Type'] = u'image/svg+xml'
-            response.headers['Content-Disposition'] = u'filename="%s"' % 'map.svg'
+            response.headers['Content-Disposition'] = u'filename="%s.svg"' % self.__class__.__name__
             
             # Disable "public" mode caching downstream (nginx, varnish) in order to hopefully not leak restricted content
             response.cache_control.public = False
@@ -144,11 +144,14 @@ class Datapoint(poobrains.auth.Owned):
 @app.expose('/svg/plot')
 class Plot(SVG):
 
+    padding = None
     width = None
     height = None
-    padding = None
     inner_width = None
     inner_height = None
+    plot_width = None
+    plot_height = None
+    description_height = None
 
     datasets = None
     min_x = None
@@ -165,9 +168,12 @@ class Plot(SVG):
         if handle is None:
             abort(404)
         
-        self.width = app.config['SVG_PLOT_WIDTH']
-        self.height = app.config['SVG_PLOT_HEIGHT']
         self.padding = app.config['SVG_PLOT_PADDING']
+        self.plot_width = app.config['SVG_PLOT_WIDTH']
+        self.plot_height = app.config['SVG_PLOT_HEIGHT']
+        self.description_height = app.config['SVG_PLOT_DESCRIPTION_HEIGHT']
+        self.width = self.plot_width + (2 * self.padding)
+        self.height = self.plot_height + self.description_height + (3 * self.padding)
         self.inner_width = self.width - (2 * self.padding)
         self.inner_height = self.height - (2 * self.padding)
 
@@ -214,17 +220,17 @@ class Plot(SVG):
     def normalize_x(self, value):
 
         if self.span_x == 0.0:
-            return self.inner_width / 2.0
+            return self.plot_width / 2.0
 
-        return (value - self.min_x) * (self.inner_width / self.span_x)
+        return (value - self.min_x) * (self.plot_width / self.span_x)
 
 
     def normalize_y(self, value):
 
         if self.span_y == 0.0:
-            return self.inner_height / 2.0
+            return self.plot_height / 2.0
 
-        return self.inner_height - (value - self.min_y) * (self.inner_height / self.span_y)
+        return self.plot_height - (value - self.min_y) * (self.plot_height / self.span_y)
 
 
     @property
@@ -249,9 +255,9 @@ class Plot(SVG):
 
         x = start
         coords = [x]
-        while x < self.max_x:
-            x += grid_step
+        while x <= self.max_x:
             coords.append(x)
+            x += grid_step
 
         return coords
 
@@ -266,9 +272,9 @@ class Plot(SVG):
 
         y = start
         coords = [y]
-        while y < self.max_y:
-            y += grid_step
+        while y <= self.max_y:
             coords.append(y)
+            y += grid_step
 
         return coords
 

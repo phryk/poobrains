@@ -27,40 +27,42 @@
         {% for datapoint in dataset.authorized_datapoints %} 
         <g class="map-datapoint">
             <use href="#marker" class="marker" x="{{ datapoint.x }}" y="{{ datapoint.y }}" />
-            <switch> <!-- switch uses first item with supported (or no) requiredExtensions -->
-                <foreignObject class="infobox html" requiredExtensions="http://www.w3.org/1999/xhtml" x="{{ datapoint.infobox_x }}" y="{{ datapoint.infobox_y }}" width="{{ datapoint.infobox_width }}" height="{{ datapoint.infobox_height }}px"> <!-- either render HTML -->
-                    <body xmlns="http://www.w3.org/1999/xhtml">
-                        <h1>{{ datapoint.title }}</h1>
-                        <div class="description">{{ datapoint.description.render() }}</div>
-                        <div class="footer">@{{ datapoint.latitude }} / {{ datapoint.longitude }}</div>
-                    </body>
-                </foreignObject>
-                
-                <svg class="infobox fallback" x="{{ datapoint.infobox_x }}" y="{{ datapoint.infobox_y }}" width="{{ datapoint.infobox_width }}" height="{{ datapoint.infobox_height}}"> <!-- or fall back to an SVG representation that shows the markdown plainly -->
 
-                    <rect class="background" x="0" y="0" width="100%" height="100%" />
+            <g class="infobox">
+                <switch> <!-- switch uses first item with supported (or no) requiredExtensions -->
+                    <foreignObject class="html" requiredExtensions="http://www.w3.org/1999/xhtml" x="{{ datapoint.infobox_x }}" y="{{ datapoint.infobox_y }}" width="{{ datapoint.infobox_width }}" height="{{ datapoint.infobox_height }}px"> <!-- either render HTML -->
+                        <body xmlns="http://www.w3.org/1999/xhtml">
+                            <h1>{{ datapoint.title }}</h1>
+                            <div class="description">{{ datapoint.description.render() }}</div>
+                            <div class="footer">@{{ datapoint.latitude }} / {{ datapoint.longitude }}</div>
+                        </body>
+                    </foreignObject>
+                    
+                    <svg class="fallback" x="{{ datapoint.infobox_x }}" y="{{ datapoint.infobox_y }}" width="{{ datapoint.infobox_width }}" height="{{ datapoint.infobox_height}}"> <!-- or fall back to an SVG representation that shows the markdown plainly -->
 
-                    <text x="10" y="25" class="heading" width="180">{{ datapoint.title }}</text>
+                        <rect class="background" x="0" y="0" width="100%" height="100%" />
 
-                    {% set lines = datapoint.description.split("\n") %}
+                        <text x="10" y="25" class="heading" width="180">{{ datapoint.title }}</text>
 
-                    <g class="description">
-                    {% for linenum in range(1, lines|length + 1) %}
-                        {% set line = lines[linenum - 1] %}
-                        <text x="10" y="{{ 25 + 5 + (20 * linenum) }}">{{ line }}</text>
-                    {% endfor %}
-                    </g>
+                        {% set lines = datapoint.description.split("\n") %}
 
-                    <text x="10" y="{{ 25 + 5 + (20 * (lines|length + 1)) + 10 }}">@{{ datapoint.latitude }}, {{ datapoint.longitude }}</text>
+                        <g class="description">
+                        {% for linenum in range(1, lines|length + 1) %}
+                            {% set line = lines[linenum - 1] %}
+                            <text x="10" y="{{ 25 + 5 + (20 * linenum) }}">{{ line }}</text>
+                        {% endfor %}
+                        </g>
 
-                </svg>
+                        <text x="10" y="{{ 25 + 5 + (20 * (lines|length + 1)) + 10 }}">@{{ datapoint.latitude }}, {{ datapoint.longitude }}</text>
 
-            </switch>
+                    </svg>
+
+                </switch>
+
+            </g>
 
         </g>
         {% endfor %}
     </g>
     {% endfor %}
 </svg>
-
-

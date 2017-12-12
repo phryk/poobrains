@@ -1,0 +1,8 @@
+/* NOTE: This file depends on colors.scss being included beforehand for $color_highlight */
+
+$palette_size: 4;
+$palette: ();
+@for $i from 1 through $palette_size {
+   /*$palette: set_nth($palette, $i, adjust_hue($color_highlight, (360/$palette_size) * ($i - 1))deg);*/
+   $palette: append($palette, adjust_hue($color_highlight, (360/$palette_size) * ($i - 1)));
+}

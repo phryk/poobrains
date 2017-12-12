@@ -12,9 +12,10 @@ TOKEN_VALIDITY = 600
 MAX_TOKENS = 5 # maximum number of allowed clientcert tokens for a single user
 CERT_LIFETIME = 60 * 60 * 24 * 7 # TODO: Shouldn't this be user-selectable at time of certificate provisioning?
 
-SVG_PLOT_WIDTH = 620
-SVG_PLOT_HEIGHT = 350
-SVG_PLOT_PADDING = 20
+SVG_PLOT_WIDTH = 540 # width of svg plots (the plot itself, not the overall svg
+SVG_PLOT_HEIGHT = 290 # height of svg plots
+SVG_PLOT_PADDING = 40 # padding around an svg plot
+SVG_PLOT_DESCRIPTION_HEIGHT = 300 # height for dataset descriptions
 
 # NOTE/WARNING: if you change svg map dimensions, you will fuck up coordinates unless you generate a fitting themes/default/svg/world.jinja!
 SVG_MAP_WIDTH = 620
