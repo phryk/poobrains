@@ -374,9 +374,10 @@ path#icon {
             }
 
             .infobox {
+
                 display: block;
                 opacity: 1;
-                background: #111;
+                background: $color_background_dark;
 
                 .html body {
                     background: $color_background_dark;

@@ -107,7 +107,7 @@
 
                             <use href="#marker" class="marker" x="{{ content.normalize_x(datapoint.x) }}" y="{{ content.normalize_y(datapoint.y) }}" />
 
-                            <text class="datapoint-value" x="{{ content.normalize_x(datapoint.x) + 5 }}" y="{{ content.normalize_y(datapoint.y) - 20 }}">{{ datapoint.y }}</text>
+                            <text class="datapoint-value" x="{{ content.normalize_x(datapoint.x) + 5 }}" y="{{ content.normalize_y(datapoint.y) - 20 }}">{{ "%.5f"|format(datapoint.y) }}</text>
 
                         </g>
                     </a>
