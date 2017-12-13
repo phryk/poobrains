@@ -312,10 +312,10 @@ class MapDatapointFieldset(poobrains.form.Fieldset):
 
     def __init__(self, datapoint, **kwargs):
 
+        app.debugger.set_trace()
         super(MapDatapointFieldset, self).__init__(**kwargs)
 
         self.datapoint = datapoint
-        self.name = poobrains.form.fields.Text(type=poobrains.form.types.STRING, value=datapoint.name, placeholder=MapDatapoint.name.verbose_name, help_text=MapDatapoint.name.help_text)
         self.title = poobrains.form.fields.Text(type=poobrains.form.types.STRING, value=datapoint.title, placeholder=MapDatapoint.title.verbose_name, help_text=MapDatapoint.title.help_text)
         self.latitude = poobrains.form.fields.Text(type=poobrains.form.types.FLOAT, value=self.datapoint.x, placeholder=MapDatapoint.latitude.verbose_name, help_text=MapDatapoint.latitude.help_text)
         self.longitude = poobrains.form.fields.Text(type=poobrains.form.types.FLOAT, value=self.datapoint.y, placeholder=MapDatapoint.longitude.verbose_name, help_text=MapDatapoint.longitude.help_text)
@@ -337,7 +337,7 @@ class MapDatapointFieldset(poobrains.form.Fieldset):
             self.datapoint.save(force_insert=True)
 
 
-class MapDatapoint(poobrains.tagging.Taggable):
+class MapDatapoint(poobrains.auth.Owned):
 
     width = None
     height = None
@@ -358,6 +358,10 @@ class MapDatapoint(poobrains.tagging.Taggable):
         self.infobox_height = app.config['SVG_MAP_INFOBOX_HEIGHT']
 
 
+    @property
+    def ref_id(self):
+        return "dataset-%s-%s" % (self.dataset.name, self.id)
+
     # mercator calculation shamelessly thieved from the osm wiki
     # http://wiki.openstreetmap.org/wiki/Mercator
     # NOTE: I *think* this is WGS84?
@@ -373,6 +377,8 @@ class MapDatapoint(poobrains.tagging.Taggable):
             r_major=6378137.000
             x = r_major*math.radians(self.longitude)
             #return 50 + 50 * (x / normalization_factor)
+            app.logger.debug("X")
+            app.logger.debug(x)
             return (self.width  / 2.0) + (self.width / 2.0) * (x / normalization_factor)
 
 
@@ -381,7 +387,8 @@ class MapDatapoint(poobrains.tagging.Taggable):
 
         if not self.latitude is None:
 
-            normalization_factor = 19994838.114 # this is the value this function would return for 85.0511° without normalization, which should™ make the map square
+            #normalization_factor = 19994838.114 # this is the value this function would return for 85.0511° without normalization, which should™ make the map square
+            normalization_factor = 12890914.1373 # this is the value this function would return for 75° without normalization, which should™ make the map square
             if self.latitude>89.5:self.latitude=89.5
             if self.latitude<-89.5:self.latitude=-89.5
             r_major=6378137.000
@@ -395,7 +402,10 @@ class MapDatapoint(poobrains.tagging.Taggable):
             con=((1.0-con)/(1.0+con))**com
             ts=math.tan((math.pi/2-phi)/2)/con
             y=0-r_major*math.log(ts)
-            #return 50 - 50 * (y / normalization_factor)
+
+            app.logger.debug('Y')
+            app.logger.debug(y)
+
             return (self.height / 2.0) - (self.height / 2.0) * (y / normalization_factor)
 
 

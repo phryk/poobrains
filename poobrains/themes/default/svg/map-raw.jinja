@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<svg xmlns:osb='http://www.openswatchbook.org/uri/2009/osb' xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xml:space='preserve' xmlns:cc='http://creativecommons.org/ns#' viewBox='0 0 620 618' width="620" height="618" version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:dc='http://purl.org/dc/elements/1.1/'>
+<svg class="map" xmlns:osb='http://www.openswatchbook.org/uri/2009/osb' xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xml:space='preserve' xmlns:cc='http://creativecommons.org/ns#' viewBox='0 0 {{ content.width }} {{ content.height }}' width="{{ content.width }}" height="{{ content.height }}" version='1.1' xmlns='http://www.w3.org/2000/svg' xmlns:dc='http://purl.org/dc/elements/1.1/'>
     <metadata>
         <rdf:RDF>
             <cc:Work rdf:about=''>
@@ -17,16 +17,19 @@
 
     {% include "svg/defs.jinja" %}
 
-    <g class="map">
+    <g class="terrain">
         <rect class="ocean" x="0" y="0" width="100%" height="100%" />
         {% include 'svg/world.jinja' %}
-    </g> <!-- / .map -->
+    </g> <!-- / .terrain -->
 
     {% for dataset in content.datasets %}
-    <g class="map-dataset">
+    <g class="dataset">
         {% for datapoint in dataset.authorized_datapoints %} 
-        <g class="map-datapoint">
-            <use href="#marker" class="marker" x="{{ datapoint.x }}" y="{{ datapoint.y }}" />
+        <g id="{{ datapoint.ref_id }}" class="datapoint">
+
+            <a href="#{{ datapoint.ref_id }}">
+                <use href="#marker" class="marker" x="{{ datapoint.x }}" y="{{ datapoint.y }}" />
+            </a>
 
             <g class="infobox">
                 <switch> <!-- switch uses first item with supported (or no) requiredExtensions -->

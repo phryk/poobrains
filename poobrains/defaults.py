@@ -19,7 +19,7 @@ SVG_PLOT_DESCRIPTION_HEIGHT = 300 # height for dataset descriptions
 
 # NOTE/WARNING: if you change svg map dimensions, you will fuck up coordinates unless you generate a fitting themes/default/svg/world.jinja!
 SVG_MAP_WIDTH = 620
-SVG_MAP_HEIGHT = 618
+SVG_MAP_HEIGHT = 401
 SVG_MAP_INFOBOX_WIDTH = 200
 SVG_MAP_INFOBOX_HEIGHT = 200
 

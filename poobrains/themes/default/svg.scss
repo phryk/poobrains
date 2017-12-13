@@ -319,72 +319,72 @@ path#icon {
 
 /* ## MAPS ## */
 
-.map {
+svg.map {
 
-    .ocean {
-        fill: darken($color_highlight, 45%);
-    }
+    .terrain {
 
-    .country {
-
-        stroke: opacify($color_background_light, -20%);
-        stroke-width: 1px;
-        stroke-miterlimit: 1;
-        fill: opacify($color_background_dark, -20%);
-        transition: fill 0.3s linear, stroke 0.3s linear;
-
-        &:hover {
-            stroke: $color_highlight;
-            fill: mix($color_highlight, $color_background_dark, 25%);
+        .ocean {
+            fill: darken($color_highlight, 45%);
         }
 
-        g,
-        path {
-            stroke-width: 0.1rem;
-        }
+        .country {
 
-    }
-}
+            stroke: opacify($color_background_light, -20%);
+            stroke-width: 1px;
+            stroke-miterlimit: 1;
+            fill: opacify($color_background_dark, -20%);
+            transition: fill 0.3s linear, stroke 0.3s linear;
 
-.map-dataset {
-
-    .map-datapoint {
-
-        .infobox {
-
-            display: none;
-            opacity: 0;
-            fill: $color_font_light;
-            font-size: 1rem;
-            /*transform: translateY(1rem);*/
-            transition: opacity 0.3s linear;
-
-        }
-
-        &:hover,
-        &:focus,
-        &:target {
-
-            cursor: help;
-
-            .marker {
-                opacity: 1;
-                fill: $color_highlight;
-                stroke: $color_background_light;
+            &:hover {
+                stroke: $color_highlight;
+                fill: mix($color_highlight, $color_background_dark, 25%);
             }
+
+            g,
+            path {
+                stroke-width: 0.1rem;
+            }
+        }
+    }
+
+    .dataset {
+
+        .datapoint {
 
             .infobox {
 
-                display: block;
-                opacity: 1;
-                background: $color_background_dark;
+                display: none;
+                opacity: 0;
+                fill: $color_font_light;
+                font-size: 1rem;
+                /*transform: translateY(1rem);*/
+                transition: opacity 0.3s linear;
 
-                .html body {
-                    background: $color_background_dark;
+            }
+
+            &:hover,
+            &:focus,
+            &:target {
+
+                .marker {
+                    opacity: 1;
+                    fill: $color_highlight;
+                    stroke: $color_background_light;
                 }
 
-                .fallback .background {
-                    fill: $color_background_dark;
+                .infobox {
+
+                    display: block;
+                    opacity: 1;
+                    background: $color_background_dark;
+
+                    .html body {
+                        background: $color_background_dark;
+                    }
+
+                    .fallback .background {
+                        fill: $color_background_dark;
+                    }
                 }
             }
         }
