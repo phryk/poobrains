@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -+-
+# -*- coding: utf-8 -*-
 
 # external imports
 import time
