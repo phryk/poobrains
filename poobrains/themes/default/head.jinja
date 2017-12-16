@@ -1,6 +1,6 @@
-{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
+{% if config.DEBUG %}<!-- debug-hint: {{ self|safe }} -->{% endif %}
 <title>{{ g.title }}</title>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" href="/theme/logo.svg">
-<link rel="stylesheet" type="text/css" href="/theme/main.scss">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="/theme/logo.svg" />
+<link rel="stylesheet" type="text/css" href="/theme/main.scss" />

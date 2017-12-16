@@ -3,11 +3,14 @@
 The documentation system.
 """
 
+import __builtin__
+
 import os
 import re
 import sys
 import string
 import codecs # needed to open files with utf-8 encoding
+import collections
 import inspect
 import pkgutil
 import pydoc
@@ -45,14 +48,6 @@ class PooDoc(pydoc.HTMLDoc, object):
         functions are implemented.
     """
 
-#    def docroutine(self, object, name=None, mod=None,
-#                   funcs={}, classes={}, methods={}, cl=None):
-#        """Produce HTML documentation for a function or method object."""
-#
-#        app.debugger.set_trace()
-#        return "blargh"
-
-    # some utility functions first
 
     level_offset = None
     local = None
@@ -63,6 +58,13 @@ class PooDoc(pydoc.HTMLDoc, object):
         self.level_offset = level_offset
         self.local = local
         self.index_url = index_url
+
+    
+    # some utility functions first
+
+
+    def getdoc(self, object):
+        return poobrains.md.md.convert(pydoc.getdoc(object))
 
 
     def heading(self, level, content):
@@ -80,7 +82,7 @@ class PooDoc(pydoc.HTMLDoc, object):
 
         """ Create URL for a documentable thing. Mainly intended for subclassing """
 
-        return "/doc/%s" % name
+        return "/doc/%s/" % name
 
     
     def listing(self, items, formatter=None):
@@ -92,7 +94,9 @@ class PooDoc(pydoc.HTMLDoc, object):
 
     def preformat(self, text):
 
-        return '<pre>%s</pre>' % text
+        #return '<pre>%s</pre>' % text
+        #return poobrains.md.md.convert(text)
+        return text
 
 
     def modpkglink(self, data):
@@ -116,6 +120,14 @@ class PooDoc(pydoc.HTMLDoc, object):
         return '<a href="%s">%s</a>' % (self.url(object.__name__), object.__name__)
 
 
+    def classlink(self, object, modname):
+        """Make a link for a class."""
+        name, module = object.__name__, sys.modules.get(object.__module__)
+        if hasattr(module, name) and getattr(module, name) is object:
+            return '<a href="%s#%s">%s</a>' % (
+                self.url(module.__name__), name, pydoc.classname(object, modname))
+        return pydoc.classname(object, modname)
+
 
     def formattree(self, tree, modname, parent=None):
 
@@ -126,7 +138,7 @@ class PooDoc(pydoc.HTMLDoc, object):
             result += '<li>'
             if type(entry) is type(()): # means this is info about a class
                 c, bases = entry
-                result += '<span class="classname">' + pydoc.classname(c, modname) + '</span>'
+                result += '<span class="class-name">' + self.classlink(c, modname) + '</span>'
 
                 if bases and bases != (parent,):
                     parents = map(lambda c, m=modname: pydoc.classname(c, m), bases)
@@ -138,7 +150,6 @@ class PooDoc(pydoc.HTMLDoc, object):
             result += '</li>'
 
         result += '</ul>'
-        app.debugger.set_trace()
 
         return result
 
@@ -146,7 +157,12 @@ class PooDoc(pydoc.HTMLDoc, object):
     def markup(self, text, escape=None, funcs={}, classes={}, methods={}):
 
         """Mark up some plain text, given a context of symbols to look for.
-        Each context dictionary maps object names to anchor names."""
+        Each context dictionary maps object names to anchor names.
+        
+        i.e. Replaces plaintext URLs with linked versions
+        Also escapes input text
+
+        """
 
 
         escape = escape or self.escape
@@ -295,7 +311,7 @@ class PooDoc(pydoc.HTMLDoc, object):
                 data.append((key, value))
 
 
-        components['doc'] = poobrains.md.md.convert(self.markup(pydoc.getdoc(object), funcs=fdict, classes=cdict)) # build documentation for the thing passed in
+        components['doc'] = self.getdoc(object) # build documentation for the thing passed in
 
 
         if hasattr(object, '__path__'):
@@ -318,25 +334,35 @@ class PooDoc(pydoc.HTMLDoc, object):
             for key, value in classes:
                 classdocs.append(self.document(value, key, name, fdict, cdict))
 
-            components['classes'] = self.heading(level + 2, 'Classes') + classtree + '\n'.join(classdocs)
+            components['classes'] = self.heading(level + 2, 'Classes')
+            components['classes'] += classtree
+            components['classes'] += '<dl class="classes">'
+            components['classes'] += '\n'.join(classdocs)
+            components['classes'] += '</dl>'
 
         
         if funcs:
 
             docs = []
             for key, value in funcs:
-                docs.append('<div class="function">' + self.document(value, key, name, fdict, cdict) + '</div>')
-            components['funcs'] = self.heading(level + 2, 'Functions') + '\n'.join(docs)
+                docs.append(self.document(value, key, name, fdict, cdict))
+
+            components['funcs'] = self.heading(level + 2, 'Functions')
+            components['funcs'] += '<dl class="functions">'
+            components['funcs'] += '\n'.join(docs)
+            components['funcs'] += '</dl>'
 
 
         if data:
 
             docs = []
             for key, value in data:
-                docs.append('<div class="data">' + self.document(value, key))
+                docs.append(self.document(value, key))
 
-            components['data'] = self.heading(level + 2, 'Data') + '\n'.join(docs)
-
+            components['data'] = self.heading(level + 2, 'Data')
+            components['data'] += '<dl class="data">'
+            components['data'] += '\n'.join(docs)
+            components['data'] += '</dl>'
 
 
         if hasattr(object, '__author__'):
@@ -347,9 +373,6 @@ class PooDoc(pydoc.HTMLDoc, object):
         if hasattr(object, '__credits__'):
 
             components['credits'] = self.geadubg(level + 2, 'Credits') + pydoc._binstr(object.__credits__)
-
-
-        app.debugger.set_trace()
 
 
         result = '%(head)s %(fileref)s %(docloc)s' % components
@@ -379,255 +402,104 @@ class PooDoc(pydoc.HTMLDoc, object):
     def docclass(self, object, name=None, mod=None, funcs={}, classes={},
                  *ignored):
         """Produce HTML documentation for a class object."""
-        realname = object.__name__
-        name = name or realname
-        bases = object.__bases__
-
-        return "dem class shit"
-
-
-
-
-class DocMD(pydoc.Doc):
-
-    """ 
-    200% doc
-
-    A pydoc.Doc subclass that outputs documentation as markdown.
-
-    """
-
-    _repr_instance = MDRepr()
-    repr = _repr_instance.repr
-
-    def header(self, text, level=2): # default level is 2 because we're assuming this to be integrated in some page that already has a h1 title
-
-        pad = '#' * level
-        return u"%s %s %s" % (pad, text, pad)
-
-    def bold(self, text):
-        """Format a string in bold by cuddling it in **."""
-        return u"**%s**" % text
-
-    def indent(self, text, prefix='    '):
-        """Indent text by prepending a given prefix to each line."""
-        if not text: return ''
-        lines = string.split(text, '\n')
-        lines = map(lambda line, prefix=prefix: prefix + line, lines)
-        if lines: lines[-1] = string.rstrip(lines[-1])
-        return string.join(lines, '\n')
-
-
-    def listing(self, items):
-        return u"\n" + u"\n* ".join(items)
-
-
-    def section(self, title, contents):
-        """Format a section with a given heading."""
-        return self.header(title) + '\n\n' + string.rstrip(contents) + '\n\n\n'
-
-    # ---------------------------------------------- type-specific routines
-
-    def formattree(self, tree, modname, parent=None, prefix=''):
-        """Render in text a class tree as returned by inspect.getclasstree()."""
-        result = ''
-        for entry in tree:
-            if type(entry) is type(()):
-                c, bases = entry
-                result = result + prefix + '* ' + pydoc.classname(c, modname)
-                if bases and bases != (parent,):
-                    parents = map(lambda c, m=modname: pydoc.classname(c, m), bases)
-                    result = result + '(%s)' % string.join(parents, ', ')
-                result = result + '\n'
-            elif type(entry) is type([]):
-                result = result + self.formattree(
-                    entry, modname, c, prefix + '    ')
-        return result
-
-    def docmodule(self, object, name=None, mod=None):
-        """Produce text documentation for a given module object."""
-        name = object.__name__ # ignore the passed-in name
-        synop, desc = pydoc.splitdoc(getdoc(object))
-        result = self.section('NAME', name + (synop and ' - ' + synop))
-
-        try:
-            all = object.__all__
-        except AttributeError:
-            all = None
-
-        try:
-            file = inspect.getabsfile(object)
-        except TypeError:
-            file = '(built-in)'
-        result = result + self.section('FILE', file)
-
-        docloc = self.getdocloc(object)
-        if docloc is not None:
-            result = result + self.section('MODULE DOCS', docloc)
-
-        if desc:
-            result = result + self.section('DESCRIPTION', desc)
-
-        classes = []
-        for key, value in inspect.getmembers(object, inspect.isclass):
-            # if __all__ exists, believe it.  Otherwise use old heuristic.
-            if (all is not None
-                or (inspect.getmodule(value) or object) is object):
-                if pydoc.visiblename(key, all, object):
-                    classes.append((key, value))
-        funcs = []
-        for key, value in inspect.getmembers(object, inspect.isroutine):
-            # if __all__ exists, believe it.  Otherwise use old heuristic.
-            if (all is not None or
-                inspect.isbuiltin(value) or inspect.getmodule(value) is object):
-                if pydoc.visiblename(key, all, object):
-                    funcs.append((key, value))
-        data = []
-        for key, value in inspect.getmembers(object, pydoc.isdata):
-            if pydoc.visiblename(key, all, object):
-                data.append((key, value))
-
-        modpkgs = []
-        modpkgs_names = set()
-        if hasattr(object, '__path__'):
-            for importer, modname, ispkg in pkgutil.iter_modules(object.__path__):
-                modpkgs_names.add(modname)
-                if ispkg:
-                    modpkgs.append(modname + ' (package)')
-                else:
-                    modpkgs.append(modname)
-
-            modpkgs.sort()
-            result = result + self.section(
-                'PACKAGE CONTENTS', string.join(modpkgs, '\n'))
-
-        # Detect submodules as sometimes created by C extensions
-        submodules = []
-        for key, value in inspect.getmembers(object, inspect.ismodule):
-            if value.__name__.startswith(name + '.') and key not in modpkgs_names:
-                submodules.append(key)
-        if submodules:
-            submodules.sort()
-            result = result + self.section(
-                'SUBMODULES', string.join(submodules, '\n'))
-
-        if classes:
-            classlist = map(lambda key_value: key_value[1], classes)
-            contents = [self.formattree(
-                inspect.getclasstree(classlist, 1), name)]
-            for key, value in classes:
-                contents.append(self.document(value, key, name))
-            result = result + self.section('CLASSES', string.join(contents, '\n'))
-
-        if funcs:
-            contents = []
-            for key, value in funcs:
-                contents.append(self.document(value, key, name))
-            result = result + self.section('FUNCTIONS', string.join(contents, '\n'))
-
-        if data:
-            contents = []
-            for key, value in data:
-                contents.append(self.docother(value, key, name, maxlen=70))
-            result = result + self.section('DATA', string.join(contents, '\n'))
-
-        if hasattr(object, '__version__'):
-            version = pydoc._binstr(object.__version__)
-            if version[:11] == '$' + 'Revision: ' and version[-1:] == '$':
-                version = strip(version[11:-1])
-            result = result + self.section('VERSION', version)
-        if hasattr(object, '__date__'):
-            result = result + self.section('DATE', pydoc._binstr(object.__date__))
-        if hasattr(object, '__author__'):
-            result = result + self.section('AUTHOR', pydoc._binstr(object.__author__))
-        if hasattr(object, '__credits__'):
-            result = result + self.section('CREDITS', pydoc._binstr(object.__credits__))
-        #return clean(result)
-        return result
-
-    def docclass(self, object, name=None, mod=None, *ignored):
-        """Produce text documentation for a given class object."""
         
+        level = 2 # FIXME: use passed level in the future
+
         realname = object.__name__
         name = name or realname
         bases = object.__bases__
 
-        def makename(c, m=object.__module__):
-            return pydoc.classname(c, m)
+        components = {}
 
-        if name == realname:
-            title = 'class ' + self.bold(realname)
-        else:
-            title = self.bold(name) + ' = class ' + realname
-        if bases:
-            parents = map(makename, bases)
-            title = title + '(%s)' % string.join(parents, ', ')
-
-        doc = getdoc(object)
-        contents = doc and [doc + '\n'] or []
-        push = contents.append
-
-        # List the mro, if non-trivial.
-        mro = pydoc.deque(inspect.getmro(object))
-        if len(mro) > 2:
-            push("Method resolution order:")
-            for base in mro:
-                push('\n* ' + makename(base))
-            push('')
-
-        # Cute little class to pump out a horizontal rule between sections.
-        class HorizontalRule:
-            def __init__(self):
-                self.needone = 0
-            def maybe(self):
-                if self.needone:
-                    push('-' * 70)
-                self.needone = 1
-        hr = HorizontalRule()
 
         def spill(msg, attrs, predicate):
-            ok, attrs = pydoc._split_list(attrs, predicate)
+            ok, attrs = pydoc._split_list(attrs, predicate) # `ok` are attributes to handle, `attrs` is what's left
             if ok:
-                hr.maybe()
-                push(msg)
+                result = msg
                 for name, kind, homecls, value in ok:
                     try:
                         value = getattr(object, name)
                     except Exception:
                         # Some descriptors may meet a failure in their __get__.
                         # (bug #1785)
-                        push(self._docdescriptor(name, value, mod))
+                        result += self._docdescriptor(name, value, mod)
                     else:
-                        push(self.document(value,
-                                        name, mod, object))
+                        result += self.document(value, name, mod,
+                                        funcs, classes, mdict, object)
+
+                components['docs'].append(result) # NOTE: this is that important side-effect you're looking for!
+
             return attrs
+
 
         def spilldescriptors(msg, attrs, predicate):
-            ok, attrs = pydoc._split_list(attrs, predicate)
+
+            ok, attrs = pydoc._split_list(attrs, predicate) # `ok` are attributes to handle, `attrs` is what's left
             if ok:
-                hr.maybe()
-                push(msg)
+                result = msg
                 for name, kind, homecls, value in ok:
-                    push(self._docdescriptor(name, value, mod))
+                    result += self._docdescriptor(name, value, mod)
+
+                components['docs'].append(result) # NOTE: this is that important side-effect you're looking for!
+
             return attrs
 
+
         def spilldata(msg, attrs, predicate):
-            ok, attrs = pydoc._split_list(attrs, predicate)
+            ok, attrs = pydoc._split_list(attrs, predicate) # `ok` are attributes to handle, `attrs` is what's left
             if ok:
-                hr.maybe()
-                push(msg)
+                app.debugger.set_trace()
+
+                result = msg
                 for name, kind, homecls, value in ok:
+                    base = self.docother(getattr(object, name), name, mod)
                     if (hasattr(value, '__call__') or
                             inspect.isdatadescriptor(value)):
-                        doc = getdoc(value)
+                        doc = getattr(value, "__doc__", None)
                     else:
                         doc = None
-                    push(self.docother(getattr(object, name),
-                                       name, mod, maxlen=70, doc=doc) + '\n')
+                    if doc is None:
+                        result += '<dl><dt>%s</dt></dl>\n' % base
+                    else:
+                        doc = self.markup(self.getdoc(value), self.preformat,
+                                          funcs, classes, mdict)
+                        doc = '<dd>%s</dd>' % doc
+                        result += '<dl><dt>%s%s</dl>\n' % (base, doc)
+
+                components['docs'].append(result) # NOTE: this is that important side-effect you're looking for!
+
             return attrs
+
+
+        mro = collections.deque(inspect.getmro(object))
+        if len(mro) > 2:
+            components['mro'] = '<dl class="mro"><dt>Method resolution order:</dt>'
+            for base in mro:
+                components['mro'] += '<dd>%s</dd>' % self.classlink(base, object.__module__)
+            components['mro'] += '</dl>'
+
 
         attrs = filter(lambda data: pydoc.visiblename(data[0], obj=object),
                        pydoc.classify_class_attrs(object))
+        mdict = {}
+        for key, kind, homecls, value in attrs:
+            mdict[key] = anchor = '#' + name + '-' + key
+            try:
+                value = getattr(object, name)
+            except Exception:
+                # Some descriptors may meet a failure in their __get__.
+                # (bug #1785)
+                pass
+            try:
+                # The value may not be hashable (e.g., a data attr with
+                # a dict or list value).
+                mdict[value] = anchor
+            except TypeError:
+                pass
+
+
+        components['docs'] = [] # populated in spill* functions
+
         while attrs:
             if mro:
                 thisclass = mro.popleft()
@@ -635,116 +507,148 @@ class DocMD(pydoc.Doc):
                 thisclass = attrs[0][2]
             attrs, inherited = pydoc._split_list(attrs, lambda t: t[2] is thisclass)
 
-            if thisclass is pydoc.__builtin__.object:
+            if thisclass is __builtin__.object:
                 attrs = inherited
                 continue
             elif thisclass is object:
-                tag = "defined here"
+                tag = 'defined here:'
             else:
-                tag = "inherited from %s" % pydoc.classname(thisclass,
-                                                      object.__module__)
+                tag = 'inherited from %s:' % self.classlink(thisclass,
+                                                           object.__module__)
 
             # Sort attrs by name.
-            attrs.sort()
+            try:
+                attrs.sort(key=lambda t: t[0])
+            except TypeError:
+                attrs.sort(lambda t1, t2: cmp(t1[0], t2[0]))    # 2.3 compat
 
-            # Pump out the attrs, segregated by kind.
-            attrs = spill("Methods %s:\n" % tag, attrs,
+            attrs = spill('Methods %s' % tag, attrs,
                           lambda t: t[1] == 'method')
-            attrs = spill("Class methods %s:\n" % tag, attrs,
+            attrs = spill('Class methods %s' % tag, attrs,
                           lambda t: t[1] == 'class method')
-            attrs = spill("Static methods %s:\n" % tag, attrs,
+            attrs = spill('Static methods %s' % tag, attrs,
                           lambda t: t[1] == 'static method')
-            attrs = spilldescriptors("Data descriptors %s:\n" % tag, attrs,
+            attrs = spilldescriptors('Data descriptors %s' % tag, attrs,
                                      lambda t: t[1] == 'data descriptor')
-            attrs = spilldata("Data and other attributes %s:\n" % tag, attrs,
+            attrs = spilldata('Data and other attributes %s' % tag, attrs,
                               lambda t: t[1] == 'data')
             assert attrs == []
             attrs = inherited
+        
+        if name == realname:
+            title = '<a name="%s" href="#%s">class <span class="class-name">%s</span></a>' % (
+                name, name, realname)
+        else:
+            title = '<span class="class-name">%s</span> = <a name="%s" href="#%s>class %s</a>' % (
+                name, name, name, realname)
+        
+        if bases:
+            parents = []
+            for base in bases:
+                parents.append(self.classlink(base, object.__module__))
+            title = title + '(%s)' % ', '.join(parents)
 
-        contents = '\n'.join(contents)
-        if not contents:
-            return title + '\n'
-        return clean(title + '\n\n' + string.rstrip(contents) + '\n\n\n')
+        result = '<dt class="class">%s</dt>' % self.heading(level, title)
+
+        result += '<dd class="class">'
+        if components.has_key('mro'):
+            result += '  <div class="mro">%(mro)s</div>' % components
+
+        result += '\n  '.join(components['docs'])
+
+        result += '</dd>'
+
+        return result
+
 
     def formatvalue(self, object):
         """Format an argument default value as text."""
-        return '=' + self.repr(object)
+        return '<span class="parameter-default">=%s</span>' % self.repr(object)
 
-    def docroutine(self, object, name=None, mod=None, cl=None):
-        """Produce text documentation for a function or method object."""
+
+    def docroutine(self, object, name=None, mod=None,
+                   funcs={}, classes={}, methods={}, cl=None):
+        """Produce HTML documentation for a function or method object."""
         realname = object.__name__
         name = name or realname
+        anchor = (cl and cl.__name__ or '') + '-' + name
         note = ''
         skipdocs = 0
+
         if inspect.ismethod(object):
             imclass = object.im_class
             if cl:
                 if imclass is not cl:
-                    note = ' from ' + pydoc.classname(imclass, mod)
+                    note = ' from ' + self.classlink(imclass, mod)
             else:
                 if object.im_self is not None:
-                    note = ' method of %s instance' % pydoc.classname(
+                    note = ' method of %s instance' % self.classlink(
                         object.im_self.__class__, mod)
                 else:
-                    note = ' unbound %s method' % pydoc.classname(imclass,mod)
+                    note = ' unbound %s method' % self.classlink(imclass,mod)
             object = object.im_func
 
         if name == realname:
-            title = self.bold(realname)
+            title = '<a name="%s" href="#%s"><span class="function-name">%s</span></a>' % (anchor, anchor, realname)
         else:
             if (cl and realname in cl.__dict__ and
                 cl.__dict__[realname] is object):
+                reallink = '<a href="#%s">%s</a>' % (
+                    cl.__name__ + '-' + realname, realname)
                 skipdocs = 1
-            title = self.bold(name) + ' = ' + realname
+            else:
+                reallink = realname
+            title = '<a name="%s" href="#%s"><span class="function-name">%s</span></a> = %s' % (
+                anchor, anchor, name, reallink)
+
         if inspect.isfunction(object):
             args, varargs, varkw, defaults = inspect.getargspec(object)
             argspec = inspect.formatargspec(
                 args, varargs, varkw, defaults, formatvalue=self.formatvalue)
             if realname == '<lambda>':
-                title = self.bold(name) + ' lambda '
+                title = '<span class="function-name lambda">%s</span> <em>lambda</em> ' % name
                 argspec = argspec[1:-1] # remove parentheses
         else:
             argspec = '(...)'
-        decl = title + argspec + note
+
+        argspec = '<span class="argspec">%s</span>' % argspec
+        decl = title + argspec + (note and '<span class="note">%s</span>' % note)
 
         if skipdocs:
-            return decl + '\n'
+            return '<dl><dt>%s</dt></dl>\n' % decl
         else:
-            doc = getdoc(object) or ''
-            return decl + '\n' + (doc and string.rstrip(self.indent(doc)) + '\n')
+            doc = self.markup(
+                self.getdoc(object), self.preformat, funcs, classes, methods)
+            doc = doc and '<dd>%s</dd>' % doc
+            return '<dl class="function"><dt>%s</dt>%s</dl>\n' % (decl, doc)
+
 
     def _docdescriptor(self, name, value, mod):
         results = []
         push = results.append
 
+        push('<dl class="descriptor">')
         if name:
-            push(self.bold(name))
-            push('\n')
-        doc = getdoc(value) or ''
-        if doc:
-            push(self.indent(doc))
-            push('\n')
+            push('<dt>%s</dt>\n' % name)
+        if value.__doc__ is not None:
+            doc = self.getdoc(value)
+            push('<dd>%s</dd>\n' % doc)
+        push('</dl>\n')
+
         return ''.join(results)
 
     def docproperty(self, object, name=None, mod=None, cl=None):
-        """Produce text documentation for a property."""
+        """Produce html documentation for a property."""
         return self._docdescriptor(name, object, mod)
+
+    def docother(self, object, name=None, mod=None, *ignored):
+        """Produce HTML documentation for a data object."""
+        lhs = name and '<span class="other-name">%s</span> = ' % name or '' # fucking what?
+        return lhs + self.repr(object)
 
     def docdata(self, object, name=None, mod=None, cl=None):
-        """Produce text documentation for a data descriptor."""
+        """Produce html documentation for a data descriptor."""
         return self._docdescriptor(name, object, mod)
-
-    def docother(self, object, name=None, mod=None, parent=None, maxlen=None, doc=None):
-        """Produce text documentation for a data object."""
-        repr = self.repr(object)
-        if maxlen:
-            line = (name and name + ' = ' or '') + repr
-            chop = maxlen - len(line)
-            if chop < 0: repr = repr[:chop] + '...'
-        line = (name and self.bold(name) + ' = ' or '') + repr
-        if doc is not None:
-            line += '\n' + self.indent(unicode(doc))
-        return line
 
 
 @app.expose('/doc/')
@@ -767,7 +671,7 @@ class Documentation(poobrains.auth.Protected):
 
         if handle is None:
             import __main__
-            doc = DocMD()
+            doc = PooDoc()
             subject = __main__
             text = doc.document(subject)
 
