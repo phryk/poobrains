@@ -3,8 +3,9 @@
 import math
 import os
 import collections
+import json
 
-from poobrains import Response, app, abort, flash, g
+from poobrains import Response, Markup, app, abort, flash, g
 import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
@@ -160,6 +161,17 @@ class Plot(SVG):
     max_y = None
     span_x = None
     span_y = None
+        
+
+    class Meta:
+
+        modes = collections.OrderedDict([
+            ('teaser', 'read'),
+            ('full', 'read'),
+            ('raw', 'read'),
+            ('json', 'read'),
+            ('inline', 'read')
+        ])
 
     def __init__(self, handle=None, mode=None, **kwargs):
 
@@ -215,6 +227,28 @@ class Plot(SVG):
 
         self.span_x = self.max_x - self.min_x
         self.span_y = self.max_y - self.min_y
+
+
+    def render(self, mode=None):
+
+        if mode == 'json':
+
+            data = {}
+
+            for dataset in self.datasets:
+                data[dataset.name] = []
+
+                for datapoint in dataset.authorized_datapoints:
+                    data[dataset.name].append({
+                        'x': datapoint.x,
+                        'y': datapoint.y,
+                        'error_lower': datapoint.error_lower,
+                        'error_upper': datapoint.error_upper
+                    })
+
+            return Markup(json.dumps(data))
+
+        return super(Plot, self).render(mode=mode)
 
 
     def normalize_x(self, value):

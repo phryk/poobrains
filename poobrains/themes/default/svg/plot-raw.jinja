@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg class="plot" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" width="{{ content.width }}" height="{{ content.height }}" viewbox="0 0 100% 100%" version="1.1" xmlns:dc="http://purl.org/dc/elements/1.1/">
+
+    <!-- a json representation of all visualized data, not used since there's a strict nojs policy, but included for your convenience -->
+    {{ content.render('json') }}
+
     <style>
         {{ content.style }}
     </style>
@@ -118,6 +122,4 @@
         {% endfor %}i
         </g> <!-- /datasets -->
     </svg>
-
-
 </svg>
