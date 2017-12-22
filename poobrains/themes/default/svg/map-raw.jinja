@@ -17,10 +17,10 @@
 
     {% include "svg/defs.jinja" %}
 
-    <g class="terrain">
+    <svg class="terrain">
         <rect class="ocean" x="0" y="0" width="100%" height="100%" />
         {% include 'svg/world.jinja' %}
-    </g> <!-- / .terrain -->
+    </svg> <!-- / .terrain -->
 
     {% for dataset in content.datasets %}
     <g class="dataset">

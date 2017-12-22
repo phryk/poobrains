@@ -3,6 +3,7 @@
 import os
 import datetime
 import functools
+import codecs
 import peewee
 import OpenSSL
 import gnupg
@@ -18,6 +19,7 @@ from poobrains import app, project_name
 import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
+import poobrains.svg
 
 from poobrains.form import types
 
@@ -356,7 +358,7 @@ def import_(storable, filepath, skip_pk):
     echo("Complete!")
 
 
-@app.cli.command(name='export')
+@app.cli.command()
 @argument('storable', type=types.STORABLE)
 @argument('filepath', type=types.Path(exists=False))
 @option('--skip-pk', type=types.BOOL, default=False, is_flag=True)
@@ -393,3 +395,31 @@ def export(storable, filepath, skip_pk):
             writer.write_record(record)
 
     echo("Complete!")
+
+
+@app.cli.command()
+@argument('datasets', type=types.StorableInstanceParamType(poobrains.svg.Dataset), nargs=-1)
+@option('--file', type=types.Path(writable=True), default='plot.svg')
+@fake_before_request
+def plot(datasets, file):
+
+    echo(u"Plotting…")
+    plot = poobrains.svg.Plot(datasets=datasets)
+
+    fd = codecs.open(file, 'w', encoding='utf-8')
+    fd.write(plot.render('raw'))
+    echo("Saved plot to %s!" % file)
+
+
+@app.cli.command()
+@argument('datasets', type=types.StorableInstanceParamType(poobrains.svg.MapDataset), nargs=-1)
+@option('--file', type=types.Path(writable=True), default='map.svg')
+@fake_before_request
+def map(datasets, file):
+
+    echo(u"Plotting…")
+    map = poobrains.svg.Map(datasets=datasets)
+
+    fd = codecs.open(file, 'w', encoding='utf-8')
+    fd.write(map.render('raw'))
+    echo("Saved map to %s!" % file)

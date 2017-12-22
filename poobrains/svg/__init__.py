@@ -32,7 +32,7 @@ class SVG(poobrains.auth.Protected):
         super(SVG, self).__init__(**kwargs)
 
         self.handle = handle
-        self.style = app.scss_compiler.compile_string("@import 'svg';")
+        self.style = Markup(app.scss_compiler.compile_string("@import 'svg';"))
     
     
     def templates(self, mode=None):
@@ -173,12 +173,12 @@ class Plot(SVG):
             ('inline', 'read')
         ])
 
-    def __init__(self, handle=None, mode=None, **kwargs):
+    def __init__(self, handle=None, mode=None, datasets=None, **kwargs):
 
         super(Plot, self).__init__(handle=handle, mode=mode, **kwargs)
 
-        if handle is None:
-            abort(404)
+        if handle is None and datasets is None:
+            abort(404, "No datasets selected")
         
         self.padding = app.config['SVG_PLOT_PADDING']
         self.plot_width = app.config['SVG_PLOT_WIDTH']
@@ -189,17 +189,22 @@ class Plot(SVG):
         self.inner_width = self.width - (2 * self.padding)
         self.inner_height = self.height - (2 * self.padding)
 
-        self.datasets = []
-        dataset_names = handle.split(',')
+        if datasets:
+            self.datasets = datasets
 
-        for name in dataset_names:
+        else:
 
-            try:
-                ds = Dataset.load(name)
-                if ds.permissions['read'].check(g.user):
-                    self.datasets.append(ds)
-            except (Dataset.DoesNotExist, poobrains.auth.AccessDenied):
-                flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
+            self.datasets = []
+            dataset_names = handle.split(',')
+
+            for name in dataset_names:
+
+                try:
+                    ds = Dataset.load(name)
+                    if ds.permissions['read'].check(g.user):
+                        self.datasets.append(ds)
+                except (Dataset.DoesNotExist, poobrains.auth.AccessDenied):
+                    flash("Ignoring unknown Dataset '%s'!" % name, 'error')
 
 
         for datapoint in Datapoint.list('read', g.user).where(Datapoint.dataset << self.datasets):
@@ -411,8 +416,7 @@ class MapDatapoint(poobrains.auth.Owned):
             r_major=6378137.000
             x = r_major*math.radians(self.longitude)
             #return 50 + 50 * (x / normalization_factor)
-            app.logger.debug("X")
-            app.logger.debug(x)
+            
             return (self.width  / 2.0) + (self.width / 2.0) * (x / normalization_factor)
 
 
@@ -437,9 +441,6 @@ class MapDatapoint(poobrains.auth.Owned):
             ts=math.tan((math.pi/2-phi)/2)/con
             y=0-r_major*math.log(ts)
 
-            app.logger.debug('Y')
-            app.logger.debug(y)
-
             return (self.height / 2.0) - (self.height / 2.0) * (y / normalization_factor)
 
 
@@ -463,27 +464,32 @@ class Map(SVG):
 
     datasets = None
 
-    def __init__(self, handle=None, mode=None, **kwargs):
+    def __init__(self, handle=None, mode=None, datasets=None, **kwargs):
         
         super(Map, self).__init__(handle=handle, mode=mode, **kwargs)
         
-        if handle is None:
-            abort(404)
+        if handle is None and datasets is None:
+            abort(404, "No datasets selected")
 
         self.width = app.config['SVG_MAP_WIDTH']
         self.height = app.config['SVG_MAP_HEIGHT']
 
-        self.datasets = []
-        dataset_names = handle.split(',')
+        if datasets:
+            self.datasets = datasets
 
-        for name in dataset_names:
+        else:
 
-            try:
-                ds = MapDataset.load(name)
-                if ds.permissions['read'].check(g.user):
-                    self.datasets.append(ds)
-            except (MapDataset.DoesNotExist, poobrains.auth.AccessDenied):
-                flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
+            self.datasets = []
+            dataset_names = handle.split(',')
+
+            for name in dataset_names:
+
+                try:
+                    ds = MapDataset.load(name)
+                    if ds.permissions['read'].check(g.user):
+                        self.datasets.append(ds)
+                except (MapDataset.DoesNotExist, poobrains.auth.AccessDenied):
+                    flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
 
 
 for cls in set([SVG]).union(SVG.class_children()):

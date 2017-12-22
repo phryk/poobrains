@@ -552,6 +552,12 @@ class Poobrain(flask.Flask):
         self.logger.info("Finished cron run.")
 
 
+    @flask.helpers.locked_cached_property
+    def jinja_loader(self):
+
+        return jinja2.FileSystemLoader(self.theme_paths)
+
+
 class Pooprint(flask.Blueprint):
 
     app = None
@@ -838,12 +844,6 @@ class Pooprint(flask.Blueprint):
                 i += 1
 
             return endpoint
-
-
-    @flask.helpers.locked_cached_property
-    def jinja_loader(self):
-
-        return jinja2.FileSystemLoader(self.app.theme_paths)
 
 
 app = Poobrain(__name__) # TODO: Make app class configurable.
