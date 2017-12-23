@@ -330,15 +330,18 @@ class MapDatasetForm(poobrains.auth.AddForm):
         for datapoint in self.instance.datapoints:
             
             name = 'datapoint-%d' % n
-            setattr(self, name, MapDatapointFieldset(datapoint))
+            #setattr(self, name, MapDatapointFieldset(datapoint))
+            setattr(self, name, datapoint.fieldset('edit'))
             n += 1
 
-        setattr(self, 'datapoint-add', MapDatapointFieldset(MapDatapoint()))
+        #setattr(self, 'datapoint-add', MapDatapointFieldset(MapDatapoint()))
+        setattr(self, 'datapoint-add', MapDatapoint().fieldset('add'))
 
 
 class MapDataset(poobrains.commenting.Commentable):
 
     form_add = MapDatasetForm
+    form_edit = MapDatasetForm
 
     title = poobrains.storage.fields.CharField()
     description = poobrains.md.MarkdownField(null=True)
