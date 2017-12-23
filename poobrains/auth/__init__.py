@@ -337,6 +337,13 @@ poobrains.form.AddFieldset = AddFieldset
 class EditFieldset(EditForm, poobrains.form.Fieldset):
 
     rendered = None
+    
+    def __new__(cls, *args, **kwargs):
+
+        f = super(EditFieldset, cls).__new__(cls, *args, **kwargs)
+        f.controls.clear()
+
+        return f
  
     def render(self, mode=None):
 
@@ -1263,7 +1270,18 @@ class Administerable(poobrains.storage.Storable, Protected):
 
         form_class = getattr(self, n)
         return form_class(mode=mode)#, name=None, title=None, method=None, action=None)
-    
+
+
+    def fieldset(self, mode=None):
+
+#        n = 'fieldset_%s' % mode
+#        if not hasattr(self, n):
+#            raise NotImplementedError("Fieldset class %s.%s missing." % (self.__class__.__name__, n))
+
+#        fieldset_class = getattr(self, n)
+#        return fieldset_class(mode=mode)#, name=None, title=None, method=None, action=None)i
+        return poobrains.form.ProxyFieldset(self.form(mode))
+
 
     @classmethod
     def class_view(cls, mode=None, handle=None, **kwargs):

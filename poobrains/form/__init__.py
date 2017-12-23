@@ -411,7 +411,14 @@ class Fieldset(BaseForm):
         return super(Fieldset, self).render(mode)
 
 
-    def process(self, submit):
+    def process(self, submit, instance):
+
+        """
+        Parameters:
+        * instance: A `Renderable` instance pertaining to the parent form.
+                    Usually an `Administerable` that was saved before fieldsets
+                    are processed.
+        """
 
         raise NotImplementedError("%s.process not implemented." % self.__class__.__name__)
 
@@ -439,15 +446,15 @@ class ProxyFieldset(Fieldset):
         self.fields = form.fields # TODO: is this done by reference? will probably fuck up if not.
 
 
-    def bind(self, value):
-        self.form.bind(value)
+    def bind(self, values, files):
+        self.form.bind(values, files)
 
 
     def validate(self):
         self.form.validate()
 
 
-    def process(self, submit):
+    def process(self, submit, instance):
         self.form.process(submit)
 
 

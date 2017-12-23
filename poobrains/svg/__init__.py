@@ -71,10 +71,12 @@ class DatasetForm(poobrains.auth.AddForm):
         for datapoint in self.instance.datapoints:
             
             name = 'datapoint-%d' % n
-            setattr(self, name, DatapointFieldset(datapoint))
+            #setattr(self, name, DatapointFieldset(datapoint))
+            setattr(self, name, datapoint.fieldset('edit'))
             n += 1
 
-        setattr(self, 'datapoint-add', DatapointFieldset(Datapoint()))
+        #setattr(self, 'datapoint-add', DatapointFieldset(Datapoint()))
+        setattr(self, 'datapoint-add', Datapoint().fieldset('add'))
 
 
 class Dataset(poobrains.commenting.Commentable):

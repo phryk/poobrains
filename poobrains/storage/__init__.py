@@ -157,10 +157,10 @@ class Storable(Model, poobrains.rendering.Renderable):
         if self.name:
             return self.name
 
-        elif self.id:
-            return "%s #%d" % (self.__class__.__name__, self.id)
+        elif self._get_pk_value():
+            return "%s %s" % (self.__class__.__name__, str(self._get_pk_value()))
 
-        return self.__class__.__name__
+        return "New %s" % self.__class__.__name__
 
 
     def instance_url(self, mode='full', quiet=False, **url_params):
