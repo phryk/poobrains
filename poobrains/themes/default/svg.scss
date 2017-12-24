@@ -137,10 +137,6 @@ path#icon {
             .grid-label {
                 fill: $color_font_light;
                 font-size: 12px;
-
-                &.axis-y {
-                    transform: rotate(-90deg) translate(5px, -15px);
-                }
             }
         }
 
@@ -149,7 +145,10 @@ path#icon {
             g.dataset {
 
                 .dataset-name {
-                    fill: $color_font_light;
+                    fill: $color_highlight;
+                    stroke: $color_font_light;
+                    stroke-width: 4px;
+                    paint-order: stroke;
                     transition: fill 0.3s linear;
                 }
 
@@ -255,7 +254,8 @@ path#icon {
                 g.dataset:nth-child(#{$i}n+#{$i}) {
                 
                     .dataset-name {
-                        fill: desaturate($color, 50%);
+                        stroke: darken($color, 30%);
+                        fill: desaturate($color, 80%);
                     }
 
 
@@ -276,7 +276,8 @@ path#icon {
                         }
 
                         text.datapoint-value {
-                            fill: darken($color, 30%);
+                            stroke: darken($color, 30%);
+                            fill: lighten($color, 80%);
                         }
 
                         &:hover,
@@ -294,9 +295,8 @@ path#icon {
                     &:target {
 
                         .dataset-name {
-                            fill: $color;
+                            fill: lighten($color, 80%);
                         }
-
                     }
                 }
             }
@@ -308,12 +308,7 @@ path#icon {
         font-size: 14px;
         fill: $color_font_light;
 
-        &.axis-y {
-            /*transform-origin: 0px 330px;*/
-            transform: rotate(-90deg) translate(5px, 15px);
-        }
     }
-
 }
 
 
@@ -347,43 +342,70 @@ svg.map {
         }
     }
 
-    .dataset {
+    g.datasets {
 
-        .datapoint {
+        g.dataset {
 
-            .infobox {
+            g.datapoint {
 
-                display: none;
-                opacity: 0;
-                fill: $color_font_light;
-                font-size: 1rem;
-                /*transform: translateY(1rem);*/
-                transition: opacity 0.3s linear;
+                g.infobox {
 
-            }
+                    display: none;
+                    opacity: 0;
+                    fill: $color_font_light;
+                    font-size: 1rem;
+                    /*transform: translateY(1rem);*/
+                    transition: opacity 0.3s linear;
 
-            &:hover,
-            &:focus,
-            &:target {
-
-                .marker {
-                    opacity: 1;
-                    fill: $color_highlight;
-                    stroke: $color_background_light;
                 }
 
-                .infobox {
+                &:hover,
+                &:focus,
+                &:target {
 
-                    display: block;
-                    opacity: 1;
-                    background: $color_background_dark;
-
-                    .html body {
-                        background: $color_background_dark;
+                    .marker {
+                        opacity: 1;
+                        fill: $color_highlight;
+                        stroke: $color_background_light;
                     }
 
-                    .fallback .background {
-                        fill: $color_background_dark;
+                    g.infobox {
+
+                        display: block;
+                        opacity: 1;
+                        background: $color_background_dark;
+
+                        .html body {
+                            background: $color_background_dark;
+                        }
+
+                        .fallback .background {
+                            fill: $color_background_dark;
+                        }
+                    }
+                }
+            }
+        }
+
+        /* palettize datasets */
+        @for $i from 1 through $palette_size {
+
+            $color: nth($palette, $i);
+
+            g.dataset:nth-child(#{$i}n+#{$i}) {
+                g.datapoint {
+
+                    .marker {
+                        fill: desaturate($color, 20%);
+                    }
+
+                    &:hover,
+                    &:focus,
+                    &:target {
+
+                        .marker {
+                            fill: $color;
+                        }
                     }
                 }
             }

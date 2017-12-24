@@ -11,7 +11,7 @@
     {% include "svg/defs.jinja" %}
 
     <text class="axis-label axis-x" x="{{ content.padding }}" y="{{ content.plot_height + content.padding + 20 }}" dominant-baseline="hanging">{{ content.label_x }}</text>
-    <text class="axis-label axis-y" style="transform-origin: 0 {{ content.plot_height + content.padding }}px" x="0" y="{{ content.plot_height + content.padding }}">{{ content.label_y }}</text>
+    <text class="axis-label axis-y" transform="rotate(-90 0 {{ content.plot_height + content.padding }}) translate(5 15)" x="0" y="{{ content.plot_height + content.padding }}">{{ content.label_y }}</text>
 
     <svg class="plot-inner" x="{{ content.padding }}" y="{{ content.padding }}" width="{{ content.inner_width }}" height="{{ content.inner_height }}" viewBox="0 0 100% 100%">
         <g class="grid">
@@ -33,7 +33,7 @@
                 {% set highlighted = i % (content.grid_y|length / 4)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
                 <line class="grid-y{% if highlighted %} highlighted{% endif %}" x1="0%" y1="{{ content.normalize_y(y) }}" x2="100%" y2="{{ content.normalize_y(y) }}" />
                 {% if highlighted %}
-                <text class="grid-label axis-y" style="transform-origin: 0 {{ content.normalize_y(y) }}px" x="0" y="{{ content.normalize_y(y) }}" dominant-baseline="hanging">{{ y }}</text>
+                <text class="grid-label axis-y" transform="rotate(-90 0 {{ content.normalize_y(y) }}) translate(5 -15)" x="0" y="{{ content.normalize_y(y) }}" dominant-baseline="hanging">{{ y }}</text>
                 {% endif %}
             {% endfor %}
         </g>
