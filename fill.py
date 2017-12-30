@@ -42,7 +42,6 @@ def datasets():
     fucksgiven.label_y = "Fucks given"
     fucksgiven.save()
 
-
     sine_steps = 33
     for i in range(0,sine_steps):
 
@@ -68,6 +67,48 @@ def datasets():
             fuck.error_lower = abs(fuck.y)
 
         fuck.save(force_insert=True)
+
+    cont_a = example.poobrains.svg.Dataset()
+    cont_a.owner = u
+    cont_a.group = g
+    cont_a.name = 'cont_a'
+    cont_a.title = 'Continued thingie A'
+    cont_a.description = "The first of a two part plot thingamabob"
+    cont_a.label_x = "Florp"
+    cont_a.label_y = "Plonk"
+    cont_a.save()
+
+    for i in range(-23, 6):
+
+        dp = example.poobrains.svg.Datapoint()
+        dp.dataset = cont_a
+        dp.owner = u
+        dp.group = g
+        dp.x = i
+        dp.y = random.random()
+
+        dp.save(force_insert=True)
+
+    cont_b = example.poobrains.svg.Dataset()
+    cont_b.owner = u
+    cont_b.group = g
+    cont_b.name = 'cont_b'
+    cont_b.title = 'Continued thingie B'
+    cont_b.description = "The **second** part of a two part plot thingamabob"
+    cont_b.label_x = "Florp"
+    cont_b.label_y = "Plonk"
+    cont_b.save()
+
+    for i in range(2, 24):
+
+        dp = example.poobrains.svg.Datapoint()
+        dp.dataset = cont_b
+        dp.owner = u
+        dp.group = g
+        dp.x = i
+        dp.y = random.random()
+
+        dp.save(force_insert=True)
 
 
 def map():

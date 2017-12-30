@@ -81,6 +81,7 @@ class DatasetForm(poobrains.auth.AddForm):
 
 class Dataset(poobrains.commenting.Commentable):
 
+    form_add = DatasetForm
     form_edit = DatasetForm
 
     title = poobrains.storage.fields.CharField()

@@ -24,7 +24,7 @@
                 <line class="grid-x{% if highlighted %} highlighted{% endif %}" x1="{{ content.normalize_x(x) }}" y1="0%" x2="{{ content.normalize_x(x) }}" y2="{{ content.plot_height }}" />
                 
                 {% if highlighted %}
-                    <text class="grid-label axis-x" x="{{ content.normalize_x(x) }}" y="{{ content.plot_height }}" dominant-baseline="hanging">{{ x }}</text>
+                    <text class="grid-label axis-x" x="{{ content.normalize_x(x) }}" y="{{ content.plot_height }}" dominant-baseline="hanging">{{ "%.3f"|format(x) }}</text>
                 {% endif %}
             {% endfor %}
 
@@ -33,7 +33,7 @@
                 {% set highlighted = i % (content.grid_y|length / 4)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
                 <line class="grid-y{% if highlighted %} highlighted{% endif %}" x1="0%" y1="{{ content.normalize_y(y) }}" x2="100%" y2="{{ content.normalize_y(y) }}" />
                 {% if highlighted %}
-                <text class="grid-label axis-y" transform="rotate(-90 0 {{ content.normalize_y(y) }}) translate(5 -15)" x="0" y="{{ content.normalize_y(y) }}" dominant-baseline="hanging">{{ y }}</text>
+                <text class="grid-label axis-y" transform="rotate(-90 0 {{ content.normalize_y(y) }}) translate(5 -15)" x="0" y="{{ content.normalize_y(y) }}" dominant-baseline="hanging">{{ "%.3f"|format(y) }}</text>
                 {% endif %}
             {% endfor %}
         </g>
