@@ -357,7 +357,6 @@ class MapDatapointFieldset(poobrains.form.Fieldset):
 
     def __init__(self, datapoint, **kwargs):
 
-        app.debugger.set_trace()
         super(MapDatapointFieldset, self).__init__(**kwargs)
 
         self.datapoint = datapoint

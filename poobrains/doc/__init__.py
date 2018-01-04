@@ -448,7 +448,6 @@ class PooDoc(pydoc.HTMLDoc, object):
         def spilldata(msg, attrs, predicate):
             ok, attrs = pydoc._split_list(attrs, predicate) # `ok` are attributes to handle, `attrs` is what's left
             if ok:
-                app.debugger.set_trace()
 
                 result = msg
                 for name, kind, homecls, value in ok:
