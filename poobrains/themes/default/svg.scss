@@ -59,6 +59,25 @@ path#icon {
     stroke: $color_highlight;
 }
 
+svg.checkbox {
+    
+    .box {
+        stroke: $color_background_light;
+        stroke-width: 2px;
+        fill: $color_background_dark;
+    }
+
+    .check {
+        stroke: transparentize($color_background_light, 100%);
+        stroke-width: 2px;
+        transition: stroke 0.3s linear;
+
+        &:target {
+            stroke: $color_highlight;
+        }
+    }
+}
+
 
 /** #DATAVIS# **/
 

@@ -743,7 +743,7 @@ form {
     main #content > article & {
 
         & > .content,
-        & > footer {
+        & > .controls {
             padding: 0;
             background: transparent;
         }
@@ -758,7 +758,7 @@ form {
     }
 
 
-    & > footer {
+    & > .controls {
 
         margin-top: 0.5rem;
         display: flex;
@@ -776,7 +776,7 @@ form {
 
     &#DeleteForm {
 
-        & > footer {
+        & > .controls {
             justify-content: center;
         }
 
@@ -831,6 +831,8 @@ button {
     color: $color_font_dark;
     outline: none;
     transition: background 0.3s ease-in-out, width 0.3s ease-in-out;
+    width: 100%; /* take full width of form as default */
+
 
     &:hover,
     &:focus {
@@ -895,6 +897,25 @@ fieldset {
     padding: 1rem;
 }
 
+input[type="checkbox"] {
+
+    width: auto;
+    display: none;
+
+    & + label {
+        min-height: 28px;
+        padding-left: 20px;
+        background: url('/theme/icons/checkbox.svg') no-repeat;
+        background-position: 0 center;
+    }
+
+    &:checked {
+
+        & + label {
+            background-image: url('/theme/icons/checkbox-fuckchrome.svg#checked'); /* checkbox.svg and checkbox-fuckchrome.svg are identical. needed because chrome is fucking retarded */
+        }
+    }
+}
 article {
 
     line-height: 1.5;
