@@ -353,6 +353,77 @@ class EditFieldset(EditForm, poobrains.form.Fieldset):
 poobrains.form.EditFieldset = EditFieldset
 
 
+class AccessField(poobrains.form.fields.Field):
+
+    read = None
+    update = None
+    delete = None
+
+    def __init__(self, **kwargs):
+
+        super(AccessField, self).__init__(**kwargs)
+        self.read = poobrains.form.fields.Checkbox(name='read', label='Read', help_text='teaser, full view and the like')
+        self.update = poobrains.form.fields.Checkbox(name='update', label='Update', help_text='mostly edit mode')
+        self.delete = poobrains.form.fields.Checkbox(name='delete', label='Delete')
+
+
+    def __getattribute__(self, name):
+
+        if name == 'value':
+            return self.value_string
+
+        return super(AccessField, self).__getattribute__(name)
+
+
+    def __setattr__(self, name, value):
+
+        if name == 'prefix':
+            for field in [self.read, self.update, self.delete]:
+                field.prefix = '%s.%s' % (value, self.name)
+
+        elif name == 'value':
+
+            if 'r' in value:
+                self.read.value = True
+
+            if 'u' in value:
+                self.update.value = True
+
+            if 'd' in value:
+                self.delete.value = True
+
+        super(AccessField, self).__setattr__(name, value)
+
+
+    def bind(self, value):
+
+        if value == '':
+
+            self.read.value = False
+            self.update.value = False
+            self.delete.value = False
+
+        else:
+
+            self.read.value = value.get('read', False)
+            self.update.value = value.get('update', False)
+            self.delete.value = value.get('delete', False)
+
+
+    @property
+    def value_string(self):
+
+        s = ''
+        if self.read.value:
+            s += 'r'
+
+        if self.update.value:
+            s += 'u'
+
+        if self.delete.value:
+            s += 'd'
+
+        return s
 
 
 class Permission(poobrains.helpers.ChildAware):
@@ -1758,7 +1829,7 @@ class Owned(Administerable):
 
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
     group = poobrains.storage.fields.ForeignKeyField(Group, null=True)
-    access = poobrains.storage.fields.CharField(default='')
+    access = poobrains.storage.fields.CharField(default='', form_widget=AccessField) # TODO: Add RegexpConstraint with ^r{0,1}u{0,1}d{0,1}$ ?
 
     def form(self, mode=None):
 

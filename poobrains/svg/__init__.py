@@ -100,6 +100,11 @@ class Dataset(poobrains.commenting.Commentable):
     def authorized_datapoints(self):
         return Datapoint.list('read', g.user).where(Datapoint.dataset == self)
 
+    
+    def plot(self):
+
+        return Plot(datasets=[self]).render('full')
+
 
 class DatapointFieldset(poobrains.form.Fieldset):
 
@@ -209,6 +214,7 @@ class Plot(SVG):
                 except (Dataset.DoesNotExist, poobrains.auth.AccessDenied):
                     flash("Ignoring unknown Dataset '%s'!" % name, 'error')
 
+        self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 
         for datapoint in Datapoint.list('read', g.user).where(Datapoint.dataset << self.datasets):
 
@@ -351,6 +357,11 @@ class MapDataset(poobrains.commenting.Commentable):
     @property
     def authorized_datapoints(self):
         return MapDatapoint.list('read', g.user).where(MapDatapoint.dataset == self)
+    
+    
+    def plot(self):
+
+        return Map(datasets=[self]).render('full')
 
 
 class MapDatapointFieldset(poobrains.form.Fieldset):
@@ -495,6 +506,8 @@ class Map(SVG):
                         self.datasets.append(ds)
                 except (MapDataset.DoesNotExist, poobrains.auth.AccessDenied):
                     flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
+
+        self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 
 
 for cls in set([SVG]).union(SVG.class_children()):

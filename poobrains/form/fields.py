@@ -106,7 +106,7 @@ class BaseField(object):
                 self.prefix = "%s.%s" % (self.form.prefix, self.form.name)
             else:
                 self.prefix = self.form.name
-            self.form._add_external_field(self) # this has to be called *after* self.choices is filled
+            self.form._add_external_field(self) # NOTE: this has to be called *after* self.choices is filled
 
 
     def templates(self, mode=None):

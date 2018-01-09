@@ -903,7 +903,6 @@ input[type="checkbox"] {
     display: none;
 
     & + label {
-        min-height: 28px;
         padding-left: 20px;
         background: url('/theme/icons/checkbox.svg') no-repeat;
         background-position: 0 center;
@@ -912,7 +911,9 @@ input[type="checkbox"] {
     &:checked {
 
         & + label {
-            background-image: url('/theme/icons/checkbox-fuckchrome.svg#checked'); /* checkbox.svg and checkbox-fuckchrome.svg are identical. needed because chrome is fucking retarded */
+            /*  checkbox.svg and checkbox-fuckchrome.svg are identical. 
+                needed because chrom[e|ium] is fucking retarded.        */
+            background-image: url('/theme/icons/checkbox-fuckchrome.svg#checked'); 
         }
     }
 }
@@ -1231,6 +1232,7 @@ span.debug-hint {
 
     display: inline-block !important;
     position: absolute !important;
+    transform: translateX(-1rem);
     z-index: 65535 !important;
     width: 1rem !important;
     height: 1rem !important;
