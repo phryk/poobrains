@@ -1,9 +1,9 @@
-{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <form
     id="{{ content.ref_id }}"
     method="{{ content.method }}"
     {% if content.action %}action="{{ content.action }}"{% endif %}
     enctype="multipart/form-data" >
+{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 
 {% block header %}{%endblock%}
 

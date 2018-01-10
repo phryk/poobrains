@@ -1146,6 +1146,7 @@ div.comment {
 
             & + label.toggle {
                 background: url('/theme/icons/reply.svg');
+                padding: 0;
             }
 
             &:checked + label.toggle + form {
