@@ -455,20 +455,9 @@ main {
                 font-size: 1.4rem;
 
                 a {
-                    color: $color_font_light;
                     transition: color 0.3s;
                     background-image: none;
 
-                    &.trace {
-                      color: lighten($color_highlight, 30%);
-                    }
-
-                    &:hover,
-                    &:focus,
-                    &.trace:hover,
-                    &.trace:focus {
-                        color: $color_highlight;
-                    }
                 }
             }
         }
@@ -556,6 +545,17 @@ nav.menu {
                 text-decoration: none;
                 display: inline-block;
                 position:relative;
+
+                &.trace {
+                    color: lighten($color_highlight, 30%);
+                }
+
+                &:hover,
+                &:focus,
+                &.trace:hover,
+                &.trace:focus {
+                    color: $color_highlight;
+                }
             }
         }
     }
@@ -570,6 +570,8 @@ nav.menu {
             background: $color_background_light;
             width: 2rem;
             height: 2rem;
+            line-height: 2.3rem; /* +0.3rem based on fiddling around in ff inspector */
+            font-weight: 800; /* proper bold for Ostrich Sans */
             border-radius: 1rem;
             padding: 0;
             margin: 0;

@@ -81,8 +81,8 @@ class DatasetForm(poobrains.auth.AddForm):
 
 class Dataset(poobrains.commenting.Commentable):
 
-    form_add = DatasetForm
-    form_edit = DatasetForm
+    #form_add = DatasetForm
+    #form_edit = DatasetForm
 
     title = poobrains.storage.fields.CharField()
     description = poobrains.md.MarkdownField(null=True)
@@ -138,6 +138,7 @@ class Datapoint(poobrains.auth.Owned):
     class Meta:
         order_by = ['dataset', 'x']
         primary_key = poobrains.storage.CompositeKey('dataset', 'x')
+        related_use_form = True
 
     dataset = poobrains.storage.fields.ForeignKeyField(Dataset, related_name='datapoints')
     x = poobrains.storage.fields.DoubleField()

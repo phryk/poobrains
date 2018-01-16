@@ -998,21 +998,35 @@ class RelatedForm(poobrains.form.Form):
     instance = None
     related_model = None
     related_field = None
+    offset = None
+    pagination = None
 
-    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
+    def __new__(cls, related_model, related_field, instance, offset=0, prefix=None, name=None, title=None, method=None, action=None):
 
-        related_model.permissions['create'].check(flask.g.user)
-        related_model.permissions['update'].check(flask.g.user)
-        f = super(RelatedForm, cls).__new__(cls, name=name, title=title, method=method, action=action)
+        #related_model.permissions['create'].check(flask.g.user)
 
-        for related_instance in getattr(instance, related_field.related_name):
+
+        endpoint = flask.request.endpoint
+        if not endpoint.endswith('_offset'):
+            endpoint = '%s_offset' % (endpoint,)
+
+        f = super(RelatedForm, cls).__new__(cls, prefix=prefix, name=name, title=title, method=method, action=action)
+        
+        f.pagination = poobrains.storage.Pagination(
+            [related_model.list('read', flask.g.user).where(related_field == instance)],
+            offset,
+            endpoint,
+            handle=instance.handle_string # needed for proper URL building
+        )
+
+        #for related_instance in getattr(instance, related_field.related_name):
+        for related_instance in f.pagination.results:
             try:
 
-                related_instance.permissions['update'].check(flask.g.user) # throws AccessDenied if user is not authorized
                 key = related_instance.handle_string
 
                 # Fieldset to edit an existing related instance of this instance
-                setattr(f, key, related_instance.fieldset_edit())
+                setattr(f, key, related_instance.fieldset('edit'))
 
                 if f.fields[key].fields.has_key(related_field.name):
                     setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
@@ -1020,31 +1034,14 @@ class RelatedForm(poobrains.form.Form):
             except AccessDenied as e:
                 pass
 
-
-        try:
-            # Fieldset to add a new related instance to this instance
-            related_model.permissions['create'].check(flask.g.user)
-            related_instance = related_model()
-            setattr(related_instance, related_field.name, instance) 
-            key = '%s-add' % related_model.__name__
-
-            setattr(f, key, related_instance.fieldset_add())
-
-            if f.fields[key].fields.has_key(related_field.name):
-                setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
-            else:
-                app.logger.debug("We need that 'if' after all! Do we maybe have a CompositeKeyField primary key in %s?" % related_model.__name__)
-
-        except AccessDenied as e:
-            pass
-            
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['submit'] = poobrains.form.Button('submit', name='submit', value='submit', label='Save')
 
         return f
 
     
-    def __init__(self, related_model, related_field, instance, handle=None, prefix=None, name=None, title=None, method=None, action=None):
+    def __init__(self, related_model, related_field, instance, offset=0, prefix=None, name=None, title=None, method=None, action=None):
+
         super(RelatedForm, self).__init__(prefix=None, name=None, title=None, method=None, action=None)
 
         self.instance = instance
@@ -1053,15 +1050,16 @@ class RelatedForm(poobrains.form.Form):
 
    
     def process(self, submit):
+
         if not self.readonly:
             for fieldset in self.fieldsets:
                 try:
-                    field.process(submit)
+                    fieldset.process(submit, self.instance)
                 except Exception as e:
-                    flask.flash(u"Failed to process fieldset '%s.%s'." % (field.prefix, field.name))
-                    app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (field.prefix, field.name, type(e).__name__, e.message))
+                    flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
+                    app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
                         
-            #return flask.redirect(flask.request.url)
+            return flask.redirect(flask.request.url)
         return self
 
 
@@ -1109,43 +1107,43 @@ class UserPermissionEditFieldset(EditFieldset):
         super(UserPermissionEditFieldset, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
  
 
-class UserPermissionRelatedForm(RelatedForm):
-
-    #FIXME: causes a zillion fucking SELECT queries
-
-    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
-
-        f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
-
-        f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
-        for name, perm in Permission.class_children_keyed().iteritems():
-
-            try:
-                perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
-                perm_mode = 'edit'
-
-                #f.fields[name] = EditFieldset(perm_info, mode=perm_mode, name=name)
-                #f.fields[name] = perm_info.fieldset_edit(mode=perm_mode)
-                fieldset = perm_info.fieldset_edit(mode=perm_mode)
-                fieldset.fields['permission'].readonly = True
-                fieldset.fields['access'].choices = perm.choices
-                fieldset.fields['access'].value = perm_info.access
-
-            except:
-                perm_info = UserPermission()
-                perm_info.user = instance
-                perm_info.permission = name
-                perm_info.access = None
-                perm_mode = 'add'
-
-                fieldset = perm_info.fieldset_add(mode=perm_mode)
-                #fieldset.fields['access'].choices = perm.choices
-
-            fieldset.fields.user = poobrains.form.fields.Value(instance)
-            fieldset.fields.permission = poobrains.form.fields.Field(value=name, readonly=True)
-            setattr(f, name, fieldset)
-
-        return f
+#class UserPermissionRelatedForm(RelatedForm):
+#
+#    #FIXME: causes a zillion fucking SELECT queries
+#
+#    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
+#
+#        f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
+#
+#        f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
+#        for name, perm in Permission.class_children_keyed().iteritems():
+#
+#            try:
+#                perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
+#                perm_mode = 'edit'
+#
+#                #f.fields[name] = EditFieldset(perm_info, mode=perm_mode, name=name)
+#                #f.fields[name] = perm_info.fieldset_edit(mode=perm_mode)
+#                fieldset = perm_info.fieldset_edit(mode=perm_mode)
+#                fieldset.fields['permission'].readonly = True
+#                fieldset.fields['access'].choices = perm.choices
+#                fieldset.fields['access'].value = perm_info.access
+#
+#            except:
+#                perm_info = UserPermission()
+#                perm_info.user = instance
+#                perm_info.permission = name
+#                perm_info.access = None
+#                perm_mode = 'add'
+#
+#                fieldset = perm_info.fieldset_add(mode=perm_mode)
+#                #fieldset.fields['access'].choices = perm.choices
+#
+#            fieldset.fields.user = poobrains.form.fields.Value(instance)
+#            fieldset.fields.permission = poobrains.form.fields.Field(value=name, readonly=True)
+#            setattr(f, name, fieldset)
+#
+#        return f
 
 
 class GroupPermissionAddForm(AddForm):
@@ -1260,9 +1258,6 @@ class Administerable(poobrains.storage.Storable, Protected):
     form_edit = EditForm
     form_delete = DeleteForm
 
-    fieldset_add = AddFieldset
-    fieldset_edit = EditFieldset
-
     related_form = RelatedForm # TODO: make naming consistent
 
     class Meta:
@@ -1279,7 +1274,7 @@ class Administerable(poobrains.storage.Storable, Protected):
             ('edit', 'update'),
             ('delete', 'delete')
         ])
-   
+
 
     @property
     def menu_actions(self):
@@ -1332,6 +1327,14 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     def related_url(self, related_field):
         return app.get_related_view_url(self.__class__, self.handle_string, related_field)
+
+
+    @classmethod
+    def class_form(cls, mode=None):
+
+        instance = cls()
+        return instance.form(mode)
+
 
     def form(self, mode=None):
         
@@ -1395,6 +1398,8 @@ class Administerable(poobrains.storage.Storable, Protected):
     @classmethod
     def related_view(cls, related_field=None, handle=None, offset=0):
 
+        poobrains.app.debugger.set_trace()
+
         if related_field is None:
             raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
 
@@ -1407,7 +1412,9 @@ class Administerable(poobrains.storage.Storable, Protected):
             else:
                 form_class = functools.partial(RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
 
-            f = form_class(related_field, instance)
+            f = form_class(related_field, instance, offset=offset)
+            f.menu_actions = instance.menu_actions
+            f.menu_related = instance.menu_related
             
             return f.view('full')
 
@@ -1416,8 +1423,26 @@ class Administerable(poobrains.storage.Storable, Protected):
                 cls=related_model,
                 query=related_model.list('read', flask.g.user).where(related_field == instance),
                 handle=handle,
-                offset=offset
+                offset=offset,
+                menu_actions = instance.menu_actions,
+                menu_related = instance.menu_related
             ).view()
+
+
+    @classmethod
+    def related_view_add(cls, related_field=None, handle=None):
+        
+        related_model = related_field.model_class
+        instance = cls.load(cls.string_handle(handle))
+
+        f = related_model.class_form('add')
+        f.menu_actions = instance.menu_actions
+        f.menu_related = instance.menu_related
+
+        if f.fields.has_key(related_field.name):
+            f.fields[related_field.name].value = instance
+
+        return f.view()
 
 
 class Named(Administerable, poobrains.storage.Named):
@@ -1582,6 +1607,7 @@ class User(Named):
 
 app.site.add_view(User, '/~<handle>/', mode='full')
 
+
 class UserPermission(Administerable):
 
     permission_class = None
@@ -1597,8 +1623,6 @@ class UserPermission(Administerable):
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='_permissions')
     permission = poobrains.storage.fields.CharField(max_length=50)
     access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Select)
-
-    related_form = UserPermissionRelatedForm
 
     
     def prepared(self):

@@ -1,0 +1,3 @@
+{% extends "form/form.jinja" %}
+
+{% block post%}{% if content.pagination.menu %}{{ content.pagination.menu.render() }}{% endif %}{% endblock %}

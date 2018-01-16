@@ -620,6 +620,7 @@ class Pooprint(flask.Blueprint):
 
     def add_related_view(self, cls, related_field, rule, endpoint=None, view_func=None, force_secure=False, **options):
 
+        import pudb; pudb.set_trace()
         related_model = related_field.model_class
         if not endpoint:
             endpoint = self.next_endpoint(cls, related_field, 'related')
@@ -636,14 +637,24 @@ class Pooprint(flask.Blueprint):
             kwargs['related_field'] = related_field
             return cls.related_view(*args, **kwargs)
 
-        offset_rule = rule+'+<int:offset>'
+        def view_func_add(*args, **kwargs):
+            kwargs['related_field'] = related_field
+            return cls.related_view_add(*args, **kwargs)
+
+        offset_rule = os.path.join(rule, '+<int:offset>')
         offset_endpoint = '%s_offset' % (endpoint,)
+
+        add_rule = os.path.join(rule, 'add')
+        add_endpoint = endpoint + '_add'
 
         self.add_url_rule(rule, endpoint, view_func, methods=['GET', 'POST'])
         self.related_views[cls][related_field].append(endpoint)
 
         self.add_url_rule(offset_rule, offset_endpoint, view_func, methods=['GET', 'POST'])
-        self.related_views[cls][related_field].append(offset_endpoint)
+        #self.related_views[cls][related_field].append(offset_endpoint)
+
+        self.add_url_rule(add_rule, add_endpoint, view_func_add, methods=['GET', 'POST'])
+        #self.related_views[cls][related_field].append(add_endpoint)
 
 
     def box_setup(self):

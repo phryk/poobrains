@@ -27,7 +27,7 @@
 
 
 {% block footer %}
-    {% if content.pagination %}
-        {{ content.pagination.render(content.mode) }}
+    {% if content.pagination.menu %}
+        {{ content.pagination.menu.render(content.mode) }}
     {% endif %}
 {% endblock %}

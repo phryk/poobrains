@@ -105,6 +105,8 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
             else:
                 segment = str(segment)
 
+            segment = segment.replace('.', ',') # since dots are used in FormDataParser to split data into a hierarchy, dots in field names will fuck shit up
+
             segments.append(segment)
 
         return ':'.join(segments)
@@ -244,13 +246,14 @@ class Listing(poobrains.rendering.Renderable):
     current_page = None
     menu_actions = None
 
-    def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None, **pagination_options):
+    def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None, menu_related=None, **pagination_options):
 
         super(Listing, self).__init__()
         self.cls = cls
         self.mode = mode
         self.offset = offset
         self.menu_actions = menu_actions
+        self.menu_related = menu_related
 
         if title is not None:
             self.title = title
@@ -271,10 +274,8 @@ class Listing(poobrains.rendering.Renderable):
         if not endpoint.endswith('_offset'):
             endpoint = '%s_offset' % (endpoint,)
         
-        pagination = Pagination([query], offset, endpoint, **pagination_options)
-
-        self.items = pagination.results
-        self.pagination = pagination.menu
+        self.pagination = Pagination([query], offset, endpoint, **pagination_options)
+        self.items = self.pagination.results
 
 
     def templates(self, mode=None):
