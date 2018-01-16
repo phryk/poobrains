@@ -1398,13 +1398,14 @@ class Administerable(poobrains.storage.Storable, Protected):
     @classmethod
     def related_view(cls, related_field=None, handle=None, offset=0):
 
-        poobrains.app.debugger.set_trace()
-
         if related_field is None:
             raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
 
         related_model = related_field.model_class
         instance = cls.load(cls.string_handle(handle))
+
+        actions = poobrains.rendering.Menu('related-add')
+        actions.append('florp', 'Add new')
 
         if flask.request.blueprint == 'admin' and related_model._meta.related_use_form:
             if hasattr(related_model, 'related_form'):
@@ -1413,6 +1414,7 @@ class Administerable(poobrains.storage.Storable, Protected):
                 form_class = functools.partial(RelatedForm, related_model) # TODO: does this even work? and more importantly, is it even needed?
 
             f = form_class(related_field, instance, offset=offset)
+            f.pre = actions
             f.menu_actions = instance.menu_actions
             f.menu_related = instance.menu_related
             
@@ -1422,10 +1424,11 @@ class Administerable(poobrains.storage.Storable, Protected):
             return poobrains.storage.Listing(
                 cls=related_model,
                 query=related_model.list('read', flask.g.user).where(related_field == instance),
-                handle=handle,
                 offset=offset,
-                menu_actions = instance.menu_actions,
-                menu_related = instance.menu_related
+                menu_actions=instance.menu_actions,
+                menu_related=instance.menu_related,
+                pre=actions,
+                pagination_options={'handle': handle}
             ).view()
 
 

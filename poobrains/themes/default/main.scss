@@ -195,7 +195,7 @@ body {
         a {
             color: $color_font_dark;
             text-shadow: 0 0 1rem $color_font_dark;
-            transition: text-shadow 0.3s ease-out;
+            transition: color 0.3s ease-out, text-shadow 0.3s ease-out;
 
             &:hover,
             &:focus,
@@ -582,6 +582,7 @@ nav.menu {
             &:hover,
             &:focus,
             &.active {
+                color: $color_font_dark; /* needed because links by default turn to $color_highlight */
                 background: $color_highlight;
             }
         }

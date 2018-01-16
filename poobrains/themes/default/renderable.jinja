@@ -1,4 +1,7 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
+
+{% block pre %}{% if content.pre %}{{ content.pre.render() }}{% endif %}{% endblock %}
+
 <article class="content-type-{{ content.__class__.__name__.lower() }} mode-{{ mode }} {{ content.css_class }}">
     
     {% if self.header()|trim %}
@@ -35,4 +38,4 @@
     {% endif %}
 </article>
 
-{% block post %}{% endblock %}
+{% block post %}{% if content.post %}{{ content.post.render() }}{% endif %}{% endblock %}

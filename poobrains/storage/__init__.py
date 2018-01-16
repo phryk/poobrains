@@ -246,9 +246,10 @@ class Listing(poobrains.rendering.Renderable):
     current_page = None
     menu_actions = None
 
-    def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None, menu_related=None, **pagination_options):
+    def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None, menu_related=None, pagination_options=None, **kwargs):
 
-        super(Listing, self).__init__()
+        app.debugger.set_trace()
+        super(Listing, self).__init__(**kwargs)
         self.cls = cls
         self.mode = mode
         self.offset = offset
@@ -269,6 +270,8 @@ class Listing(poobrains.rendering.Renderable):
             op = cls._meta.modes[mode]
             query = cls.list(op, flask.g.user)
 
+        if pagination_options is None:
+            pagination_options = {}
 
         endpoint = flask.request.endpoint
         if not endpoint.endswith('_offset'):

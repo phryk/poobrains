@@ -1,3 +1,5 @@
+{% block pre %}{% if content.pre %}{{ content.pre.render() }}{% endif %}{% endblock %}
+
 <form
     id="{{ content.ref_id }}"
     method="{{ content.method }}"
@@ -23,4 +25,4 @@
 
 </form>
 
-{% block post %}{% endblock %}
+{% block post %}{% if content.post %}{{ content.post.render() }}{% endif %}{% endblock %}

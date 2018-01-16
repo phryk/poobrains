@@ -573,9 +573,10 @@ class Pooprint(flask.Blueprint):
 
         super(Pooprint, self).__init__(*args, **kwargs)
 
-        self.views = collections.OrderedDict()
-        self.listings = collections.OrderedDict()
-        self.related_views = collections.OrderedDict()
+        self.views = collections.OrderedDict() # reverse lookup for URL endpoints of Renderable views by mode
+        self.listings = collections.OrderedDict() # listings ordered by 
+        self.related_views = collections.OrderedDict() # reverse lookup for endpoints of (fk) related views
+        self.related_views_add = collections.OrderedDict() # reverse lookup for endpoints to add new related items
         self.boxes = collections.OrderedDict()
         self.poobrain_path = os.path.dirname(__file__)
         
@@ -620,7 +621,6 @@ class Pooprint(flask.Blueprint):
 
     def add_related_view(self, cls, related_field, rule, endpoint=None, view_func=None, force_secure=False, **options):
 
-        import pudb; pudb.set_trace()
         related_model = related_field.model_class
         if not endpoint:
             endpoint = self.next_endpoint(cls, related_field, 'related')
@@ -632,6 +632,15 @@ class Pooprint(flask.Blueprint):
             url_segment = '%s:%s' % (related_model.__name__.lower(), related_field.name.lower())
             rule = os.path.join(rule, url_segment, "") # empty string to get trailing slash
             self.related_views[cls][related_field] = []
+        
+        if not self.related_views_add.has_key(cls):
+            self.related_views_add[cls] = collections.OrderedDict()
+
+        if not self.related_views_add[cls].has_key(related_field):
+            url_segment = '%s:%s' % (related_model.__name__.lower(), related_field.name.lower())
+            rule = os.path.join(rule, url_segment, "") # empty string to get trailing slash
+            self.related_views_add[cls][related_field] = []
+
 
         def view_func(*args, **kwargs):
             kwargs['related_field'] = related_field
@@ -648,13 +657,13 @@ class Pooprint(flask.Blueprint):
         add_endpoint = endpoint + '_add'
 
         self.add_url_rule(rule, endpoint, view_func, methods=['GET', 'POST'])
-        self.related_views[cls][related_field].append(endpoint)
+        #self.related_views[cls][related_field].append(endpoint)
 
         self.add_url_rule(offset_rule, offset_endpoint, view_func, methods=['GET', 'POST'])
-        #self.related_views[cls][related_field].append(offset_endpoint)
+        self.related_views[cls][related_field].append(offset_endpoint)
 
         self.add_url_rule(add_rule, add_endpoint, view_func_add, methods=['GET', 'POST'])
-        #self.related_views[cls][related_field].append(add_endpoint)
+        self.related_views_add[cls][related_field].append(add_endpoint)
 
 
     def box_setup(self):
@@ -817,8 +826,9 @@ class Pooprint(flask.Blueprint):
         return flask.url_for(endpoint, **kw)
     
     
-    def get_related_view_url(self, cls, handle, related_field):
+    def get_related_view_url(self, cls, handle, related_field, add=False):
 
+        # CONTINUE HERE
         if not self.related_views.has_key(cls):
             raise LookupError("No registered related views for class %s." % (cls.__name__,))
 

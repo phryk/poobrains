@@ -18,15 +18,20 @@ class Renderable(poobrains.helpers.ChildAware):
     name = None
     css_class = None
 
+    pre = None
+    post = None
+
 
     class Meta:
         modes = collections.OrderedDict([('full', 'read')])
 
 
-    def __init__(self, name=None, css_class=None, **kwargs):
+    def __init__(self, name=None, css_class=None, pre=None, post=None, **kwargs):
 
         self.name = name
         self.url = self.instance_url # make .url callable for class and instances
+        self.pre = pre
+        self.post = post
 
         self.css_class = css_class
         if self.css_class is None:
