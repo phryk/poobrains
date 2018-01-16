@@ -530,10 +530,10 @@ class Poobrain(flask.Flask):
             raise LookupError("Failed generating URL for %s[%s]-%s. No matching route found." % (cls.__name__, url_params.get('handle', None), mode))
 
 
-    def get_related_view_url(self, cls, handle, related_field):
+    def get_related_view_url(self, cls, handle, related_field, add=None):
         
         blueprint = self.blueprints[flask.request.blueprint]
-        return blueprint.get_related_view_url(cls, handle, related_field)
+        return blueprint.get_related_view_url(cls, handle, related_field, add=add)
 
 
     def cron(self, func):
@@ -632,13 +632,12 @@ class Pooprint(flask.Blueprint):
             url_segment = '%s:%s' % (related_model.__name__.lower(), related_field.name.lower())
             rule = os.path.join(rule, url_segment, "") # empty string to get trailing slash
             self.related_views[cls][related_field] = []
-        
+
+
         if not self.related_views_add.has_key(cls):
             self.related_views_add[cls] = collections.OrderedDict()
-
+        
         if not self.related_views_add[cls].has_key(related_field):
-            url_segment = '%s:%s' % (related_model.__name__.lower(), related_field.name.lower())
-            rule = os.path.join(rule, url_segment, "") # empty string to get trailing slash
             self.related_views_add[cls][related_field] = []
 
 
@@ -657,10 +656,10 @@ class Pooprint(flask.Blueprint):
         add_endpoint = endpoint + '_add'
 
         self.add_url_rule(rule, endpoint, view_func, methods=['GET', 'POST'])
-        #self.related_views[cls][related_field].append(endpoint)
+        self.related_views[cls][related_field].append(endpoint)
 
         self.add_url_rule(offset_rule, offset_endpoint, view_func, methods=['GET', 'POST'])
-        self.related_views[cls][related_field].append(offset_endpoint)
+        #self.related_views[cls][related_field].append(offset_endpoint)
 
         self.add_url_rule(add_rule, add_endpoint, view_func_add, methods=['GET', 'POST'])
         self.related_views_add[cls][related_field].append(add_endpoint)
@@ -828,14 +827,20 @@ class Pooprint(flask.Blueprint):
     
     def get_related_view_url(self, cls, handle, related_field, add=False):
 
-        # CONTINUE HERE
-        if not self.related_views.has_key(cls):
+        if add:
+            lookup = self.related_views_add
+
+        else:
+            lookup = self.related_views
+
+
+        if not lookup.has_key(cls):
             raise LookupError("No registered related views for class %s." % (cls.__name__,))
 
-        if not self.related_views[cls].has_key(related_field):
+        if not lookup[cls].has_key(related_field):
             raise LookupError("No registered related views for %s[%s]<-%s.%s." % (cls.__name__, handle, related_field.model_class.__name__, related_field.name))
 
-        endpoints = ['%s.%s' % (self.name, x) for x in self.related_views[cls][related_field]]
+        endpoints = ['%s.%s' % (self.name, x) for x in lookup[cls][related_field]]
         endpoint = self.choose_endpoint(endpoints, **{'handle': handle}) 
 
         return flask.url_for(endpoint, handle=handle)

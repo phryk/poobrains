@@ -1107,45 +1107,6 @@ class UserPermissionEditFieldset(EditFieldset):
         super(UserPermissionEditFieldset, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
  
 
-#class UserPermissionRelatedForm(RelatedForm):
-#
-#    #FIXME: causes a zillion fucking SELECT queries
-#
-#    def __new__(cls, related_model, related_field, instance, name=None, title=None, method=None, action=None):
-#
-#        f = super(UserPermissionRelatedForm, cls).__new__(cls, related_model, related_field, instance, name=name, title=title, method=method, action=action)
-#
-#        f.fields.clear() # probably not the most efficient way to have proper form setup without the fields
-#        for name, perm in Permission.class_children_keyed().iteritems():
-#
-#            try:
-#                perm_info = UserPermission.get(UserPermission.user == instance, UserPermission.permission == name)
-#                perm_mode = 'edit'
-#
-#                #f.fields[name] = EditFieldset(perm_info, mode=perm_mode, name=name)
-#                #f.fields[name] = perm_info.fieldset_edit(mode=perm_mode)
-#                fieldset = perm_info.fieldset_edit(mode=perm_mode)
-#                fieldset.fields['permission'].readonly = True
-#                fieldset.fields['access'].choices = perm.choices
-#                fieldset.fields['access'].value = perm_info.access
-#
-#            except:
-#                perm_info = UserPermission()
-#                perm_info.user = instance
-#                perm_info.permission = name
-#                perm_info.access = None
-#                perm_mode = 'add'
-#
-#                fieldset = perm_info.fieldset_add(mode=perm_mode)
-#                #fieldset.fields['access'].choices = perm.choices
-#
-#            fieldset.fields.user = poobrains.form.fields.Value(instance)
-#            fieldset.fields.permission = poobrains.form.fields.Field(value=name, readonly=True)
-#            setattr(f, name, fieldset)
-#
-#        return f
-
-
 class GroupPermissionAddForm(AddForm):
 
     
@@ -1325,8 +1286,8 @@ class Administerable(poobrains.storage.Storable, Protected):
         return menu
 
 
-    def related_url(self, related_field):
-        return app.get_related_view_url(self.__class__, self.handle_string, related_field)
+    def related_url(self, related_field, add=False):
+        return app.get_related_view_url(self.__class__, self.handle_string, related_field, add=add)
 
 
     @classmethod
@@ -1405,7 +1366,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         instance = cls.load(cls.string_handle(handle))
 
         actions = poobrains.rendering.Menu('related-add')
-        actions.append('florp', 'Add new')
+        actions.append(instance.related_url(related_field, add=True), 'Add new')
 
         if flask.request.blueprint == 'admin' and related_model._meta.related_use_form:
             if hasattr(related_model, 'related_form'):

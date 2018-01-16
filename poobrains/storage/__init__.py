@@ -248,7 +248,6 @@ class Listing(poobrains.rendering.Renderable):
 
     def __init__(self, cls, mode='teaser', title=None, query=None, offset=0, limit=None, menu_actions=None, menu_related=None, pagination_options=None, **kwargs):
 
-        app.debugger.set_trace()
         super(Listing, self).__init__(**kwargs)
         self.cls = cls
         self.mode = mode
