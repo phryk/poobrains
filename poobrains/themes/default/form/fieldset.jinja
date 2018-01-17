@@ -1,7 +1,7 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <fieldset name="{{ content.prefix}}.{{ content.name }}">
 
-<div class="title-wrapper"><label>{{ content.title }}</label></div>
+<div class="title-wrapper"><h4>{{ content.title }}</h4></div>
 
 {% for field in content %}
     {{ field.render() }}

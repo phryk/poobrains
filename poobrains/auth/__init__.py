@@ -146,7 +146,7 @@ class AddForm(BoundForm):
     def __init__(self, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
         
         if not name:
-            name = '%s-%s' % (self.model.__name__, self.instance.handle_string)
+            name = '%s-%s' % (self.model.__name__, self.instance.handle_string.replace('.', '-'))
     
         super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
@@ -311,46 +311,6 @@ class DeleteForm(BoundForm):
         return flask.redirect(self.model.url('teaser')) # TODO app.admin.get_listing_url?
 
 poobrains.form.DeleteForm = DeleteForm
-
-
-class AddFieldset(AddForm, poobrains.form.Fieldset):
-
-    rendered = None
-
-
-    def __new__(cls, *args, **kwargs):
-
-        f = super(AddFieldset, cls).__new__(cls, *args, **kwargs)
-        f.controls.clear()
-
-        return f
-    
-
-    def render(self, mode=None):
-
-        self.rendered = True
-        return super(AddFieldset, self).render(mode)
-
-poobrains.form.AddFieldset = AddFieldset
-
-
-class EditFieldset(EditForm, poobrains.form.Fieldset):
-
-    rendered = None
-    
-    def __new__(cls, *args, **kwargs):
-
-        f = super(EditFieldset, cls).__new__(cls, *args, **kwargs)
-        f.controls.clear()
-
-        return f
- 
-    def render(self, mode=None):
-
-        self.rendered = True
-        return super(EditFieldset, self).render(mode)
-
-poobrains.form.EditFieldset = EditFieldset
 
 
 class AccessField(poobrains.form.fields.Field):
@@ -1003,9 +963,6 @@ class RelatedForm(poobrains.form.Form):
 
     def __new__(cls, related_model, related_field, instance, offset=0, prefix=None, name=None, title=None, method=None, action=None):
 
-        #related_model.permissions['create'].check(flask.g.user)
-
-
         endpoint = flask.request.endpoint
         if not endpoint.endswith('_offset'):
             endpoint = '%s_offset' % (endpoint,)
@@ -1019,11 +976,10 @@ class RelatedForm(poobrains.form.Form):
             handle=instance.handle_string # needed for proper URL building
         )
 
-        #for related_instance in getattr(instance, related_field.related_name):
         for related_instance in f.pagination.results:
             try:
 
-                key = related_instance.handle_string
+                key = related_instance.handle_string.replace('.', '-')
 
                 # Fieldset to edit an existing related instance of this instance
                 setattr(f, key, related_instance.fieldset('edit'))
@@ -1090,23 +1046,6 @@ class UserPermissionAddForm(AddForm):
         return self
 
 
-class UserPermissionAddFieldset(UserPermissionAddForm, poobrains.form.Fieldset):
-
-    def empty(self):
-        rv = self.fields['permission'].empty()
-        return rv
-
-
-class UserPermissionEditFieldset(EditFieldset):
-
-    def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        return super(UserPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-   
-
-    def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        super(UserPermissionEditFieldset, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
- 
-
 class GroupPermissionAddForm(AddForm):
 
     
@@ -1145,24 +1084,6 @@ class GroupPermissionEditForm(EditForm):
         return f
 
 
-class GroupPermissionAddFieldset(GroupPermissionAddForm, poobrains.form.Fieldset):
-
-    def empty(self):
-        rv = self.fields['permission'].empty()
-        return rv
-
-
-class GroupPermissionEditFieldset(EditForm, poobrains.form.Fieldset):
-
-    def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        return super(GroupPermissionEditFieldset, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-   
-
-    def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        super(GroupPermissionEditFieldset, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-
-
-#class BaseAdministerable(poobrains.storage.BaseModel, PermissionInjection):
 class BaseAdministerable(PermissionInjection, poobrains.storage.BaseModel):
 
     """
@@ -1309,12 +1230,6 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     def fieldset(self, mode=None):
 
-#        n = 'fieldset_%s' % mode
-#        if not hasattr(self, n):
-#            raise NotImplementedError("Fieldset class %s.%s missing." % (self.__class__.__name__, n))
-
-#        fieldset_class = getattr(self, n)
-#        return fieldset_class(mode=mode)#, name=None, title=None, method=None, action=None)i
         return poobrains.form.ProxyFieldset(self.form(mode))
 
 
@@ -1576,8 +1491,6 @@ class UserPermission(Administerable):
 
     permission_class = None
     form_add = UserPermissionAddForm
-    fieldset_add = UserPermissionAddFieldset
-    fieldset_edit = UserPermissionEditFieldset
 
     class Meta:
         primary_key = peewee.CompositeKey('user', 'permission')
@@ -1674,8 +1587,6 @@ class GroupPermission(Administerable):
 
     form_add = GroupPermissionAddForm
     form_edit = GroupPermissionEditForm
-    fieldset_add = GroupPermissionAddFieldset
-    fieldset_edit = GroupPermissionEditFieldset
     permission_class = None
 
     class Meta:

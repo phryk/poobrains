@@ -109,6 +109,14 @@ class BaseField(object):
             self.form._add_external_field(self) # NOTE: this has to be called *after* self.choices is filled
 
 
+    def __setattr__(self, name, value):
+
+        if name == 'name' and isinstance(value, basestring):
+            assert not '.' in value, "Form Field names *must* not contain dots: %s" % value
+
+        super(BaseField, self).__setattr__(name, value)
+
+
     def templates(self, mode=None):
 
         tpls = []

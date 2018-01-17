@@ -97,15 +97,9 @@ class BaseForm(poobrains.rendering.Renderable):
     
     def __setattr__(self, name, value):
 
-        if isinstance(value, fields.BaseField) or isinstance(value, Fieldset):
-            value.name = name
-            value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
-            self.fields[name] = value
-
-        elif isinstance(value, Button):
-            value.name = name
-            value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
-            self.controls[name] = value
+        if name == 'name' and isinstance(value, basestring):
+            assert not '.' in value, "Form names *must* not contain dots: %s" % value
+            super(BaseForm, self).__setattr__(name, value)
 
         elif name == 'prefix':
             super(BaseForm, self).__setattr__(name, value)
@@ -119,6 +113,16 @@ class BaseForm(poobrains.rendering.Renderable):
 
             for button in self.controls.itervalues():
                 button.prefix = child_prefix
+
+        elif isinstance(value, fields.BaseField) or isinstance(value, Fieldset):
+            value.name = name
+            value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
+            self.fields[name] = value
+
+        elif isinstance(value, Button):
+            value.name = name
+            value.prefix = "%s.%s" % (self.prefix, self.name) if self.prefix else self.name
+            self.controls[name] = value
 
         else:
             super(BaseForm, self).__setattr__(name, value)
@@ -429,6 +433,11 @@ class Fieldset(BaseForm):
             for field in self.fields.itervalues():
                 if hasattr(value, field.name):
                     field.value = getattr(value, field.name)
+
+        elif name == 'name' and isinstance(value, basestring):
+            assert not '.' in value, "Form Field names *must* not contain dots: %s" % value
+            super(Fieldset, self).__setattr__(name, value)
+
         else:
             super(Fieldset, self).__setattr__(name, value)
 
@@ -443,6 +452,7 @@ class ProxyFieldset(Fieldset):
 
         super(ProxyFieldset, self).__init__(**kwargs)
         self.form = form
+        self.title = form.title
         self.fields = form.fields # TODO: is this done by reference? will probably fuck up if not.
 
 

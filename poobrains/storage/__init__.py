@@ -105,7 +105,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
             else:
                 segment = str(segment)
 
-            segment = segment.replace('.', ',') # since dots are used in FormDataParser to split data into a hierarchy, dots in field names will fuck shit up
+            #segment = segment.replace('.', ',') # since dots are used in FormDataParser to split data into a hierarchy, dots in field names will fuck shit up
 
             segments.append(segment)
 

@@ -55,11 +55,28 @@ svg#hexascroll {
     }
 }
 
-path#icon {
-    stroke: $color_highlight;
+svg.icon {
+
+    path {
+        stroke: $color_font_light;
+        stroke-width: 2px;
+        /*fill: $color_background_dark;*/
+    }
+
+    &#plus {
+
+        path#active {
+            fill: transparent;
+        }
+
+        path#active:target {
+            stroke: $color_font_dark;
+            /*fill: $color_highlight;*/
+        }
+    }
 }
 
-svg.checkbox {
+svg#checkbox {
     
     .box {
         stroke: $color_background_light;
