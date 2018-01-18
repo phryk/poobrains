@@ -143,7 +143,7 @@ html {
     background-attachment: fixed;
     /*color: rgba(255, 255, 255, 0.9);*/
     color: $color_font_light;
-    font-family: 'Open Sans', sans;
+    font-family: 'Clear Sans', sans;
     overflow-wrap: break-word;
     hyphens: auto;
 }
@@ -171,8 +171,9 @@ body {
         display: inherit;
         background: $color_background_light;
         color: $color_font_dark;
-        font-family: 'Ostrich Sans', sans;
-        font-size: 1.5rem;
+        font-family: 'Orbitron', sans;
+        font-weight: 100;
+        font-size: 1rem;
 
         & > * {
             margin-left: 0.25rem;
@@ -185,22 +186,30 @@ body {
                     border-right: 1px solid $color_background_dark;
 
                     a {
+                        display: block;
                         padding: 0 0.25rem;
-                        font-size: 1.5rem;
+                        font-size: 1rem;
                     }
                 }
             }
         }
 
         a {
+
             color: $color_font_dark;
-            text-shadow: 0 0 1rem $color_font_dark;
+            text-shadow: 0 0 5rem $color_font_dark;
             transition: color 0.3s ease-out, text-shadow 0.3s ease-out;
+
+            &.trace {
+                color: $color_font_dark !important;
+                text-shadow: 0 0 0.25rem lighten($color_highlight, 30%);
+            }
 
             &:hover,
             &:focus,
             &.active {
-                text-shadow: 0 0 0 opacify($color_font_dark, 100%);
+                color: $color_font_dark !important;
+                text-shadow: 0 0 0.25rem opacify($color_highlight, 100%);
             }
         }
 
@@ -259,8 +268,9 @@ body {
                     flex-shrink: 1;
                     min-width: 7.5rem;
                     margin-right: 0.5rem;
-                    font-size: 2rem;
-                    line-height: 100%;
+                    margin-top: 0.5rem;
+                    font-size: 1.5rem;
+                    line-height: 1;
 
 
                     a {
@@ -269,8 +279,8 @@ body {
                         &::after {
                             content: "█";
                             margin-left: 0.25rem;
-                            vertical-align: 15%;
-                            font-size: 64%;
+                            /*font-size: 75%;
+                            vertical-align: 10%;*/
                             text-shadow: $color_highlight 0 0 1rem;
                             opacity: 0;
                         }
@@ -345,9 +355,11 @@ main {
             transform: rotate(-5deg);
             text-align: center;
             text-shadow: 0 0 0.5rem $color_font_dark;
+            color: $color_font_light;
+            line-height: 120%;
             position: relative;
             margin-bottom: 1rem;
-            line-height: 0.8;
+            /*line-height: 0.8;*/
             max-width: calc(100vw - 2rem);
             white-space: nowrap;
             overflow: hidden;
@@ -434,7 +446,7 @@ main {
 
                             &.trace {
                                 color: $color_font_dark;
-                                text-shadow: 0 0 0.25rem $color_font_dark;
+                                text-shadow: 0 0 0.25rem $color_highlight;
                             }
 
                             &:hover,
@@ -528,7 +540,7 @@ main {
 
 nav.menu {
 
-    font-family: 'Ostrich Sans', sans;
+    font-family: 'Orbitron', sans;
 
     ul {
         margin: 0;
@@ -537,8 +549,8 @@ nav.menu {
         li {
             display: inline;
             list-style: none;
-            font-size: 1.4rem;
-            font-weight: normal;
+            font-size: 1rem;
+            font-weight: 100;
 
             a {
                 outline: none;
@@ -571,7 +583,7 @@ nav.menu {
             width: 2rem;
             height: 2rem;
             line-height: 2.3rem; /* +0.3rem based on fiddling around in ff inspector */
-            font-weight: 800; /* proper bold for Ostrich Sans */
+            font-weight: 800; /* proper bold for Orbitron */
             border-radius: 1rem;
             padding: 0;
             margin: 0;
@@ -602,7 +614,7 @@ nav.menu {
             background-color: $color_background_dark;
             background-size: 32px 32px;
             background-position: 4px 4px;
-            font-weight: 800;
+            font-weight: 400;
 
             transition: background 0.3s linear, color 0.3s linear;
 
@@ -727,15 +739,18 @@ form {
         h2 {
 
             max-width: calc(100vw - 2rem); 
+            margin: 0;
+            line-height: 1.2;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             text-align: center;
-            color: $color_font_dark;
+            color: $color_font_light;
+            text-shadow: 0 0 0.25rem $color_background_dark;
 
             a {
                 display: block;
-                color: $color_font_dark;
+                color: $color_font_light;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 text-decoration: none;
@@ -743,7 +758,7 @@ form {
 
                 &:hover,
                 &:focus {
-                    color: $color_font_dark;
+                    color: $color_font_light;
                     text-shadow: 0 0 0.25rem $color_highlight;
                 }
             }
@@ -887,13 +902,11 @@ button {
     cursor: pointer; /* no clue why this isn't the default */
     white-space: nowrap; /* avoides forms jumping in height when animating their width */
     overflow: hidden;
-    font-family: 'Ostrich Sans', sans;
-    font-weight: 800;
-    font-size: 1.2rem;
+    font-family: 'Orbitron', sans;
     min-height: 1.8rem;
     padding-top: 0.3rem;
     margin-right: 0.5rem;
-    width: 33%;
+    width: 50%;
 
     &:last-child {
         margin-right: 0;
@@ -952,7 +965,7 @@ input[type="checkbox"] {
 article {
 
     line-height: 1.5;
-    font-weight: lighter;
+    font-weight: 300;
     font-size: 1.2rem;
     text-align: justify;
 
@@ -1010,8 +1023,8 @@ article {
             a {
 
                 display: inline-block;
-                font-family: 'Ostrich Sans';
-                font-size: 1.4rem;
+                font-family: 'Orbitron';
+                font-size: 1rem;
                 color: $color_font_dark;
                 text-decoration: none;
                 transition: color 0.3s, text-shadow 0.3s;
@@ -1115,11 +1128,13 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Ostrich Sans Inline', sans;
+  font-family: 'Orbitron', sans;
   font-weight: normal;
   font-style: italic;
   /*margin: 1rem 0;*/ /* DELETEME */
   margin: 0;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
   padding: 0;
   line-height: 1;
 }
@@ -1286,7 +1301,7 @@ span.debug-hint {
     line-height: 1rem !important;
     background: opacify($color_danger, -20%) !important;
     color: $color_font_dark !important;
-    font-family: 'Open Sans', sans !important;
+    font-family: 'Clear Sans', sans !important;
     font-size: 0.8rem !important;
     font-weight: bold !important;
     text-align: center !important;
