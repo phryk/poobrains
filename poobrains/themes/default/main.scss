@@ -809,6 +809,7 @@ form {
 
         & > .controls {
             justify-content: center;
+            padding: 1rem 0;
         }
 
         button[name="submit"] {
@@ -1158,7 +1159,6 @@ div.comment {
 
     border-left: 0.25rem solid $color_background_light;
     padding: 0.25rem;
-    margin-top: 0.5rem;
     
     div.replies {
         padding-left: 0.75rem;
