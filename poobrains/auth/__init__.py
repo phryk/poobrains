@@ -1004,6 +1004,8 @@ class RelatedForm(poobrains.form.Form):
         self.related_model = related_model
         self.related_field = related_field
 
+        self.title = "%s for %s %s" % (self.related_model.__name__, self.instance.__class__.__name__, self.instance.handle_string)
+
    
     def process(self, submit):
 

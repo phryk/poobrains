@@ -1149,7 +1149,6 @@ input.toggle {
         width: 1rem;
         height: 1rem;
         cursor: pointer;
-        background: #0f0;
 
     }
 }
@@ -1184,9 +1183,14 @@ div.comment {
                 padding: 0;
             }
 
-            &:checked + label.toggle + form {
-                width: 100%;
-                max-height: 100vh;
+            &:checked + label.toggle {
+
+                background: url('/theme/icons/reply.svg#active');
+
+                & + form {
+                    width: 100%;
+                    max-height: 100vh;
+                }
             }
         }
     }

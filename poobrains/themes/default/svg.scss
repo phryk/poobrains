@@ -60,7 +60,12 @@ svg.icon {
     path {
         stroke: $color_font_light;
         stroke-width: 2px;
+        transition: stroke 0.3s linear, fill 0.3s linear;
         /*fill: $color_background_dark;*/
+
+        &#active:target {
+            stroke: $color_highlight;
+        }
     }
 
     &#plus {

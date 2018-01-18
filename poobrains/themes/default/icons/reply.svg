@@ -11,7 +11,7 @@
    width="16"
    height="16"
    class="icon"
-   id="icon-reply">
+   id="reply">
     <style>
         {{ style }}
     </style>
@@ -32,7 +32,7 @@
   <g
      transform="translate(0,-1036.3622)"
      id="layer1">
-    <path
+    <path id="active"
        d="m 8,1042.3622 -4,4 4,4 m -8,-12 12,0 c 4,0 4,8 0,8 l -8,0"
        style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none" />
   </g>
