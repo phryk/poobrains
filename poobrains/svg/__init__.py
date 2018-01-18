@@ -217,7 +217,10 @@ class Plot(SVG):
 
         self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 
+        datapoint_count = 0
         for datapoint in Datapoint.list('read', g.user).where(Datapoint.dataset << self.datasets):
+
+            datapoint_count += 1
 
             y_lower = datapoint.y
             if datapoint.error_lower:
@@ -240,8 +243,17 @@ class Plot(SVG):
             if self.max_y is None or y_upper > self.max_y:
                 self.max_y = y_upper
 
-        self.span_x = self.max_x - self.min_x
-        self.span_y = self.max_y - self.min_y
+        if datapoint_count > 0:
+            self.span_x = self.max_x - self.min_x
+            self.span_y = self.max_y - self.min_y
+
+        else:
+            self.min_x = 0
+            self.max_x = 0
+            self.min_y = 0
+            self.max_y = 0
+            self.span_x = 0
+            self.span_y = 0
 
 
     def render(self, mode=None):
@@ -297,6 +309,9 @@ class Plot(SVG):
     @property
     def grid_x(self):
 
+        if self.span_x == 0:
+            return [self.min_x]
+
         grid_step = 10 ** (int(math.log10(self.span_x)) - 1)
 
         offset = (self.min_x % grid_step) * grid_step # distance from start of plot to first line on the grid
@@ -313,7 +328,10 @@ class Plot(SVG):
 
     @property
     def grid_y(self):
-        
+
+        if self.span_y == 0:
+            return [self.min_y]
+
         grid_step = 10 ** (int(math.log10(self.span_y)) - 1)
 
         offset = (self.min_y % grid_step) * grid_step # distance from start of plot to first line on the grid

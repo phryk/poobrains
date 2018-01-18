@@ -18,8 +18,12 @@
             {% for i in range(0, content.grid_x|length) %}
 
                 {% set x = content.grid_x[i] %}
-                
-                {% set highlighted = i % (content.grid_x|length / 4)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
+
+                {% if content.grid_x|length >= 4 %}
+                    {% set highlighted = i % (content.grid_x|length / 4.0)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
+                {% else %}
+                    {% set highlighted = True %}
+                {% endif %}
 
                 <line class="grid-x{% if highlighted %} highlighted{% endif %}" x1="{{ content.normalize_x(x) }}" y1="0%" x2="{{ content.normalize_x(x) }}" y2="{{ content.plot_height }}" />
                 
@@ -30,7 +34,14 @@
 
             {% for i in range(0, content.grid_y|length) %}
                 {% set y = content.grid_y[i] %}
-                {% set highlighted = i % (content.grid_y|length / 4)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
+                
+                {% if content.grid_y|length >= 4 %}
+                    {% set highlighted = i % (content.grid_y|length / 4)|int == 0 %} {# whether this line should be highlighted and have a value shown next to it #}
+                {% else %}
+                    {% set highlighted = True %}
+                {% endif %}
+
+
                 <line class="grid-y{% if highlighted %} highlighted{% endif %}" x1="0%" y1="{{ content.normalize_y(y) }}" x2="100%" y2="{{ content.normalize_y(y) }}" />
                 {% if highlighted %}
                 <text class="grid-label axis-y" transform="rotate(-90 0 {{ content.normalize_y(y) }}) translate(5 -15)" x="0" y="{{ content.normalize_y(y) }}" dominant-baseline="hanging">{{ "%.3f"|format(y) }}</text>
@@ -76,13 +87,15 @@
 
                     </switch>
                 </g>
-                
+
+                {% if dataset.authorized_datapoints|length %} 
                 <a class="dataset-link" href="#{{ dataset.ref_id }}">
                     <path class="dataset-line" d="
                         M {{ content.normalize_x(dataset.authorized_datapoints[0].x) }} {{ content.normalize_y(dataset.authorized_datapoints[0].y) }}
                         {% for datapoint in dataset.authorized_datapoints %}L {{ content.normalize_x(datapoint.x) }} {{ content.normalize_y(datapoint.y) }} {% endfor %}
                     " />
                 </a>
+                {% endif %}
 
                 {% for i in range(0, dataset.authorized_datapoints|length) %}
 

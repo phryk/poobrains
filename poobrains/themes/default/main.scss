@@ -1183,14 +1183,16 @@ div.comment {
                 padding: 0;
             }
 
+            &:hover + label.toggle,
             &:checked + label.toggle {
 
                 background: url('/theme/icons/reply.svg#active');
+            }
 
-                & + form {
-                    width: 100%;
-                    max-height: 100vh;
-                }
+            &:checked + label.toggle + form {
+
+                width: 100%;
+                max-height: 100vh;
             }
         }
     }
