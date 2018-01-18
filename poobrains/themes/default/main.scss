@@ -200,7 +200,7 @@ body {
             &:hover,
             &:focus,
             &.active {
-                text-shadow: 0 0 0.25rem opacify($color_font_dark, 100%);
+                text-shadow: 0 0 0 opacify($color_font_dark, 100%);
             }
         }
 
@@ -498,12 +498,12 @@ main {
         & > .comments {
             header,
             div.content,
-            footer {
+            section.controls {
                 background: transparent;
             }
 
-            footer {
-                padding-top: 0;
+            section.controls {
+                padding: 0 1rem;
             }
         }
     }
@@ -1158,6 +1158,7 @@ div.comment {
 
     border-left: 0.25rem solid $color_background_light;
     padding: 0.25rem;
+    margin-top: 0.5rem;
     
     div.replies {
         padding-left: 0.75rem;

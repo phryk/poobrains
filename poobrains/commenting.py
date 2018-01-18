@@ -128,8 +128,8 @@ class CommentForm(poobrains.form.Form):
 
     instance = None # Commentable instance the comment is going to be associated to
     reply_to = poobrains.form.fields.Value()
-    author = poobrains.form.fields.Text(required=True)
-    text = poobrains.form.fields.TextArea(required=True)
+    author = poobrains.form.fields.Text(required=True, placeholder='Yer name')
+    text = poobrains.form.fields.TextArea(required=True, placeholder='Yer mutterings')
     submit = poobrains.form.Button('submit', label='Send comment')
 
     def __init__(self, model=None, handle=None, instance=None, **kwargs):
