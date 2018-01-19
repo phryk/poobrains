@@ -16,7 +16,6 @@ import poobrains.storage
 
 def magic_markdown_loader(storable, handle):
 
-    app.debugger.set_trace()
     storables = poobrains.storage.Storable.class_children_keyed(lower=True)
 
     if storables.has_key(storable.lower()):
