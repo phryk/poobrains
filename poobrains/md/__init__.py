@@ -16,10 +16,19 @@ import poobrains.storage
 
 def magic_markdown_loader(storable, handle):
 
+    app.debugger.set_trace()
     storables = poobrains.storage.Storable.class_children_keyed(lower=True)
 
-    cls = storables[storable.lower()]
-    return cls.load(handle)
+    if storables.has_key(storable.lower()):
+        cls = storables[storable.lower()]
+        return cls.load(handle)
+
+    else:
+        renderables = poobrains.rendering.Renderable.class_children_keyed(lower=True)
+        cls = renderables[storable.lower()]
+        return cls(handle=handle) # we could try handling Renderables without handle, but I think it's needed for expose anyways.
+
+    return False
 
 
 class MarkdownString(unicode):
