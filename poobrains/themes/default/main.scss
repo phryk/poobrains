@@ -743,25 +743,20 @@ form {
             max-width: calc(100vw - 2rem); 
             margin: 0;
             line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             text-align: center;
             color: $color_font_light;
-            text-shadow: 0 0 0.25rem $color_background_dark;
+            text-shadow: 0 0 0.25em $color_background_dark, 0 0 0.5em $color_background_dark;
 
             a {
                 display: block;
                 color: $color_font_light;
-                overflow: hidden;
-                text-overflow: ellipsis;
                 text-decoration: none;
-                transition: text-shadow 0.3s;
+                transition: color 0.3s linear, text-shadow 0.3s;
 
                 &:hover,
                 &:focus {
                     color: $color_font_light;
-                    text-shadow: 0 0 0.25rem $color_highlight;
+                    text-shadow: 0 0 0.25em $color_highlight, 0 0 0.5em $color_background_dark;
                 }
             }
         }
