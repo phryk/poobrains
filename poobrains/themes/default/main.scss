@@ -138,7 +138,6 @@ html {
     /*background-image: url('/theme/test.png');*/
     background-color: #333;
     background-size: cover;
-    background-repeat: no-repeat;
     background-position: center;
     background-attachment: fixed;
     /*color: rgba(255, 255, 255, 0.9);*/
@@ -146,6 +145,10 @@ html {
     font-family: 'Clear Sans', sans;
     overflow-wrap: break-word;
     hyphens: auto;
+
+    &#burncpu:target {
+        background-image: url('/theme/bg.svg#burncpu'), linear-gradient(45deg, lighten(opacify($color_background_dark, 100%), 15%), mix($color_highlight, $color_background_dark, 25%));
+    }
 }
 
 body {
@@ -351,7 +354,6 @@ main {
 
         h1 {
             margin: 0;
-            font-size: 4.5rem;
             transform: rotate(-5deg);
             text-align: center;
             text-shadow: 0 0 0.5rem $color_font_dark;
@@ -1129,30 +1131,34 @@ h4,
 h5,
 h6 {
   font-family: 'Orbitron', sans;
-  font-weight: normal;
   font-style: italic;
-  /*margin: 1rem 0;*/ /* DELETEME */
   margin: 0;
-  margin-top: 0.5em;
-  margin-bottom: 0.25em;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
   padding: 0;
   line-height: 1;
 }
 
 h1 {
-    font-size: 4.5rem;
+    font-size: 3.5rem;
 }
 
 h2 {
-    font-size: 3rem;
+    font-size: 1.4rem;
 }
 
 h3 {
-    font-size: 2rem;
+    font-size: 1.2rem;
 }
 
 h4 {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
+    font-weight: normal;
+}
+
+p {
+    margin-top: 0;
+    margin-bottom: 1em;
 }
 
 input.toggle {

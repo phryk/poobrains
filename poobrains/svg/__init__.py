@@ -213,7 +213,8 @@ class Plot(SVG):
                     if ds.permissions['read'].check(g.user):
                         self.datasets.append(ds)
                 except (Dataset.DoesNotExist, poobrains.auth.AccessDenied):
-                    flash("Ignoring unknown Dataset '%s'!" % name, 'error')
+                    #flash("Ignoring unknown Dataset '%s'!" % name, 'error')
+                    pass
 
         self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 
@@ -524,7 +525,8 @@ class Map(SVG):
                     if ds.permissions['read'].check(g.user):
                         self.datasets.append(ds)
                 except (MapDataset.DoesNotExist, poobrains.auth.AccessDenied):
-                    flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
+                    #flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
+                    pass
 
         self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 

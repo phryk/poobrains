@@ -11,6 +11,24 @@
     }
 }
 
+@keyframes decorotion {
+    0% {    
+        transform: perspective(20px) rotateX(0.1deg) rotateY(0.1deg);
+    }
+
+    33% {    
+        transform: perspective(20px) rotateX(0.1deg) rotateY(0);
+    }
+
+    67% {
+        transform: perspective(20px) rotateX(0) rotateY(0.1deg);
+    }
+
+    100% {    
+        transform: perspective(20px) rotateX(0.1deg) rotateY(0.1deg);
+    }
+}
+
 @keyframes bump {
 
     0% {
@@ -32,8 +50,20 @@ svg {
 
 svg#hexascroll {
 
-    g#hexagon-wrapper {
-        /*animation: scroll 30s linear infinite;*/
+
+    g#burncpu {
+    
+        transform: perspective(20px) rotateX(0.1deg) rotateY(0.1deg);
+        transform-origin: center;
+
+        &:target {
+    
+            animation: decorotion 5s linear infinite;
+
+            use {
+                /*animation: scroll 10s linear infinite; /* apply the animation to every hexagon instead of the g so we don't get perspective fuckups */*/
+            }
+        }
     }
 
     use {
