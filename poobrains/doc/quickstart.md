@@ -107,7 +107,7 @@ These are the most important things you can subclass.
 
 ###Renderable###
 
-Defined in `poobrains.rendering`. 
+Defined in [poobrains.rendering][documentation/poobrains.rendering]. 
 
 Renderables are objects that can be rendered to text by a template.
 This is mostly used to create HTML but there's templatable SVG, too.
@@ -115,7 +115,7 @@ This is mostly used to create HTML but there's templatable SVG, too.
 
 ### Storable ###
 
-Defined in `poobrains.storage`.
+Defined in [poobrains.storage][documentation/poobrains.storage] .
 
 A subclass of `Renderable` that is also an ORM Model corresponding
 to a single table in the database. Instances can be saved and retrieved
@@ -124,7 +124,7 @@ as rows in that table.
 
 ### Protected ###
 
-Defined in `poobrains.auth`.
+Defined in [poobrains.auth][documentation/poobrains.auth].
 
 A subclass of `Renderable` that performs permission checks before
 letting a user view it.
@@ -132,7 +132,7 @@ letting a user view it.
 
 ### Administerable ###
 
-Defined in `poobrains.auth`.
+Defined in [poobrains.auth][documentation/poobrains.auth].
 
 A subclass of `Storable` and `Protected` that also uses the integrated
 form system to offer administration features to add, edit and delete
@@ -455,7 +455,7 @@ enter the Admin Area, select "UserPermission" and then
 
 Enter "anonymous" as user (the text field does auto-completion).
 
-Open the \<select\> (the dropdown thingamabob in the form),
+Open the `<select>` (the dropdown thingamabob in the form),
 scroll down to `Post_create` and select `Grant`.
 
 Finally, click the "Save" button.
