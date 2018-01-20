@@ -1154,6 +1154,30 @@ h4 {
 p {
     margin-top: 0;
     margin-bottom: 1em;
+
+    &:first-letter {
+        font-size: 140%;
+        text-transform: uppercase;
+    }
+
+    article.mode-full &:first-of-type {
+
+        &:first-letter {
+            height: 2rem;
+            width: 2rem;
+            float: left;
+            font-family: 'Orbitron';
+            font-size: 2rem;
+            font-weight: 100;
+            padding: 1rem;
+            margin-right: 0.5rem;
+            /*border-radius: 0 2rem 2rem 2rem; */
+            background-clip: text;
+            line-height: 2rem;
+            background: $color_background_light;
+            color: $color_font_dark;
+        }
+    }
 }
 
 input.toggle {

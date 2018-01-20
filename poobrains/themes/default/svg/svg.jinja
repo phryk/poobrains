@@ -1,1 +1,5 @@
-<object class="svg-wrapper" data="{{ content.url('raw') }}" ></object>
+{% extends 'renderable.jinja' %}
+
+{% block content %}
+    <object class="svg-wrapper" data="{{ content.url('raw') }}" ></object>
+{% endblock %}
