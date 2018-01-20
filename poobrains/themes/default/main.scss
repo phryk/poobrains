@@ -1160,7 +1160,7 @@ p {
         text-transform: uppercase;
     }
 
-    article.mode-full &:first-of-type {
+    article.mode-full > .content > &:first-of-type {
 
         &:first-letter {
             height: 2rem;
