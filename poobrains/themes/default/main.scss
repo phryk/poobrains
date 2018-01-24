@@ -1022,7 +1022,7 @@ article {
                 display: inline-block;
                 font-family: 'Orbitron';
                 font-size: 1rem;
-                color: $color_font_dark;
+                color: $color_font_dark !important; /* needed because otherwise some a.trace:hover will override this */
                 text-decoration: none;
                 transition: color 0.3s, text-shadow 0.3s;
                 font-weight: normal;
@@ -1163,7 +1163,7 @@ p {
     article.mode-full > .content > &:first-of-type {
 
         &:first-letter {
-            height: 2rem;
+            height: 20rem;
             width: 2rem;
             float: left;
             font-family: 'Orbitron';
