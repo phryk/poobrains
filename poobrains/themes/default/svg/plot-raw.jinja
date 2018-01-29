@@ -97,9 +97,8 @@
                 </a>
                 {% endif %}
 
-                {% for i in range(0, dataset.authorized_datapoints|length) %}
+                {% for datapoint in dataset.authorized_datapoints %}
 
-                    {% with datapoint = dataset.authorized_datapoints[i] %}
 
                     <a href="#{{ datapoint.ref_id }}">
                         <g id="{{ datapoint.ref_id }}" class="datapoint">
@@ -129,7 +128,6 @@
                         </g>
                     </a>
 
-                    {% endwith %}
                 {% endfor %}
             </g>
         {% endfor %}i
