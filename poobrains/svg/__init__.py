@@ -101,6 +101,10 @@ class Dataset(poobrains.commenting.Commentable):
         return Datapoint.list('read', g.user).where(Datapoint.dataset == self)
 
     
+    def datapoint_id(self, datapoint):
+        return "dataset-%s-%s" % (self.name, datapoint.x)
+
+    
     def plot(self):
 
         return Plot(datasets=[self]).render('full')
@@ -145,10 +149,6 @@ class Datapoint(poobrains.auth.Owned):
     y = poobrains.storage.fields.DoubleField()
     error_lower = poobrains.storage.fields.FloatField(help_text="Lower margin of error", default=0.0)
     error_upper = poobrains.storage.fields.FloatField(help_text="Upper margin of error", default=0.0)
-
-    @property
-    def ref_id(self):
-        return "dataset-%s-%s" % (self.dataset.name, self.x)
 
 
 @app.expose('/svg/plot')

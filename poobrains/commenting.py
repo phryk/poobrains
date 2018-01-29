@@ -83,29 +83,26 @@ class Commentable(poobrains.tagging.Taggable):
     comments_enabled = poobrains.storage.fields.BooleanField(default=True)
     notify_owner = poobrains.storage.fields.BooleanField(default=True)
 
-    def __init__(self, *args, **kwargs):
 
-        super(Commentable, self).__init__(*args, **kwargs)
-        self.comments = []
-        self.comments_threaded = collections.OrderedDict()
+    @property
+    def comments(self):
+        return Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string)
+    
 
+    @property
+    def comments_threaded(self):
 
-    def prepared(self):
-        
-        super(Commentable, self).prepared()
-      
+        comments_threaded = collections.OrderedDict()
+
         try:
             Comment.permissions['read'].check(flask.g.user)
-            self.comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string)
-            root_comments = Comment.select().where(Comment.model == self.__class__.__name__, Comment.handle == self.handle_string, Comment.reply_to == None)
-            for comment in root_comments:
-                self.comments_threaded[comment] = comment.thread()
+            for comment in self.comments.where(Comment.reply_to == None): # iterate through root comments
+                comments_threaded[comment] = comment.thread()
+
+            return comments_threaded
 
         except poobrains.auth.AccessDenied:
-            pass # No point loading shit this user isn't allowed to render anyways.
-
-        except Exception as e:
-            app.logger.warning("Can't load comments associated to %r" % self)
+            return None # No point loading shit this user isn't allowed to render anyways.
 
 
     def comment_form(self, reply_to=None):

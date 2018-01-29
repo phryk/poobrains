@@ -100,8 +100,8 @@
                 {% for datapoint in dataset.authorized_datapoints %}
 
 
-                    <a href="#{{ datapoint.ref_id }}">
-                        <g id="{{ datapoint.ref_id }}" class="datapoint">
+                    <a href="#{{ dataset.datapoint_id(datapoint) }}">
+                        <g id="{{ dataset.datapoint_id(datapoint) }}" class="datapoint">
 
                             <g class="error">
 

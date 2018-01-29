@@ -226,15 +226,9 @@ class TaggingFieldset(poobrains.form.Fieldset):
 
 class Taggable(poobrains.auth.NamedOwned):
 
-    tags = None
-
     class Meta:
         abstract = True
 
-
-    def __init__(self, *args, **kwargs):
-        super(Taggable, self).__init__(*args, **kwargs)
-        self.tags = []
 
     def form(self, mode=None):
 
@@ -244,10 +238,11 @@ class Taggable(poobrains.auth.NamedOwned):
         return f
 
 
-    def prepared(self):
+    @property
+    def tags(self):
 
-        super(Taggable, self).prepared()
-        bindings = TagBinding.select().where(TagBinding.model == self.__class__.__name__, TagBinding.handle == self.handle_string)
+        tags = []
+        for binding in TagBinding.select().where(TagBinding.model == self.__class__.__name__, TagBinding.handle == self.handle_string):
+            tags.append(binding.tag)
 
-        for binding in bindings:
-            self.tags.append(binding.tag)
+        return tags
