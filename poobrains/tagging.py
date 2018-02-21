@@ -207,7 +207,7 @@ class TaggingFieldset(poobrains.form.Fieldset):
     def __init__(self, instance):
 
         super(TaggingFieldset, self).__init__()
-        if instance._get_pk_value() != None:
+        if instance._pk != None:
            self.fields['tags'].value = [tag for tag in instance.tags] 
 
 

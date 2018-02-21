@@ -147,8 +147,9 @@ class File(poobrains.auth.NamedOwned):
         return super(File, self).__setattr__(name, value)
 
 
-    def prepared(self):
-        self.file_size = os.path.getsize(self.file_path)
+    @property
+    def file_size(self):
+        return os.path.getsize(self.file_path)
 
 
     @poobrains.auth.protected

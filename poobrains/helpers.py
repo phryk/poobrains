@@ -199,7 +199,8 @@ class FakeMetaOptions(object):
     handle_fields = None
     modes = None
     permission_class = None
-    _additional_keys = None # Why did I put this in, again? something something peewee compatibility…
+    schema = None  # needed by peewee.ModelBase.__new__
+    _additional_keys = None # needed by peewee.ModelBase.__new__
 
     def __init__(self):
 
@@ -255,7 +256,7 @@ class MetaCompatibility(type):
                 cls._meta.abstract = False
 
             if not hasattr(cls._meta, 'handle_fields'):
-                cls._meta.handle_fields = [field.name for field in cls._meta.get_primary_key_fields()]
+                cls._meta.handle_fields = [field.name for field in cls._meta.get_primary_keys()]
 
         return cls
 

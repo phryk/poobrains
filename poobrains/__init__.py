@@ -457,15 +457,16 @@ class Poobrain(flask.Flask):
         def decorator(cls):
 
             if issubclass(cls, storage.Storable):
-
                 self.site.add_listing(cls, rule, mode='teaser', title=title, force_secure=force_secure)
                 self.site.add_view(cls, os.path.join(rule, '<handle>/'), mode=mode, force_secure=force_secure)
 
-                for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
-                    related_model = related_field.model_class
+                for related_model, related_fields in cls._meta.model_backrefs: # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+
+                    if len(related_fields) > 1:
+                        self.logger.debug("!!! Apparent multi-field relation for %s: %s !!!" % (related_model.__name__, related_fields))
 
                     if issubclass(related_model, auth.Administerable):
-                        self.site.add_related_view(cls, related_field, os.path.join(rule, '<handle>/'))
+                        self.site.add_related_view(cls, related_fields[0], os.path.join(rule, '<handle>/'))
 
             elif issubclass(cls, form.Form):
 
@@ -621,7 +622,7 @@ class Pooprint(flask.Blueprint):
 
     def add_related_view(self, cls, related_field, rule, endpoint=None, view_func=None, force_secure=False, **options):
 
-        related_model = related_field.model_class
+        related_model = related_field.model
         if not endpoint:
             endpoint = self.next_endpoint(cls, related_field, 'related')
 
@@ -838,7 +839,7 @@ class Pooprint(flask.Blueprint):
             raise LookupError("No registered related views for class %s." % (cls.__name__,))
 
         if not lookup[cls].has_key(related_field):
-            raise LookupError("No registered related views for %s[%s]<-%s.%s." % (cls.__name__, handle, related_field.model_class.__name__, related_field.name))
+            raise LookupError("No registered related views for %s[%s]<-%s.%s." % (cls.__name__, handle, related_field.model.__name__, related_field.name))
 
         endpoints = ['%s.%s' % (self.name, x) for x in lookup[cls][related_field]]
         endpoint = self.choose_endpoint(endpoints, **{'handle': handle}) 
@@ -857,7 +858,7 @@ class Pooprint(flask.Blueprint):
                     endpoints = self.listings[cls][mode]
                 elif context == 'related':
                     # mode is actually a foreign key field
-                    format = '%s_%s_%s-%s_autogen_%%d' % (cls.__name__, context, mode.model_class.__name__, mode.name)
+                    format = '%s_%s_%s-%s_autogen_%%d' % (cls.__name__, context, mode.model.__name__, mode.name)
                     endpoints = self.related_views[cls][mode]
 
             except KeyError: # means no view/listing has been registered yet

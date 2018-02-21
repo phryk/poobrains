@@ -60,11 +60,10 @@ def admin_setup():
             if cls._meta.modes.has_key('delete'):
                 app.admin.add_view(cls, os.path.join(rule, 'delete'), mode='delete', force_secure=True)
 
-            for related_field in cls._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
-                related_model = related_field.model_class
+            for related_model, related_fields in cls._meta.model_backrefs.iteritems(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
 
                 if issubclass(related_model, Administerable):
-                    app.admin.add_related_view(cls, related_field, rule, force_secure=True)
+                    app.admin.add_related_view(cls, related_fields[0], rule, force_secure=True)
 
 
 @app.admin.before_request
@@ -161,8 +160,8 @@ class AddForm(BoundForm):
             else:
                 try:
 
-                    if self.instance._get_pk_value():
-                        self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance._get_pk_value())
+                    if self.instance._pk:
+                        self.title = "%s %s '%s'" % (self.mode, self.model.__name__, self.instance._pk)
                     else:
                         self.title = "%s %s" % (self.mode, self.model.__name__)
 
@@ -263,7 +262,7 @@ class EditForm(AddForm):
     
     def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
         f = super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-        for pkfield in f.model._meta.get_primary_key_fields():
+        for pkfield in f.model._meta.get_primary_keys():
             if f.fields.has_key(pkfield.name):
                 f.fields[pkfield.name].readonly = True # Make any primary key fields read-only
 
@@ -296,7 +295,7 @@ class DeleteForm(BoundForm):
             if hasattr(self.instance, 'title') and self.instance.title:
                 self.title = "Delete %s %s" % (self.model.__name__, self.instance.title)
             else:
-                self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._get_pk_value()))
+                self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._pk))
 
     
     def process(self, submit):
@@ -304,7 +303,7 @@ class DeleteForm(BoundForm):
         if hasattr(self.instance, 'title') and self.instance.title:
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
         else:
-            message = "Deleted %s '%s'." % (self.model.__name__, unicode(self.instance._get_pk_value()))
+            message = "Deleted %s '%s'." % (self.model.__name__, unicode(self.instance._pk))
         self.instance.delete_instance(recursive=True)
         flask.flash(message)
 
@@ -985,7 +984,7 @@ class RelatedForm(poobrains.form.Form):
                 setattr(f, key, related_instance.fieldset('edit'))
 
                 if f.fields[key].fields.has_key(related_field.name):
-                    setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._get_pk_value()))
+                    setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._pk))
 
             except AccessDenied as e:
                 pass
@@ -1086,7 +1085,7 @@ class GroupPermissionEditForm(EditForm):
         return f
 
 
-class BaseAdministerable(PermissionInjection, poobrains.storage.BaseModel):
+class BaseAdministerable(PermissionInjection, poobrains.storage.ModelBase):
 
     """
     Metaclass for `Administerable`s.
@@ -1164,7 +1163,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     def menu_actions(self):
         
         try:
-            self._get_pk_value()
+            self._pk # accessing _pk will throw DoesNotExist if self isn't saved to db yet
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
             return None
 
@@ -1192,7 +1191,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     def menu_related(self):
 
         try:
-            self._get_pk_value()
+            self._pk
         except peewee.DoesNotExist:
             return None
 
@@ -1335,29 +1334,29 @@ class Named(Administerable, poobrains.storage.Named):
 
 class User(Named):
 
-    groups = None
-    own_permissions = None
-
     mail = poobrains.storage.fields.CharField(null=True) # FIXME: implement an EmailField
     pgp_fingerprint = poobrains.storage.fields.CharField(null=True)
     mail_notifications = poobrains.storage.fields.BooleanField(default=False)
     about = poobrains.md.MarkdownField(null=True)
 
-    def __init__(self, *args, **kwargs):
 
-        super(User, self).__init__(*args, **kwargs)
-        self.own_permissions = collections.OrderedDict()
-        self.groups = []
+    @property
+    def own_permissions(self):
 
-
-    def prepared(self):
-
-        super(User, self).prepared()
+        permissions = collections.OrderedDict()
         for up in self._permissions:
-            self.own_permissions[up.permission] = up.access
+            permissions[up.permission] = up.access
 
+        return permissions
+
+    @property
+    def groups(self):
+
+        groups = []
         for ug in self._groups:
-            self.groups.append(ug.group)
+            groups.append(ug.group)
+
+        return groups
 
     
     def save(self, *args, **kwargs):
@@ -1504,12 +1503,11 @@ class UserPermission(Administerable):
     access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Select)
 
     
-    def prepared(self):
+    @property
+    def permission_class(self):
         
-        super(UserPermission, self).prepared()
-
         try:
-            self.permission_class = Permission.class_children_keyed()[self.permission]
+            return Permission.class_children_keyed()[self.permission]
 
         except KeyError:
             app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.user_id)) # can't use self.user.name because dat recursion
@@ -1543,21 +1541,15 @@ class Group(Named):
 
     # TODO: Almost identical to User. DRY.
 
-    own_permissions = None
 
-    def __init__(self, *args, **kwargs):
+    @property
+    def own_permissions(self):
 
-        super(Group, self).__init__(*args, **kwargs)
-        self.own_permissions = collections.OrderedDict()
-        self.groups = collections.OrderedDict()
-
-
-    def prepared(self):
-        
-        super(Group, self).prepared()
-
+        own_permissions = collections.OrderedDict()
         for gp in self._permissions:
-            self.own_permissions[gp.permission] = gp.access
+            own_permissions[gp.permission] = gp.access
+
+        return own_permissions
 
     
     def save(self, *args, **kwargs):
@@ -1600,12 +1592,11 @@ class GroupPermission(Administerable):
     access = poobrains.storage.fields.CharField(null=False, form_widget=poobrains.form.fields.Select)
 
     
-    def prepared(self):
-
-        super(GroupPermission, self).prepared()
+    @property
+    def permission_class(self):
 
         try:
-            self.permission_class = Permission.class_children_keyed()[self.permission]
+            return Permission.class_children_keyed()[self.permission]
 
         except KeyError:
             app.logger.error("Unknown permission '%s' associated to user #%d." % (self.permission, self.group_id)) # can't use self.group.name because dat recursion

@@ -36,22 +36,19 @@ class MarkdownString(unicode):
         return jinja2.Markup(md.convert(self))
 
 
-class MarkdownFieldDescriptor(peewee.FieldDescriptor):
+class MarkdownFieldAccessor(peewee.FieldAccessor):
 
     def __set__(self, instance, value):
 
         if not isinstance(value, MarkdownString):
             value = MarkdownString(value)
-        instance._data[self.att_name] = value
-        instance._dirty.add(self.att_name)
+
+        super(MarkdownFieldAccessor, self).__set__(instance, value)
 
 
 class MarkdownField(poobrains.storage.fields.TextField):
 
-    def add_to_class(self, model_class, name):
-
-        super(MarkdownField, self).add_to_class(model_class, name)
-        setattr(model_class, name, MarkdownFieldDescriptor(self))
+    accessor_class = MarkdownFieldAccessor
 
 poobrains.storage.fields.MarkdownField = MarkdownField
 

@@ -4,7 +4,7 @@
 import flask
 import peewee
 
-from peewee import PrimaryKeyField, Check
+from peewee import AutoField, Check
 
 # parent imports
 from poobrains import app
@@ -149,12 +149,12 @@ class ForeignKeyField(Field, peewee.ForeignKeyField):
 
     form_widget = ForeignKeyChoice
 
-    def add_to_class(self, model_class, name):
+    def bind(self, model, name, set_attribute=True):
     
         # NOTE: type set in here because it needs a Storable class passed in 
 
-        super(ForeignKeyField, self).add_to_class(model_class, name)
-        self.type = StorableInstanceParamType(model_class if self.rel_model == 'self' else self.rel_model) # basically just needed for the CLI, which checks field.type
+        super(ForeignKeyField, self).bind(model, name, set_attribute=set_attribute)
+        self.type = StorableInstanceParamType(self.rel_model) # basically just needed for the CLI, which checks field.type
 
 
 class BooleanField(Field, peewee.BooleanField):

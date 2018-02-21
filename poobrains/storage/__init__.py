@@ -36,15 +36,23 @@ def RegexpConstraint(field_name, regexp):
     else:
         regexp_compat = regexp
 
-    return peewee.Clause(
-            peewee.SQL('CHECK('),
-            peewee.Expression(
-                QuotedSQL(field_name),
-                peewee.OP.REGEXP,
-                regexp_compat,
-                flat=True
-            ),
-            peewee.SQL(')'),
+#    return peewee.NodeList(
+#            peewee.SQL('CHECK('),
+#            peewee.Expression(
+#                QuotedSQL(field_name),
+#                peewee.OP.REGEXP,
+#                regexp_compat,
+#                flat=True
+#            ),
+#            peewee.SQL(')'),
+#    )
+    return peewee.Check(
+        peewee.Expression(
+            peewee.Entity(field_name),
+            peewee.OP.REGEXP,
+            regexp_compat,
+            flat=True
+        )
     )
 
 
@@ -56,14 +64,14 @@ class QuotedSQL(peewee.Entity):
 
 
 
-class BaseModel(poobrains.helpers.MetaCompatibility, peewee.BaseModel):
+class ModelBase(poobrains.helpers.MetaCompatibility, peewee.ModelBase):
 
     pass
 
 
 class Model(peewee.Model, poobrains.helpers.ChildAware):
 
-    __metaclass__ = BaseModel
+    __metaclass__ = ModelBase
 
     class Meta:
 
@@ -101,7 +109,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
                 segment = None
 
             if isinstance(segment, Model):
-                segment = str(segment._get_pk_value())
+                segment = str(segment._pk)
             else:
                 segment = str(segment)
 
@@ -133,7 +141,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
 
     def __repr__(self):
         try:
-            return "<%s[%s]>" % (self.__class__.__name__, self._get_pk_value())
+            return "<%s[%s]>" % (self.__class__.__name__, self._pk)
         except Exception:
             return "<%s, unsaved/no primary key>" % self.__class__.__name__
 
@@ -159,8 +167,8 @@ class Storable(Model, poobrains.rendering.Renderable):
         if self.name:
             return self.name
 
-        elif self._get_pk_value():
-            return "%s %s" % (self.__class__.__name__, str(self._get_pk_value()))
+        elif self._pk:
+            return "%s %s" % (self.__class__.__name__, str(self._pk))
 
         return "New %s" % self.__class__.__name__
 

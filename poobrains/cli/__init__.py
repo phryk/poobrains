@@ -249,34 +249,34 @@ def minica(lifetime):
 @fake_before_request
 def add(storable):
 
-        instance = storable()
+    instance = storable()
 
-        echo("Addding %s...\n" % (storable.__name__,))
-        for field in storable._meta.sorted_fields:
+    echo("Addding %s...\n" % (storable.__name__,))
+    for field in storable._meta.sorted_fields:
 
-            if not isinstance(field, peewee.PrimaryKeyField):
+        if not isinstance(field, peewee.AutoField):
 
-                default = None
+            default = None
 
-                if field.default:
+            if field.default:
 
-                    if callable(field.default):
-                        default = field.default()
-                    else:
-                        default = field.default
+                if callable(field.default):
+                    default = field.default()
+                else:
+                    default = field.default
 
-                elif field.type == types.DATETIME:
-                    default = datetime.datetime.now()
-                
-                elif field.type == types.BOOL:
-                    default = False
+            elif field.type == types.DATETIME:
+                default = datetime.datetime.now()
+            
+            elif field.type == types.BOOL:
+                default = False
 
-                value = click.prompt(field.name, type=field.type, default=default)
+            value = click.prompt(field.name, type=field.type, default=default)
 
-                if value != '': # Makes models fall back to defaults for this field
-                    setattr(instance, field.name, value) # TODO type enforcement
+            if value != '': # Makes models fall back to defaults for this field
+                setattr(instance, field.name, value) # TODO type enforcement
 
-        instance.save(force_insert=True)
+    instance.save(force_insert=True)
 
 
 @app.cli.command()
@@ -330,7 +330,7 @@ def import_(storable, filepath, skip_pk):
 
             for field in fields:
                 
-                if isinstance(field, poobrains.storage.fields.PrimaryKeyField):
+                if isinstance(field, poobrains.storage.fields.AutoField):
 
                     if not skip_pk:
                         setattr(instance, field.name, int(record[field.name]))
@@ -388,7 +388,7 @@ def export(storable, filepath, skip_pk):
                 value = getattr(instance, field.name)
 
                 if isinstance(field, poobrains.storage.fields.ForeignKeyField):
-                    value = value._get_pk_value()
+                    value = value._pk
 
                 record.append(unicode(value))
 
