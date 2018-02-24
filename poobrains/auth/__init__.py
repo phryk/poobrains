@@ -1490,7 +1490,6 @@ app.site.add_view(User, '/~<handle>/', mode='full')
 
 class UserPermission(Administerable):
 
-    permission_class = None
     form_add = UserPermissionAddForm
 
     class Meta:
@@ -1581,7 +1580,6 @@ class GroupPermission(Administerable):
 
     form_add = GroupPermissionAddForm
     form_edit = GroupPermissionEditForm
-    permission_class = None
 
     class Meta:
         primary_key = peewee.CompositeKey('group', 'permission')

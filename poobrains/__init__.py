@@ -460,7 +460,7 @@ class Poobrain(flask.Flask):
                 self.site.add_listing(cls, rule, mode='teaser', title=title, force_secure=force_secure)
                 self.site.add_view(cls, os.path.join(rule, '<handle>/'), mode=mode, force_secure=force_secure)
 
-                for related_model, related_fields in cls._meta.model_backrefs: # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+                for related_model, related_fields in cls._meta.model_backrefs.iteritems(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
 
                     if len(related_fields) > 1:
                         self.logger.debug("!!! Apparent multi-field relation for %s: %s !!!" % (related_model.__name__, related_fields))
