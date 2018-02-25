@@ -32,41 +32,61 @@ if isinstance(app.db, peewee.SqliteDatabase):
 def RegexpConstraint(field_name, regexp):
 
     if 'sqlite' in app.db.__class__.__name__.lower():
-        regexp_compat = QuotedSQL(regexp)
+        regexp_compat = '"%s"' % regexp
     else:
         regexp_compat = regexp
 
-#    return peewee.NodeList(
-#            peewee.SQL('CHECK('),
-#            peewee.Expression(
-#                QuotedSQL(field_name),
-#                peewee.OP.REGEXP,
-#                regexp_compat,
-#                flat=True
-#            ),
-#            peewee.SQL(')'),
-#    )
-    return peewee.Check(
-        peewee.Expression(
-            peewee.Entity(field_name),
-            peewee.OP.REGEXP,
-            regexp_compat,
-            flat=True
-        )
-    )
+    return peewee.Check('"%s" %s %s' % (field_name, peewee.OP.REGEXP, regexp_compat))
 
 
-class QuotedSQL(peewee.Entity):
+class OrderableMetadata(peewee.Metadata):
 
-    def __getattr__(self, attr):
+    """
+    This class ports over peewee _meta.order_by functionality, which was dropped in 3.0
+    """
 
-        return super(peewee.Node, self).__getattr__(attr) # Is this a good idea?
+    order_by = None
 
+    def prepared(self):
+
+        if self.order_by:
+
+            norm_order_by = []
+
+            for item in self.order_by:
+
+                if isinstance(item, peewee.Ordering):
+
+                    # Orderings .node references a field specific to an upstream model.
+                    # Therefore, we can't just adopt them.
+                    if item.direction == 'DESC':
+                        item = '-' + item.node.name
+                    else:
+                        item = item.node.name
+
+                desc = False
+                if item.startswith('-'):
+                    desc = True
+                    item = item[1:]
+
+                field = self.fields[item]
+
+                if desc:
+                    norm_order_by.append(field.desc())
+                else:
+                    norm_order_by.append(field.asc())
+
+        self.order_by = norm_order_by
 
 
 class ModelBase(poobrains.helpers.MetaCompatibility, peewee.ModelBase):
 
-    pass
+    def __new__(cls, name, bases, attrs):
+
+        cls = super(ModelBase, cls).__new__(cls, name, bases, attrs)
+        cls._meta.prepared()
+
+        return cls
 
 
 class Model(peewee.Model, poobrains.helpers.ChildAware):
@@ -76,6 +96,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
     class Meta:
 
         database = app.db
+        model_metadata_class = OrderableMetadata # port of peewees dropped _meta.order_by feature
         order_by = ['-id']
 
 
@@ -131,6 +152,17 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
 
     def validate(self):
         pass
+
+
+    @classmethod
+    def select(cls, *fields):
+
+        query = super(Model, cls).select(*fields)
+
+        if cls._meta.order_by:
+            query = query.order_by(*cls._meta.order_by)
+
+        return query
 
 
     def save(self, *args, **kwargs):

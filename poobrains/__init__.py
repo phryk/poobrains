@@ -797,12 +797,12 @@ class Pooprint(flask.Blueprint):
             instance = cls.load(handle)
 
             clauses = []
-            for order_field in cls._meta.order_by:
-                #clauses.append(order_field > getattr(instance, order_field.name))
-                if order_field._ordering == 'ASC':
-                    clauses.append(instance._meta.fields[order_field.name] <= getattr(instance, order_field.name))
+            for ordering in cls._meta.order_by: # Ordering is a peewee.WrappedNode, its .node property is the field
+
+                if ordering.direction == 'ASC':
+                    clauses.append(ordering.node <= getattr(instance, ordering.node.name))
                 else: # We'll just assume there can only be ASC and DESC
-                    clauses.append(instance._meta.fields[order_field.name] >= getattr(instance, order_field.name))
+                    clauses.append(ordering.node >= getattr(instance, ordering.node.name))
 
             offset = cls.select().where(*clauses).count() - 1
 

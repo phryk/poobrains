@@ -1161,7 +1161,7 @@ class Administerable(poobrains.storage.Storable, Protected):
 
     @property
     def menu_actions(self):
-        
+
         try:
             self._pk # accessing _pk will throw DoesNotExist if self isn't saved to db yet
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
