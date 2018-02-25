@@ -130,6 +130,10 @@ class RenderString(Renderable):
     #    return self.value # TODO: cast to jinja2.Markup or sth?
 
 
+    def __str__(self):
+        return self.render()
+
+
 class Container(Renderable):
 
     title = None

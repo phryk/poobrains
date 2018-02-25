@@ -78,8 +78,6 @@ class Commentable(poobrains.tagging.Taggable):
     class Meta:
         abstract = True
 
-    comments = None
-    comments_threaded = None
     comments_enabled = poobrains.storage.fields.BooleanField(default=True)
     notify_owner = poobrains.storage.fields.BooleanField(default=True)
 
@@ -99,10 +97,11 @@ class Commentable(poobrains.tagging.Taggable):
             for comment in self.comments.where(Comment.reply_to == None): # iterate through root comments
                 comments_threaded[comment] = comment.thread()
 
-            return comments_threaded
 
         except poobrains.auth.AccessDenied:
-            return None # No point loading shit this user isn't allowed to render anyways.
+            pass # No point loading shit this user isn't allowed to render anyways.
+
+        return comments_threaded
 
 
     def comment_form(self, reply_to=None):

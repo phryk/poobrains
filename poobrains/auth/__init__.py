@@ -23,7 +23,7 @@ import peewee
 
 
 # local imports
-from poobrains import app
+from poobrains import app, Markup
 import poobrains.helpers
 import poobrains.errors
 import poobrains.mailing
@@ -1122,7 +1122,7 @@ class Protected(poobrains.rendering.Renderable):
         except AccessDenied:
 
             if mode == 'inline':
-                return poobrains.rendering.RenderString("Access Denied for %s." % self.__class__.__name__)
+                return Markup(poobrains.rendering.RenderString("Access Denied for %s." % self.__class__.__name__))
 
             raise
 
