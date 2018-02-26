@@ -31,12 +31,14 @@ if isinstance(app.db, peewee.SqliteDatabase):
 
 def RegexpConstraint(field_name, regexp):
 
+    operation = app.db._operations['REGEXP'] # peewee.OP.REGEXP used to always hold the correct value, what happen?
+
     if 'sqlite' in app.db.__class__.__name__.lower():
         regexp_compat = '"%s"' % regexp
     else:
         regexp_compat = regexp
 
-    return peewee.Check('"%s" %s %s' % (field_name, peewee.OP.REGEXP, regexp_compat))
+    return peewee.Check('"%s" %s %s' % (field_name, operation, regexp_compat))
 
 
 class OrderableMetadata(peewee.Metadata):
