@@ -36,7 +36,7 @@ def RegexpConstraint(field_name, regexp):
     if 'sqlite' in app.db.__class__.__name__.lower():
         regexp_compat = '"%s"' % regexp
     else:
-        regexp_compat = regexp
+        regexp_compat = "'%s'" % regexp
 
     return peewee.Check('"%s" %s %s' % (field_name, operation, regexp_compat))
 
