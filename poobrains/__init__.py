@@ -989,7 +989,7 @@ def robots_txt():
     if os.path.exists(os.path.join(app.root_path, 'robots.txt')):
         response = flask.send_from_directory(app.root_path, 'robots.txt')
     else:
-        response = flask.Response("User-agent: *\nAllow: /")
+        response = flask.Response("User-agent: *\nDisallow: /doc/")
 
     response.cache_control.public = True
     response.cache_control.max_age = app.config['CACHE_LONG']
