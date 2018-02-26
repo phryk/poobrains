@@ -1198,8 +1198,8 @@ class Administerable(poobrains.storage.Storable, Protected):
         user = flask.g.user
         menu = poobrains.rendering.Menu('related')
 
-        for related_field in self._meta.reverse_rel.itervalues(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
-            related_model = related_field.model_class
+        for related_field, related_model in self._meta.backrefs.iteritems(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+
             if related_model is not self.__class__ and issubclass(related_model, Administerable) and not related_model._meta.abstract:
                 try:
                     menu.append(self.related_url(related_field) , related_model.__name__)
@@ -1278,7 +1278,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         if related_field is None:
             raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
 
-        related_model = related_field.model_class
+        related_model = related_field.model
         instance = cls.load(cls.string_handle(handle))
 
         actions = poobrains.rendering.Menu('related-add')
@@ -1312,7 +1312,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     @classmethod
     def related_view_add(cls, related_field=None, handle=None):
         
-        related_model = related_field.model_class
+        related_model = related_field.model
         instance = cls.load(cls.string_handle(handle))
 
         f = related_model.class_form('add')

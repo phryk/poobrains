@@ -366,8 +366,6 @@ class Pagination(object):
             self.limit = app.config['PAGINATION_COUNT']
 
         self.menu = False
-        #self.counts = dict([(cls, q.count()) for cls, q in self.queries.iteritems()])
-        #self.counts = dict([(q.model_class, q.count()) for q in self.queries])
         self.counts = collections.OrderedDict([(q, q.count()) for q in self.queries])
         self.results = []
         self.page_info = collections.OrderedDict()
