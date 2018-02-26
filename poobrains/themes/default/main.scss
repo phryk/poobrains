@@ -876,6 +876,7 @@ button {
     outline: none;
     transition: background 0.3s ease-in-out, width 0.3s ease-in-out;
     width: 100%; /* take full width of form as default */
+    margin-bottom: 0.25rem; /* leave a bit of space between form elements */
 
 
     &:hover,
@@ -901,7 +902,7 @@ button {
     overflow: hidden;
     font-family: 'Orbitron', sans;
     min-height: 1.8rem;
-    padding-top: 0.3rem;
+    padding-top: 0.25rem;
     margin-right: 0.5rem;
     width: 50%;
 
