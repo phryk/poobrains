@@ -981,7 +981,7 @@ def robots_txt():
     """
     Supply robots.txt for crawlers.
     
-    Allow everything by default, lets you add a custom
+    Allow everything except /doc/ by default, lets you add a custom
     robots.txt to a projects' root directory.
 
     """
