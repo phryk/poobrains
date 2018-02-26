@@ -732,11 +732,13 @@ form {
     & > header,
     & > div.content,
     & > footer {
-        padding: 0.5rem 1rem;
+        padding: 1rem;
     }
 
     & > header {
+
         background: $color_background_light;
+        padding: 0.5rem 1rem;
 
         h2 {
 
