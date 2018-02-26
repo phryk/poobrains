@@ -61,28 +61,8 @@ class SVG(poobrains.auth.Protected):
             return poobrains.helpers.ThemedPassthrough(super(SVG, self).view(mode=mode, handle=handle))
 
 
-class DatasetForm(poobrains.auth.AddForm):
-
-    def __init__(self, model_or_instance, **kwargs):
-
-        super(DatasetForm, self).__init__(model_or_instance, **kwargs)
-
-        n = 0
-        for datapoint in self.instance.datapoints:
-            
-            name = 'datapoint-%d' % n
-            #setattr(self, name, DatapointFieldset(datapoint))
-            setattr(self, name, datapoint.fieldset('edit'))
-            n += 1
-
-        #setattr(self, 'datapoint-add', DatapointFieldset(Datapoint()))
-        setattr(self, 'datapoint-add', Datapoint().fieldset('add'))
-
-
 class Dataset(poobrains.commenting.Commentable):
 
-    #form_add = DatasetForm
-    #form_edit = DatasetForm
 
     title = poobrains.storage.fields.CharField()
     description = poobrains.md.MarkdownField(null=True)
@@ -347,28 +327,7 @@ class Plot(SVG):
         return coords
 
 
-class MapDatasetForm(poobrains.auth.AddForm):
-
-    def __init__(self, model_or_instance, **kwargs):
-
-        super(MapDatasetForm, self).__init__(model_or_instance, **kwargs)
-
-        n = 0
-        for datapoint in self.instance.datapoints:
-            
-            name = 'datapoint-%d' % n
-            #setattr(self, name, MapDatapointFieldset(datapoint))
-            setattr(self, name, datapoint.fieldset('edit'))
-            n += 1
-
-        #setattr(self, 'datapoint-add', MapDatapointFieldset(MapDatapoint()))
-        setattr(self, 'datapoint-add', MapDatapoint().fieldset('add'))
-
-
 class MapDataset(poobrains.commenting.Commentable):
-
-    form_add = MapDatasetForm
-    form_edit = MapDatasetForm
 
     title = poobrains.storage.fields.CharField()
     description = poobrains.md.MarkdownField(null=True)
@@ -413,6 +372,10 @@ class MapDatapointFieldset(poobrains.form.Fieldset):
 
 
 class MapDatapoint(poobrains.auth.Owned):
+
+    class Meta:
+        related_use_form = True
+
 
     width = None
     height = None
