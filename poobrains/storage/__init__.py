@@ -271,6 +271,11 @@ class Named(Storable):
 
         return app.get_url(self.__class__, handle=self.name, mode=mode, **url_params)
 
+    @property
+    def ref_id(self):
+
+        return "%s-%s" % (self.__class__.__name__.lower(), self.name)
+
 
 class Listing(poobrains.rendering.Renderable):
 

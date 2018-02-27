@@ -1,5 +1,13 @@
 {% extends "file.jinja" %}
 
 {% block content %}
-    <img src="{{ content.url('raw') }}" alt="{{ content.name }}" />
+
+    <a href="#{{ content.ref_id }}-modal"}>
+        <img id="{{ content.ref_id }}" src="{{ content.url('raw') }}" alt="{{ content.name }}" />
+    </a>
+
+    <div id="{{content.ref_id }}-modal" class="modal">
+        <a class="modal-background" href="#{{ content.ref_id }}"></a>
+        <a class="modal-link" href="{{ content.url('raw') }}" target="_blank"><img src="{{ content.url('raw') }}" alt="{{ content.name }}" /></a>
+    </div>
 {% endblock %}
