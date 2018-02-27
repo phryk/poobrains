@@ -484,7 +484,7 @@ main {
         flex-direction: column;
 
         *:target {
-            margin-top: 15rem; /* offset :target'ed items to avoid having them under the sticky header */
+            padding-top: 15rem; /* offset :target'ed items to avoid having them under the sticky header */
             display: block;
         }
 
@@ -1283,7 +1283,7 @@ code {
         width: 100vw;
         height: 100vh;
         opacity: 1;
-        margin-top: 0 !important;
+        padding-top: 0 !important;
 
         a.modal-background {
 
