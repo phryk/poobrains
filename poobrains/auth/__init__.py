@@ -673,6 +673,8 @@ class ClientCertForm(poobrains.form.Form):
 
     def process(self, submit):
 
+        time.sleep(random.random() * 0.1) # should make timing side channel attacks harder
+
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])

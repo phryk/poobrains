@@ -1,6 +1,6 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 
-<fieldset class="field {{ content.__class__.__name__.lower() }}">
+<fieldset id="{{ content.ref_id }}" class="field {{ content.__class__.__name__.lower() }}">
     <label for="{{ content.ref_id }}">{% if content.label %}<span class="caption">{{ content.label }}</span>{% endif %}</label>
 
     {{ content.read.render() }}

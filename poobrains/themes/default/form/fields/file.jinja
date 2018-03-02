@@ -1,7 +1,8 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 <label for="{{ content.ref_id }}">{% if content.label %}{{ content.label }}{% endif %}
     <input
-      type="file"
-      name="{{ content.prefix }}.{{ content.name }}"
-      placeholder="{{ content.placeholder }}">
+    id="{{ content.ref_id}}"
+    type="file"
+    name="{{ content.prefix }}.{{ content.name }}"
+    placeholder="{{ content.placeholder }}">
 </label>
