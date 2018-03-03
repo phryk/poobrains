@@ -388,7 +388,11 @@ def export(storable, filepath, skip_pk):
                 value = getattr(instance, field.name)
 
                 if isinstance(field, poobrains.storage.fields.ForeignKeyField):
-                    value = value._pk
+
+                    if values is None:
+                        value = ''
+                    else:
+                        value = value._pk
 
                 record.append(unicode(value))
 
