@@ -389,7 +389,7 @@ def export(storable, filepath, skip_pk):
 
                 if isinstance(field, poobrains.storage.fields.ForeignKeyField):
 
-                    if values is None:
+                    if value is None:
                         value = ''
                     else:
                         value = value._pk
