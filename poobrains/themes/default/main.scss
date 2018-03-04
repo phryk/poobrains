@@ -1361,6 +1361,27 @@ ul.tag-list {
     }
 }
 
+span.help {
+
+    color: transparentize($color_font_light, 20%);
+    float: right;
+
+    &::after {
+        content: '?';
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        background: $color_highlight;
+        border-radius: 0.5rem;
+        font-weight: bold;
+        font-size: 0.8rem;
+        text-align: center;
+        line-height: 1rem;
+        margin-left: 0.25rem;
+    }
+
+}
+
 span.debug-hint {
 
     display: inline-block !important;

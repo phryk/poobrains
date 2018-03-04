@@ -1,7 +1,9 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-{% if content.multi %}
 
 <div class="field {{ content.__class__.__name__.lower() }}">
+
+{% if content.multi %}
+
     {% if content.label %}<legend>{{ content.label }}</legend>{% endif %}
     {% for choice, label in content.choices %}
         <input
@@ -25,11 +27,9 @@
         >
         <label for="{{ content.ref_id }}-{{ choice }}">{% if label %}<span class="caption">{{ label }}</span>{% endif %}</label>
     {% endfor %}
-</div>
 
 {% else %}
 
-<div class="field {{ content.__class__.__name__.lower() }}">
 
     <input
         id="{{ content.ref_id }}"
@@ -53,6 +53,14 @@
 
     <label for="{{ content.ref_id }}">{% if content.label %}<span class="caption">{{ content.label }}</span>{% endif %}</label>
 
-</div>
-
 {% endif %}
+
+    {% if self.help()|trim %}
+    {% block help %}
+        {% if content.help_text %}
+           <span class="help">{{ content.help_text }}</span> 
+        {% endif %}
+    {% endblock %}
+    {% endif %}
+
+</div>

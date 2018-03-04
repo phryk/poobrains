@@ -3,7 +3,16 @@
 <fieldset id="{{ content.ref_id }}" class="field {{ content.__class__.__name__.lower() }}">
     <label for="{{ content.ref_id }}">{% if content.label %}<span class="caption">{{ content.label }}</span>{% endif %}</label>
 
+    {% if self.help()|trim %}
+    {% block help %}
+        {% if content.help_text %}
+           <span class="help">{{ content.help_text }}</span> 
+        {% endif %}
+    {% endblock %}
+    {% endif %}
+
     {{ content.read.render() }}
     {{ content.update.render() }}
     {{ content.delete.render() }}
+
 </fieldset>

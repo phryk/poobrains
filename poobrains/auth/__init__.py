@@ -1165,8 +1165,10 @@ class Administerable(poobrains.storage.Storable, Protected):
     def menu_actions(self):
 
         try:
-            self._pk # accessing _pk will throw DoesNotExist if self isn't saved to db yet
-        except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist
+            if self._pk is None:
+                return None
+
+        except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist. Should only happen when primary key is a multi-column key containing a foreign key
             return None
 
         user = flask.g.user

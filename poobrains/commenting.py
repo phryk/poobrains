@@ -78,8 +78,8 @@ class Commentable(poobrains.tagging.Taggable):
     class Meta:
         abstract = True
 
-    comments_enabled = poobrains.storage.fields.BooleanField(default=True)
-    notify_owner = poobrains.storage.fields.BooleanField(default=True)
+    comments_enabled = poobrains.storage.fields.BooleanField(default=True, verbose_name=u'Enable comments')
+    notify_owner = poobrains.storage.fields.BooleanField(default=True, verbose_name='Notify owner', help_text='Whether to notify the owner of comments')
 
 
     @property

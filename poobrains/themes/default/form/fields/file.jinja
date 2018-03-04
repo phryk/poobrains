@@ -1,8 +1,21 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-<label for="{{ content.ref_id }}">{% if content.label %}{{ content.label }}{% endif %}
-    <input
-    id="{{ content.ref_id}}"
-    type="file"
-    name="{{ content.prefix }}.{{ content.name }}"
-    placeholder="{{ content.placeholder }}">
-</label>
+
+<div class="field {{ content.__class__.__name__.lower() }}">
+
+    <label for="{{ content.ref_id }}">{% if content.label %}{{ content.label }}{% endif %}
+        <input
+        id="{{ content.ref_id}}"
+        type="file"
+        name="{{ content.prefix }}.{{ content.name }}"
+        placeholder="{{ content.placeholder }}">
+    </label>
+
+    {% if self.help()|trim %}
+    {% block help %}
+        {% if content.help_text %}
+           <span class="help">{{ content.help_text }}</span> 
+        {% endif %}
+    {% endblock %}
+    {% endif %}
+
+</div>

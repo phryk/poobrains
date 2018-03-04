@@ -1,6 +1,7 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
 
 <div class="field {{ content.__class__.__name__.lower() }}">
+
     <label for="{{ content.ref_id }}">{% if content.label %}<span class="caption">{{ content.label }}</span>{% endif %}</label>
     <input
         id="{{ content.ref_id }}"
@@ -51,4 +52,5 @@
         {% endif %}
     {% endblock %}
     {% endif %}
+
 </div>
