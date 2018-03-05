@@ -691,9 +691,6 @@ div.tree {
     
     details {
 
-        margin-bottom: 0.5rem;
-        padding-left: 0.5rem;
-
         transition: max-height 0.3s, background 0.3s;
 
         summary {
@@ -704,8 +701,9 @@ div.tree {
         }
 
         &[open] {
+
             background: rgba(255,255,255, 0.03);
-            border-left: 2px solid $color_highlight;
+
 
             ul.branch {
                 max-height: 100%;
@@ -713,7 +711,42 @@ div.tree {
         }
 
         ul.branch {
+
             max-height: 0;
+            padding-left: 2.2rem;
+            margin: 0;
+            margin-top: 1rem;
+
+
+            li.leaf {
+
+                position: relative;
+
+                &::before {
+                    content: "";
+                    position: absolute;
+                    width: 2rem;
+                    height: 0;
+                    margin-left: -2rem;
+                    margin-top: 1rem;
+                    border-top: 2px solid $color_highlight;
+                }
+
+                &::after {
+                    content: "";
+                    position: absolute;
+                    height: 100%;
+                    margin-left: -2rem;
+                    top: -1rem;
+                    border-left: 2px solid $color_highlight;
+                }
+
+                &:last-child {
+                    &::after {
+                        height: 2rem;
+                    }
+                }
+            }
         }
     }
 
