@@ -57,7 +57,7 @@ class BaseField(object):
 
         self.errors = []
         self.name = name
-        self.label = label or name
+        self.label = label
         self.placeholder = placeholder
         self.help_text = help_text
         self.readonly = readonly
