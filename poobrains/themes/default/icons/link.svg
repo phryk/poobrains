@@ -9,7 +9,7 @@
     </defs>
 
     <g id="dark"> <!-- just to add a fragment addressable variation -->
-        <g id="active" transform="translate(0 5)">
+        <g id="active" transform="translate(1 5.5)"> <!-- properly center the thing -->
             <g transform="rotate(-45 7 2.5)">
                 <use href="#chainlink-top" x="0" y="0" />
                 <use href="#chainlink-side" x="4" y="2" />
