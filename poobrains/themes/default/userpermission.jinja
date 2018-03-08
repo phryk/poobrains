@@ -1,2 +1,5 @@
-{% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-{{ content.user.name }} / {{ content.permission }} / {{ content.access }} {{ content.menu_actions.render() }}
+{% extends "administerable.jinja" %}
+
+{% block content %}
+    {{ content.user.name }} / {{ content.permission }} / {{ content.access }}
+{% endblock %}
