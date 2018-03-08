@@ -44,7 +44,7 @@ class UploadForm(poobrains.auth.AddForm):
         extension = self.fields['filename'].value.split('.')[-1]
 
         if  not '*' in self.instance.extension_whitelist and\
-        upload_file.filename != '' and\
+        self.fields['filename'].value != '' and\
         not extension in self.instance.extension_whitelist:
             raise poobrains.errors.CompoundError(
                 [poobrains.errors.ValidationError(
