@@ -36,7 +36,10 @@ class UploadForm(poobrains.auth.AddForm):
         super(UploadForm, self).bind(values, files)
         
         upload_file = self.fields['upload'].value
-        self.fields['filename'].value = werkzeug.utils.secure_filename(upload_file.filename)
+        if upload_file:
+            self.fields['filename'].value = werkzeug.utils.secure_filename(upload_file.filename)
+        else:
+            self.fields['filename'].value = ''
 
         extension = self.fields['filename'].value.split('.')[-1]
 
