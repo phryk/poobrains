@@ -8,11 +8,13 @@
         <path id="chainlink-side" d="M 0 0.5 L 0.5 1 L 5.5 1 L 6 0.5 L 5.5 0 L 0.5 0 Z" />
     </defs>
 
-    <g id="active" transform="translate(0 5)">
-        <g transform="rotate(-45 7 2.5)">
-            <use href="#chainlink-top" x="0" y="0" />
-            <use href="#chainlink-side" x="4" y="2" />
-            <use href="#chainlink-top" x="8" y="0" transform="rotate(180 11 2.5)"/>
+    <g id="dark"> <!-- just to add a fragment addressable variation -->
+        <g id="active" transform="translate(0 5)">
+            <g transform="rotate(-45 7 2.5)">
+                <use href="#chainlink-top" x="0" y="0" />
+                <use href="#chainlink-side" x="4" y="2" />
+                <use href="#chainlink-top" x="8" y="0" transform="rotate(180 11 2.5)"/>
+            </g>
         </g>
     </g>
 </svg>

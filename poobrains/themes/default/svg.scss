@@ -93,7 +93,7 @@ svg.icon {
     }
 
     path {
-        stroke: $color_font_light;
+        stroke: $color_background_light;
         stroke-width: 2px;
         /*fill: $color_background_dark;*/
 
@@ -109,8 +109,16 @@ svg.icon {
         }
 
         path#active:target {
-            stroke: $color_font_dark;
+            stroke: $color_background_dark;
             /*fill: $color_highlight;*/
+        }
+    }
+    
+    g#dark:target { /* Dark variation of icons for use on light backgrounds */
+        path,
+        use {
+            stroke: none;
+            fill: $color_background_dark;
         }
     }
 
@@ -118,7 +126,7 @@ svg.icon {
         path,
         use {
             stroke: none;
-            fill: $color_font_light;
+            fill: $color_background_light;
         }
 
         &:target {
