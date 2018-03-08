@@ -1134,14 +1134,30 @@ article {
     }
 
     &.content-type-file {
-        a {
-            padding-left: 2rem;
-            background: url('/theme/icons/download.svg') no-repeat;
-            background-size: contain;
 
-            &:hover,
-            &:focus {
-                background-image: url('/theme/icons/download.svg#active');
+        .content {
+            a {
+
+                display: block;
+                padding-left: 4rem;
+                background: url('/theme/icons/download.svg') no-repeat;
+                background-size: contain;
+                line-height: 4rem;
+
+                &:hover,
+                &:focus {
+                    background-image: url('/theme/icons/download.svg#active');
+                }
+            }
+
+            .file-size {
+
+                display: block;
+                font-size: 0.8em;
+                pointer-events: none; /* keeps file-size from subtracting from the linked area */
+                margin-top: -1.25em; /* 1/0.8 */
+                margin-left: 4rem;
+                color: opacify($color_font_light, -20%);
             }
         }
     }
