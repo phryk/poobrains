@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="link" class="icon" width="16" height="16" version="1.1" viewBox="0 0 100% 100%" xmlns="http://www.w3.org/2000/svg">
+
+    <style>{{ style }}</style>
+
+    <defs>
+        <path id="chainlink-top" d="M 0 1 L 0 4 L 1 5 L 5 5 L 6 4 L 6 3.5 L 5 3.5 L 5 4 L 1 4 L 1 1 L 5 1 L 5 1.5 L 6 1.5 L 6 1 5 0 L 1 0 Z" />
+        <path id="chainlink-side" d="M 0 0.5 L 0.5 1 L 5.5 1 L 6 0.5 L 5.5 0 L 0.5 0 Z" />
+    </defs>
+
+    <g id="active" transform="translate(0 5)">
+        <g transform="rotate(-45 7 2.5)">
+            <use href="#chainlink-top" x="0" y="0" />
+            <use href="#chainlink-side" x="4" y="2" />
+            <use href="#chainlink-top" x="8" y="0" transform="rotate(180 11 2.5)"/>
+        </g>
+    </g>
+</svg>

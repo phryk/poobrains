@@ -1133,6 +1133,19 @@ article {
         }
     }
 
+    &.content-type-file {
+        a {
+            padding-left: 2rem;
+            background: url('/theme/icons/download.svg') no-repeat;
+            background-size: contain;
+
+            &:hover,
+            &:focus {
+                background-image: url('/theme/icons/download.svg#active');
+            }
+        }
+    }
+
     .content-type-image.mode-teaser,
     .content-type-video.mode-teaser,
     .content-type-audio.mode-teaser {

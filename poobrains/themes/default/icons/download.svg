@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="download" class="icon" width="16" height="16" version="1.1" viewBox="0 0 100% 100%" xmlns="http://www.w3.org/2000/svg">
+
+    <style>{{ style }}</style>
+
+    <g id="active">
+        <path id="arrow" d="M 2 8 L 8 12 L 14 8 L 12 8 L 12 2 L 6 2 L 4 4 L 4 8 Z" />
+        <path id="bar" d="M 2 16 L 14 16 L 12 14 L 4 14 Z" />
+    </g>
+
+</svg>

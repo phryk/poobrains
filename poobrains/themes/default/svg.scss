@@ -86,11 +86,15 @@ svg#hexascroll {
 }
 
 svg.icon {
+    
+    path,
+    use {    
+        transition: stroke 0.3s linear, fill 0.3s linear;
+    }
 
     path {
         stroke: $color_font_light;
         stroke-width: 2px;
-        transition: stroke 0.3s linear, fill 0.3s linear;
         /*fill: $color_background_dark;*/
 
         &#active:target {
@@ -107,6 +111,21 @@ svg.icon {
         path#active:target {
             stroke: $color_font_dark;
             /*fill: $color_highlight;*/
+        }
+    }
+
+    g#active {
+        path,
+        use {
+            stroke: none;
+            fill: $color_font_light;
+        }
+
+        &:target {
+            path,
+            use {
+                fill: $color_highlight;
+            }
         }
     }
 }
