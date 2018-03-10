@@ -10,6 +10,7 @@ This module implements permissions/access control and administration functionali
 import functools
 import collections
 import os
+import random
 import re
 import OpenSSL as openssl
 import M2Crypto
