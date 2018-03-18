@@ -90,34 +90,46 @@ def install(**options):
             echo("Successfully created Group 'anonsanonymous'.\n")
 
 
-            echo("Creating Group 'administrators' with all permissions granted…\n")
+            echo("Creating Group 'administrators'…\n")
             admins = poobrains.auth.Group()
             admins.name = 'administrators'
-            
-            for cls in poobrains.auth.Permission.class_children():
-                choice_values = [x[0] for x in cls.choices]
-                if 'grant' in choice_values:
-                    access = 'grant'
-                else:
-                    echo("Don't know what access value to use for permission '%s', skipping.\n" % cls.__name__)
-                    break
-
-                #echo("Adding permission %s: %s\n" % (cls.__name__, access))
-                admins.own_permissions[cls.__name__] = access
             
             if not admins.save(force_insert=True):
                 raise ShellException("Failed creating Group 'administrators'!")
 
-            echo("Successfully saved Group 'administrators'.\n")
+            with click.progressbar(poobrains.auth.Permission.class_children(), label="Giving 'administrators' ALL THE PERMISSIONS! \o/") as permissions:
+
+                for permission in permissions:
+                    choice_values = [x[0] for x in permission.choices]
+                    if 'grant' in choice_values:
+                        access = 'grant'
+                    else:
+                        echo("Don't know what access value to use for permission '%s', skipping.\n" % permission.__name__)
+                        break
+
+                    gp = poobrains.auth.GroupPermission()
+                    gp.group = admins
+                    gp.permission = permission.__name__
+                    gp.access = access
+                    gp.save(force_insert=True)
+            
+
+            echo("Success!\n")
 
 
             anon = poobrains.auth.User()
             anon.name = 'anonymous'
             #anon.id = 1 # Should theoretically always happen, but let's make sure anyways; This fucks up postgresql's stupid SERIAL sequence thing
-            anon.groups.append(anons)
             if not anon.save(force_insert=True):
                 raise ShellException("Failed creating User 'anonymous'!")
             echo("Successfully created User 'anonymous'.\n")
+
+            ug = poobrains.auth.UserGroup()
+            ug.user = anon
+            ug.group = anons
+            if not ug.save(force_insert=True):
+                raise ShellException("Failed to assign group to User 'anonymous'!")
+            echo("Added user 'anonymous' to group 'anonsanonymous'.\n")
 
             echo("Creating administrator account…\n")
             root = poobrains.auth.User()
@@ -130,6 +142,13 @@ def install(**options):
                 raise ShellException("Couldn't save administrator. Please try again or fix according bugs.")
 
             echo("Successfully created administrator account.\n")
+            
+            ug = poobrains.auth.UserGroup()
+            ug.user = root
+            ug.group = admins
+            if not ug.save(force_insert=True):
+                raise ShellException("Failed to assign group to User 'root'!")
+            echo("Added user 'root' to group 'administrators'.\n")
 
             t = poobrains.auth.ClientCertToken()
             t.user = root

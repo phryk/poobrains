@@ -29,7 +29,12 @@ http {
 			include uwsgi_params;
 			uwsgi_param SSL_CLIENT_CERT $ssl_client_raw_cert;
 			uwsgi_param SSL_CLIENT_VERIFY $ssl_client_verify;
-			uwsgi_pass unix:/tmp/{{ project_name }}.sock;
+            {% if deployment_os == 'freebsd' %}
+			#uwsgi_pass unix:/tmp/{{ project_name }}.sock; # Currently there seems to be a bug with unix sockets in FreeBSD leading to kernel panics
+            uwsgi_pass 127.0.0.1:1337;
+            {% else %}
+            uwsgi_pass unix:/tmp/{{ project_name }}.sock;
+            {% endif %}
 			#uwsgi_cache {{ project_name }}; # <- Don't forget this one if you want caching.
 			#uwsgi_cache_background_update on; # Keep cache up to date (as opposed to empty) even when nobody reads your page
 		}

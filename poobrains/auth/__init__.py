@@ -130,11 +130,11 @@ class AddForm(BoundForm):
 
         for field in f.model._meta.sorted_fields:
 
-            if not field.name in f.model._meta.form_blacklist and \
-                not f.fields.has_key(field.name): # means this field was already defined in the class definition for this form
+            if  (not f.fields.has_key(field.name)    and # means this field was already defined in the class definition for this form
+                not field.form_widget is None       and # means this field should by ignored
+                not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field))): # second clause is to avoid problems with name collisions (for instance on "name")
 
-                if not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field)): # second clause is to avoid problems with name collisions (for instance on "name") 
-                    setattr(f, field.name, field.form()) # automatically add the right form field, unless a custom one has been supplied in a child class of AddForm
+                    setattr(f, field.name, field.form())
 
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['preview'] = poobrains.form.Button('submit', name='preview', value='preview', label='Preview')
@@ -182,7 +182,7 @@ class AddForm(BoundForm):
         if not self.readonly:
             
             for field in self.model._meta.sorted_fields:
-                if not field.name in self.model._meta.form_blacklist:
+                if not field.form_widget is None: # check if the field should be ignored by the form
                     #if self.fields[field.name].value is not None: # see https://github.com/coleifer/peewee/issues/107
                     if not self.fields[field.name].empty:
                         setattr(self.instance, field.name, self.fields[field.name].value)
@@ -1150,7 +1150,6 @@ class Administerable(poobrains.storage.Storable, Protected):
         abstract = True
         related_use_form = False # Whether we want to use Administerable.related_form in related view for administration.
         permission_class = Permission
-        form_blacklist = ['id'] # What fields to ignore when generating an AutoForm for this class
 
         modes = collections.OrderedDict([
             ('add', 'create'),
@@ -1364,28 +1363,6 @@ class User(Named):
         return groups
 
     
-    def save(self, *args, **kwargs):
-
-        rv = super(User, self).save(*args, **kwargs)
-
-        UserPermission.delete().where(UserPermission.user == self).execute()
-        for perm_name, access in self.own_permissions.iteritems():
-            up = UserPermission()
-            up.user = self
-            up.permission = perm_name
-            up.access = access
-            up.save(force_insert=True)
-
-        UserGroup.delete().where(UserGroup.user == self).execute()
-        for group in self.groups:
-            ug = UserGroup()
-            ug.user = self
-            ug.group = group
-            ug.save(force_insert=True)
-
-        return rv
-
-
     def gen_clientcert_from_spkac(self, name, spkac, challenge):
 
         try:
@@ -1556,21 +1533,6 @@ class Group(Named):
         return own_permissions
 
     
-    def save(self, *args, **kwargs):
-
-        rv = super(Group, self).save(*args, **kwargs)
-
-        GroupPermission.delete().where(GroupPermission.group == self).execute()
-        for perm_name, access in self.own_permissions.iteritems():
-            gp = GroupPermission()
-            gp.group = self
-            gp.permission = perm_name
-            gp.access = access
-            gp.save(force_insert=True)
-
-        return rv
-
-
 class UserGroup(Administerable):
 
     class Meta:
@@ -1624,16 +1586,11 @@ class GroupPermission(Administerable):
 
 class ClientCertToken(Administerable, Protected):
 
-    class Meta:
-
-        form_blacklist = ['id', 'token']
-
-
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
     created = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, null=False)
     cert_name = poobrains.storage.fields.CharField(null=False, max_length=32, constraints=[poobrains.storage.RegexpConstraint('cert_name', '^[a-zA-Z0-9_\- ]+$')])
-    token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light)
+    token = poobrains.storage.fields.CharField(unique=True, default=poobrains.helpers.random_string_light, form_widget=None)
     # passphrase = poobrains.storage.fields.CharField(null=True) # TODO: Find out whether we can pkcs#12 encrypt client certs with a passphrase and make browsers still eat it.
     redeemed = poobrains.storage.fields.BooleanField(default=False, null=False)
 
@@ -1688,6 +1645,7 @@ class ClientCert(Administerable):
     keylength = poobrains.storage.fields.IntegerField()
     fingerprint = poobrains.storage.fields.CharField()
     not_after = poobrains.storage.fields.DateTimeField(null=True)
+    notification = poobrains.storage.fields.IntegerField(form_widget=None, default=0) # HERE
 
     
     def save(self, force_insert=False, only=None):

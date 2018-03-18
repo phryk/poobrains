@@ -9,7 +9,12 @@ honour-stdin = true
 endif =
 
 chdir = {{ project_dir }}
+{% if deployment_os == 'freebsd' %}
+# socket = /tmp/{{ project_name }}.sock # apparently there's a bug in FreeBSD unix sockets causing kernel panics
+socket = 127.0.0.1:1337
+{% else %}
 socket = /tmp/{{ project_name }}.sock
+{% endif %}
 #logger = file:uwsgi_poobrains.log
 wsgi = {{ project_name}}:app
 uid = {% if deployment_os == 'freebsd' %}www{% else %}nginx{% endif %}

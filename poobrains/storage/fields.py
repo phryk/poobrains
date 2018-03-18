@@ -12,6 +12,10 @@ import poobrains.helpers
 import poobrains.form
 
 
+# hack
+AutoField.form_widget = None # makes sure AutoField is ignored in AutoForms
+
+
 class StorableInstanceParamType(poobrains.form.types.ParamType):
 
     storable = None
@@ -93,6 +97,9 @@ class Field(poobrains.helpers.ChildAware):
 
 
     def form(self):
+
+        if self.form_widget is None: # allows fields to be left out of forms
+            return None
 
         kw = {}
         kw['name'] = self.name

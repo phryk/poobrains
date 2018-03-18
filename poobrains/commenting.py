@@ -77,9 +77,11 @@ class Commentable(poobrains.tagging.Taggable):
 
     class Meta:
         abstract = True
+        order_by = ['-date']
 
     comments_enabled = poobrains.storage.fields.BooleanField(default=True, verbose_name=u'Enable comments')
     notify_owner = poobrains.storage.fields.BooleanField(default=True, verbose_name='Notify owner', help_text='Whether to notify the owner of comments')
+    date = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, verbose_name='Date', help_text='Date of publication, current time if left empty')
 
 
     @property
