@@ -73,6 +73,7 @@ class Comment(poobrains.auth.Administerable):
         raise Exception("Bork")
 
 
+@poobrains.auth.User.on_profile
 class Commentable(poobrains.tagging.Taggable):
 
     class Meta:

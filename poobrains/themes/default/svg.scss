@@ -143,7 +143,7 @@ svg#checkbox {
     .box {
         stroke: $color_background_light;
         stroke-width: 2px;
-        fill: $color_background_dark;
+        fill: transparent;
     }
 
     .check {

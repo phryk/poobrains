@@ -138,9 +138,10 @@ class Container(Renderable):
 
     title = None
     items = None
+    mode = None
     menu_actions = None
 
-    def __init__(self, title=None, items=None, menu_actions=None, **kwargs):
+    def __init__(self, title=None, items=None, mode='teaser', menu_actions=None, **kwargs):
 
         super(Container, self).__init__(**kwargs)
 
@@ -152,6 +153,7 @@ class Container(Renderable):
         if self.items is None:
             self.items = []
 
+        self.mode = mode
         self.menu_actions = menu_actions
 
 

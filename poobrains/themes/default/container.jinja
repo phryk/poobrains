@@ -4,6 +4,6 @@
 
 {% block content %}
 {% for item in content.items %}
-    {{ item.render('full') }}
+    {{ item.render(content.mode) }}
 {% endfor %}
 {% endblock %}

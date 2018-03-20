@@ -26,7 +26,7 @@ from scss.source import SourceFile
 from pathlib import PurePosixPath
 
 # comfort imports to expose flask functionality directly through poobrains
-from flask import Response, g, flash, redirect, abort
+from flask import Response, request, session, redirect, flash, abort, url_for, g
 from jinja2 import Markup
 
 # internal imports

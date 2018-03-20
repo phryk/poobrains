@@ -7,7 +7,7 @@ import werkzeug
 import flask
 
 #import poobrains
-from poobrains import app
+from poobrains import app, g
 import poobrains.helpers
 import poobrains.mailing
 import poobrains.rendering
@@ -26,30 +26,35 @@ class Dashbar(poobrains.rendering.Container):
         super(Dashbar, self).__init__(**kwargs)
 
         self.user = user
-        self.items.append(poobrains.rendering.RenderString("%s@%s" % (user.name, app.config['SITE_NAME'])))
 
         menu = poobrains.rendering.Menu('dashbar-actions')
 
         try:
-            poobrains.auth.AccessAdminArea.check(flask.g.user)
+            user.permissions['read'].check(g.user)
+            menu.append(g.user.url('full'), "%s@%s" % (user.name, app.config['SITE_NAME']))
+        except poobrains.auth.AccessDenied:
+            pass
+
+        try:
+            poobrains.auth.AccessAdminArea.check(g.user)
             menu.append(flask.url_for('admin.admin_index'), 'Admin Area')
         except poobrains.auth.AccessDenied:
             pass
 
         try:
-            PGPControl.permissions['read'].check(flask.g.user)
+            PGPControl.permissions['read'].check(g.user)
             menu.append(PGPControl.url('full', handle=self.user.handle_string), 'PGP Management')
         except poobrains.auth.AccessDenied:
             pass
 
         try:
-            CertControl.permissions['read'].check(flask.g.user)
+            CertControl.permissions['read'].check(g.user)
             menu.append(CertControl.url('full', handle=self.user.handle_string), 'Certificate Management')
         except poobrains.auth.AccessDenied:
             pass
 
         try:
-            NotificationControl.permissions['read'].check(flask.g.user)
+            NotificationControl.permissions['read'].check(g.user)
             notification_count = self.user.notifications_unread.count()
             if notification_count == 1:
                 menu.append(NotificationControl.url('full', handle=self.user.handle_string), '1 unread notification')
@@ -63,9 +68,9 @@ class Dashbar(poobrains.rendering.Container):
 
 @app.box('dashbar')
 def dashbar():
-    user = flask.g.user
+    user = g.user
     if user.id != 1: # not "anonymous"
-        return Dashbar(flask.g.user)
+        return Dashbar(g.user)
 
 
 class CertControl(poobrains.auth.Protected):
@@ -110,7 +115,7 @@ class CertControl(poobrains.auth.Protected):
         if cert_handle is not None:
             cert = poobrains.auth.ClientCert.load(cert_handle)
             if self.user == cert.user:
-                cert.permissions['read'].check(flask.g.user)
+                cert.permissions['read'].check(g.user)
                 r = cert.form('delete').view(handle=cert_handle, **kwargs)
 
                 if flask.request.method in ['POST', 'DELETE']:

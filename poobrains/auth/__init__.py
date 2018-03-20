@@ -19,12 +19,11 @@ import time
 import datetime
 import werkzeug
 import click
-import flask
 import peewee
 
 
 # local imports
-from poobrains import app, Markup
+from poobrains import app, Markup, flash, request, session, redirect, url_for, g
 import poobrains.helpers
 import poobrains.errors
 import poobrains.mailing
@@ -71,7 +70,7 @@ def admin_setup():
 def checkAAA():
 
     try:
-        AccessAdminArea.check(flask.g.user)
+        AccessAdminArea.check(g.user)
     except AccessDenied:
         raise werkzeug.exceptions.NotFound() # Less infoleak fo' shizzle (Unless we display e.message on errorpage)
 
@@ -202,7 +201,7 @@ class AddForm(BoundForm):
                         saved = self.instance.save()
 
                     if saved:
-                        flask.flash(u"Saved %s %s." % (self.model.__name__, self.instance.handle_string))
+                        flash(u"Saved %s %s." % (self.model.__name__, self.instance.handle_string))
 
                         for fieldset in self.fieldsets:
 
@@ -214,20 +213,20 @@ class AddForm(BoundForm):
                                 if exceptions:
                                     raise
 
-                                flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name), 'error')
+                                flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name), 'error')
                                 app.logger.error(u"Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message.decode('utf-8')))
 
                         try:
-                            return flask.redirect(self.instance.url('edit'))
+                            return redirect(self.instance.url('edit'))
                         except LookupError:
                             return self
                     else:
 
-                        flask.flash(u"Couldn't save %s." % self.model.__name__)
+                        flash(u"Couldn't save %s." % self.model.__name__)
 
                 except poobrains.errors.ValidationError as e:
 
-                    flask.flash(e.message, 'error')
+                    flash(e.message, 'error')
 
                     if e.field:
                         self.fields[e.field].errors.append(e)
@@ -237,14 +236,14 @@ class AddForm(BoundForm):
                     if exceptions:
                         raise
 
-                    flask.flash(u'Integrity error: %s' % e.message.decode('utf-8'), 'error')
+                    flash(u'Integrity error: %s' % e.message.decode('utf-8'), 'error')
                     app.logger.error(u"Integrity error: %s" % e.message.decode('utf-8'))
 
                 except Exception as e:
                     if exceptions:
                         raise
 
-                    flask.flash(u"Couldn't save %s for mysterious reasons." % self.model.__name__)
+                    flash(u"Couldn't save %s for mysterious reasons." % self.model.__name__)
                     app.logger.error(u"Couldn't save %s. %s: %s" % (self.model.__name__, type(e).__name__, e.message.decode('utf-8')))
 
 
@@ -252,7 +251,7 @@ class AddForm(BoundForm):
                 self.preview = self.instance.render('full')
 
         else:
-            flask.flash(u"Not handling readonly form '%s'." % self.name)
+            flash(u"Not handling readonly form '%s'." % self.name)
 
         return self
 
@@ -306,9 +305,9 @@ class DeleteForm(BoundForm):
         else:
             message = "Deleted %s '%s'." % (self.model.__name__, unicode(self.instance._pk))
         self.instance.delete_instance(recursive=True)
-        flask.flash(message)
+        flash(message)
 
-        return flask.redirect(self.model.url('teaser')) # TODO app.admin.get_listing_url?
+        return redirect(self.model.url('teaser')) # TODO app.admin.get_listing_url?
 
 poobrains.form.DeleteForm = DeleteForm
 
@@ -558,7 +557,7 @@ def admin_listing_actions(cls):
 def admin_menu():
 
     try:
-        AccessAdminArea.check(flask.g.user) # check if current user may even access the admin area
+        AccessAdminArea.check(g.user) # check if current user may even access the admin area
 
         menu = poobrains.rendering.Menu('main')
         menu.title = 'Administration'
@@ -568,7 +567,7 @@ def admin_menu():
             for mode, endpoints in listings.iteritems():
 
                 for endpoint in endpoints: # iterates through endpoints.keys()
-                    menu.append(flask.url_for('admin.%s' % endpoint), administerable.__name__)
+                    menu.append(url_for('admin.%s' % endpoint), administerable.__name__)
 
         return menu
 
@@ -582,18 +581,18 @@ def admin_index():
 
     try:
 
-        AccessAdminArea.check(flask.g.user)
+        AccessAdminArea.check(g.user)
 
-        container = poobrains.rendering.Container(title='Administration')
+        container = poobrains.rendering.Container(title='Administration', mode='full')
         
         for administerable, listings in app.admin.listings.iteritems():
 
-            subcontainer = poobrains.rendering.Container(css_class='administerable-actions')
+            subcontainer = poobrains.rendering.Container(css_class='administerable-actions', mode='full')
             menu = poobrains.rendering.Menu('listings-%s' % administerable.__name__)
             for mode, endpoints in listings.iteritems():
 
                 for endpoint in endpoints: # iterates through endpoints.keys()
-                    menu.append(flask.url_for('admin.%s' % endpoint), administerable.__name__)
+                    menu.append(url_for('admin.%s' % endpoint), administerable.__name__)
 
             subcontainer.append(menu)
             if administerable.__doc__:
@@ -628,7 +627,7 @@ def protected(func):
         if not mode:
             raise Exception('Need explicit mode in @protected.')
 
-        user = flask.g.user # FIXME: How do I get rid of the smell?
+        user = g.user # FIXME: How do I get rid of the smell?
         if isinstance(cls_or_instance, object):
             cls = cls_or_instance.__class__
         else: # might actually be old style objects, but I'll ignore that for now :F
@@ -668,8 +667,8 @@ class ClientCertForm(poobrains.form.Form):
     def __init__(self, *args, **kwargs):
 
         super(ClientCertForm, self).__init__(*args, **kwargs)
-        if flask.request.method == 'GET':
-            flask.session['key_challenge'] = self.fields['key'].challenge
+        if request.method == 'GET':
+            session['key_challenge'] = self.fields['key'].challenge
 
 
     def process(self, submit):
@@ -688,8 +687,8 @@ class ClientCertForm(poobrains.form.Form):
 
         except peewee.DoesNotExist as e:
             
-            flask.flash(u"No such token.", 'error')
-            return flask.redirect(self.url())
+            flash(u"No such token.", 'error')
+            return redirect(self.url())
             
         cert_info = ClientCert()
         cert_info.user = token.user
@@ -698,8 +697,8 @@ class ClientCertForm(poobrains.form.Form):
         if self.controls['keygen_submit'].value:
 
             try:
-                client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, flask.session['key_challenge'])
-                del flask.session['key_challenge']
+                client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, session['key_challenge'])
+                del session['key_challenge']
 
             except Exception as e: # FIXME: More specific exception matching?
 
@@ -738,7 +737,7 @@ class ClientCertForm(poobrains.form.Form):
             if self.controls['tls_submit'].value:
                 r = werkzeug.wrappers.Response(pkcs12.export(passphrase=passphrase))
                 r.mimetype = 'application/pkcs-12'
-                flask.flash(u"The passphrase for this delicious bundle of crypto is '%s'" % passphrase)
+                flash(u"The passphrase for this delicious bundle of crypto is '%s'" % passphrase)
 
             else: # means pgp
 
@@ -754,7 +753,7 @@ class ClientCertForm(poobrains.form.Form):
 
                 mail.send()
 
-                flask.flash(u"Your private key and client certificate have been send to '%s'." % token.user.mail)
+                flash(u"Your private key and client certificate have been send to '%s'." % token.user.mail)
 
                 r = self
 
@@ -965,14 +964,14 @@ class RelatedForm(poobrains.form.Form):
 
     def __new__(cls, related_model, related_field, instance, offset=0, prefix=None, name=None, title=None, method=None, action=None):
 
-        endpoint = flask.request.endpoint
+        endpoint = request.endpoint
         if not endpoint.endswith('_offset'):
             endpoint = '%s_offset' % (endpoint,)
 
         f = super(RelatedForm, cls).__new__(cls, prefix=prefix, name=name, title=title, method=method, action=action)
         
         f.pagination = poobrains.storage.Pagination(
-            [related_model.list('read', flask.g.user).where(related_field == instance)],
+            [related_model.list('read', g.user).where(related_field == instance)],
             offset,
             endpoint,
             handle=instance.handle_string # needed for proper URL building
@@ -1016,10 +1015,10 @@ class RelatedForm(poobrains.form.Form):
                 try:
                     fieldset.process(submit, self.instance)
                 except Exception as e:
-                    flask.flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
+                    flash(u"Failed to process fieldset '%s.%s'." % (fieldset.prefix, fieldset.name))
                     app.logger.error("Failed to process fieldset %s.%s - %s: %s" % (fieldset.prefix, fieldset.name, type(e).__name__, e.message))
                         
-            return flask.redirect(flask.request.url)
+            return redirect(request.url)
         return self
 
 
@@ -1044,7 +1043,7 @@ class UserPermissionAddForm(AddForm):
         self.instance.access = self.fields['permission'].value[1]
         if op == 'create':
             self.instance.save(force_insert=True)
-            return flask.redirect(self.instance.url('edit'))
+            return redirect(self.instance.url('edit'))
         else:
             self.instance.save()
         return self
@@ -1072,7 +1071,7 @@ class GroupPermissionAddForm(AddForm):
         self.instance.access = self.fields['permission'].value[1]
         if op == 'create':
             self.instance.save(force_insert=True)
-            return flask.redirect(self.instance.url('edit'))
+            return redirect(self.instance.url('edit'))
         else:
             self.instance.save()
         return self
@@ -1120,7 +1119,7 @@ class Protected(poobrains.rendering.Renderable):
         op = self._meta.modes[mode]
 
         try:
-            self.permissions[op].check(flask.g.user)
+            self.permissions[op].check(g.user)
 
         except AccessDenied:
 
@@ -1171,7 +1170,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         except peewee.DoesNotExist: # matches both cls.DoesNotExist and ForeignKey related models DoesNotExist. Should only happen when primary key is a multi-column key containing a foreign key
             return None
 
-        user = flask.g.user
+        user = g.user
         actions = poobrains.rendering.Menu('actions')
 
         for mode in self.__class__._meta.modes:
@@ -1199,7 +1198,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         except peewee.DoesNotExist:
             return None
 
-        user = flask.g.user
+        user = g.user
         menu = poobrains.rendering.Menu('related')
 
         for related_field, related_model in self._meta.backrefs.iteritems(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
@@ -1259,7 +1258,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     def view(self, mode='teaser', handle=None, **kwargs):
 
         """
-        view function to be called in a flask request context
+        view function to be called in a request context
         """
         
         if self._meta.modes[mode] in ['create', 'update', 'delete']:
@@ -1271,8 +1270,8 @@ class Administerable(poobrains.storage.Storable, Protected):
 
 
     @classmethod
-    def list(cls, op, user, handles=None):
-        q = super(Administerable, cls).list(op, user, handles=handles)
+    def list(cls, op, user, handles=None, ordered=True, fields=[]):
+        q = super(Administerable, cls).list(op, user, handles=handles, ordered=ordered, fields=fields)
         return cls.permissions[op].list(cls, q, op, user)
 
 
@@ -1288,7 +1287,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         actions = poobrains.rendering.Menu('related-add')
         actions.append(instance.related_url(related_field, add=True), 'Add new')
 
-        if flask.request.blueprint == 'admin' and related_model._meta.related_use_form:
+        if request.blueprint == 'admin' and related_model._meta.related_use_form:
             if hasattr(related_model, 'related_form'):
                 form_class = related_model.related_form
             else:
@@ -1304,7 +1303,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         else:
             return poobrains.storage.Listing(
                 cls=related_model,
-                query=related_model.list('read', flask.g.user).where(related_field == instance),
+                query=related_model.list('read', g.user).where(related_field == instance),
                 offset=offset,
                 menu_actions=instance.menu_actions,
                 menu_related=instance.menu_related,
@@ -1343,6 +1342,13 @@ class User(Named):
     mail_notifications = poobrains.storage.fields.BooleanField(default=False)
     about = poobrains.md.MarkdownField(null=True)
 
+    _on_profile = []
+
+    def __init__(self, *args, **kwargs):
+
+        super(User, self).__init__(*args, **kwargs)
+        self.profile_listing = poobrains.rendering.Container()
+
 
     @property
     def own_permissions(self):
@@ -1374,7 +1380,7 @@ class User(Named):
 
             app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
             app.logger.debug(e)
-            flask.flash(u"Plumbing issue. Invalid CA_KEY or CA_CERT.")
+            flash(u"Plumbing issue. Invalid CA_KEY or CA_CERT.")
             raise e
 
         common_name = '%s:%s@%s' % (self.name, name, app.config['SITE_NAME'])
@@ -1439,6 +1445,7 @@ class User(Named):
 
     def mkmail(self):
 
+        # FIXME: shitty name, not a pattern used anywhere else in poobrains
         mail = poobrains.mailing.Mail()
         mail['To'] = self.mail
         mail['Subject'] = 'Bow before entropy'
@@ -1467,7 +1474,68 @@ class User(Named):
     def notifications_unread(self):
         return self.notifications.where(Notification.read == 0)
 
-app.site.add_view(User, '/~<handle>/', mode='full')
+
+    @classmethod
+    def on_profile(cls, model):
+
+        """
+        decorator. allows adding subclasses of Owned to the content-listing on profile pages (~/<username>).
+
+        NOTE: the passed model needs to have a datetime field with the name 'date'. This is needed for ordering.
+        """
+        assert issubclass(model, Owned) and hasattr(model, 'date'), "Only Owned subclasses with a 'date' field can be @User.profile'd. %s does not qualify." % model.__name__
+
+        cls._on_profile.append(model) 
+
+        return model
+
+
+    @property
+    def models_on_profile(self):
+
+        models = []
+
+        for model in self._on_profile:
+            if model._meta.abstract:
+                for submodel in model.class_children():
+                    models.append(submodel)
+            else:
+                models.append(model)
+
+        return models
+
+
+    def view(self, mode='teaser', handle=None, offset=0, **kwargs):
+
+        if len(self.models_on_profile):
+
+            queries = []
+
+            for model in self.models_on_profile:
+
+                queries.append(model.list('read', g.user, ordered=False, fields=[peewee.SQL("'%s'" % model.__name__).alias('model'), model.id, model.date.alias('date'), model.title]))
+
+            # construct the final UNION ALL query, This can be shortened to sum(queries) if https://github.com/coleifer/peewee/issues/1545 gets fixed
+            q = queries[0]
+            for query in queries[1:]:
+                q += query
+
+            q = q.order_by(model.date.alias('date').desc())
+            pagination = poobrains.storage.Pagination([q], offset=offset, limit=app.config['PAGINATION_COUNT'], endpoint='site.user_profile_offset', handle=self.handle_string)
+            q = q.offset(offset).limit(app.config['PAGINATION_COUNT']) # model.date.desc() fails if this model hasn't yielded any results, hence alias is needed
+
+
+            for row in q:
+
+                model = Owned.class_children_keyed()[row.model]
+                self.profile_listing.items.append(model.get(model.id == row.id))
+
+            self.profile_listing.items.append(pagination.menu)
+
+        return super(User, self).view(mode=mode, handle=handle, **kwargs)
+
+app.site.add_view(User, '/~<handle>/', mode='full', endpoint='user_profile')
+app.site.add_view(User, '/~<handle>/+<int:offset>/', mode='full', endpoint='user_profile_offset')
 
 
 class UserPermission(Administerable):
@@ -1662,7 +1730,7 @@ class ClientCert(Administerable):
     def view(self, mode='teaser', handle=None, **kwargs):
 
         """
-        view function to be called in a flask request context
+        view function to be called in a request context
         """
         
         if self._meta.modes[mode] in ['create', 'update', 'delete']:
@@ -1690,8 +1758,8 @@ class Owned(Administerable):
         f = super(Owned, self).form(mode)
 
         if op == 'create':
-            f.fields['owner'].value = flask.g.user
-            f.fields['group'].value = flask.g.user.groups[0]
+            f.fields['owner'].value = g.user
+            f.fields['group'].value = g.user.groups[0]
 
         return f
 

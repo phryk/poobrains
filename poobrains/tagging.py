@@ -202,6 +202,7 @@ poobrains.form.fields.TaggingField = TaggingField
 
 class TaggingFieldset(poobrains.form.Fieldset):
 
+    title = 'Tags'
     tags = TaggingField(name='tags', dry=True) # dry in order not to require a database for importing the module
 
     def __init__(self, instance):

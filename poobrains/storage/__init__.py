@@ -157,9 +157,9 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
 
 
     @classmethod
-    def select(cls, *fields):
+    def ordered(cls, *fields):
 
-        query = super(Model, cls).select(*fields)
+        query = cls.select(*fields)
 
         if cls._meta.order_by:
             query = query.order_by(*cls._meta.order_by)
@@ -226,9 +226,12 @@ class Storable(Model, poobrains.rendering.Renderable):
 
 
     @classmethod
-    def list(cls, op, user, handles=None):
+    def list(cls, op, user, handles=None, ordered=True, fields=[]):
 
-        query = cls.select()
+        if ordered: # whether to use the default ordering for this model. mostly here because doing this *always* would break using this in UNIONs
+            query = cls.ordered(*fields)
+        else:
+            query = cls.select(*fields)
 
         if handles:
             
