@@ -27,6 +27,7 @@ from pathlib import PurePosixPath
 
 # comfort imports to expose flask functionality directly through poobrains
 from flask import Response, request, session, redirect, flash, abort, url_for, g
+from flask.helpers import locked_cached_property
 from jinja2 import Markup
 
 # internal imports
@@ -553,7 +554,7 @@ class Poobrain(flask.Flask):
         self.logger.info("Finished cron run.")
 
 
-    @flask.helpers.locked_cached_property
+    @locked_cached_property
     def jinja_loader(self):
 
         return jinja2.FileSystemLoader(self.theme_paths)
@@ -877,6 +878,9 @@ app = Poobrain(__name__) # TODO: Make app class configurable.
 app.jinja_env.tests['renderable'] = is_renderable
 app.url_map.converters['regex'] = RegexConverter
 
+if app.config['PROFILE']:
+    from werkzeug.contrib.profiler import ProfilerMiddleware
+    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir='profiling')
 
 # delayed internal imports which may depend on app
 from . import mailing

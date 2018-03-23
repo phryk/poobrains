@@ -23,7 +23,7 @@ import peewee
 
 
 # local imports
-from poobrains import app, Markup, flash, request, session, redirect, url_for, g
+from poobrains import app, Markup, flash, request, session, redirect, url_for, g, locked_cached_property
 import poobrains.helpers
 import poobrains.errors
 import poobrains.mailing
@@ -1350,7 +1350,7 @@ class User(Named):
         self.profile_listing = poobrains.rendering.Container()
 
 
-    @property
+    @locked_cached_property
     def own_permissions(self):
 
         permissions = collections.OrderedDict()
@@ -1359,7 +1359,7 @@ class User(Named):
 
         return permissions
 
-    @property
+    @locked_cached_property
     def groups(self):
 
         groups = []
@@ -1524,11 +1524,29 @@ class User(Named):
             pagination = poobrains.storage.Pagination([q], offset=offset, limit=app.config['PAGINATION_COUNT'], endpoint='site.user_profile_offset', handle=self.handle_string)
             q = q.offset(offset).limit(app.config['PAGINATION_COUNT']) # model.date.desc() fails if this model hasn't yielded any results, hence alias is needed
 
+            info_sorted = [] # tuples of (model_name, id) in the same order as in the sql result
+            info_by_model = {} # dict with lists of ids keyed by model name
 
-            for row in q:
+            for row in q.iterator():
 
-                model = Owned.class_children_keyed()[row.model]
-                self.profile_listing.items.append(model.get(model.id == row.id))
+                info_sorted.append((row.model, row.id))
+
+                if not info_by_model.has_key(row.model):
+                    info_by_model[row.model] = []
+                    
+                info_by_model[row.model].append(row.id)
+
+            posts_by_model = {}
+
+            for model_name, ids in info_by_model.iteritems():
+            
+                model = Owned.class_children_keyed()[model_name]
+                posts_by_model[model_name] = {}
+                for instance in model.select().where(model.id << ids):
+                    posts_by_model[model_name][instance.id] = instance
+
+            for (model_name, id) in info_sorted:
+                self.profile_listing.items.append(posts_by_model[model_name][id])
 
             self.profile_listing.items.append(pagination.menu)
 
@@ -1591,7 +1609,7 @@ class Group(Named):
     # TODO: Almost identical to User. DRY.
 
 
-    @property
+    @locked_cached_property
     def own_permissions(self):
 
         own_permissions = collections.OrderedDict()

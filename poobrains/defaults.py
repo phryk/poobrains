@@ -2,6 +2,9 @@
 
 from . import md_default
 
+DEBUG = False
+PROFILE = False
+
 DOMAIN = 'localhost'
 SITE_NAME = 'poobrains'
 LOGFILE = False # examples: 'poobrains.log', '/var/log/poobrains.log' TODO: is this really needed with nginx logging?
