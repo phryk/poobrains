@@ -417,12 +417,22 @@ class Permission(poobrains.helpers.ChildAware):
                 return True
 
         # check if user is member of any groups with 'deny' for this permission
-        group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+        # group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
+        group_deny = False
+        for group in user.groups:
+            if group.own_permissions.has_key(cls.__name__) and group.own_permissions[cls.__name__] == 'deny':
+                group_deny = True
+                break
 
         if group_deny:
             raise AccessDenied("YOU SHALL NOT PASS!")
 
-        group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
+        #group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
+        group_grant = False
+        for group in user.groups:
+            if group.own_permissions.has_key(cls.__name__) and group.own_permissions[cls.__name__] == 'grant':
+                group_grant = True
+                break
 
         if group_grant:
             return True
