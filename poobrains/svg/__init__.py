@@ -5,7 +5,7 @@ import os
 import collections
 import json
 
-from poobrains import Response, Markup, app, abort, flash, g
+from poobrains import Response, Markup, app, abort, flash, g, locked_cached_property
 import poobrains.helpers
 import poobrains.storage
 import poobrains.auth
@@ -76,7 +76,7 @@ class Dataset(poobrains.commenting.Commentable):
         return "dataset-%s" % self.name
 
 
-    @property
+    @locked_cached_property
     def authorized_datapoints(self):
         return Datapoint.list('read', g.user).where(Datapoint.dataset == self)
 
@@ -188,13 +188,9 @@ class Plot(SVG):
 
             for name in dataset_names:
 
-                try:
-                    ds = Dataset.load(name)
-                    if ds.permissions['read'].check(g.user):
-                        self.datasets.append(ds)
-                except (Dataset.DoesNotExist, poobrains.auth.AccessDenied):
-                    #flash("Ignoring unknown Dataset '%s'!" % name, 'error')
-                    pass
+                ds = Dataset.load(name)
+                if ds.permissions['read'].check(g.user):
+                    self.datasets.append(ds)
 
         self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 
@@ -483,13 +479,9 @@ class Map(SVG):
 
             for name in dataset_names:
 
-                try:
-                    ds = MapDataset.load(name)
-                    if ds.permissions['read'].check(g.user):
-                        self.datasets.append(ds)
-                except (MapDataset.DoesNotExist, poobrains.auth.AccessDenied):
-                    #flash("Ignoring unknown MapDataset '%s'!" % name, 'error')
-                    pass
+                ds = MapDataset.load(name)
+                if ds.permissions['read'].check(g.user):
+                    self.datasets.append(ds)
 
         self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 

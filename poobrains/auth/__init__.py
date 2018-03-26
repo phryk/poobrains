@@ -720,9 +720,12 @@ class ClientCertForm(poobrains.form.Form):
             cert_info.keylength = client_cert.get_pubkey().size() * 8 # .size gives length in byte
             cert_info.fingerprint = client_cert.get_fingerprint('sha512')
 
-            bork = client_cert.get_not_after().get_datetime() # contains tzinfo, which confuses peewee ( https://github.com/coleifer/peewee/issues/914)
+            not_before = client_cert.get_not_before().get_datetime() # contains tzinfo, which confuses peewee ( https://github.com/coleifer/peewee/issues/914)
+            cert_info.not_before = datetime.datetime(not_before.year, not_before.month, not_before.day, not_before.hour, not_before.minute, not_before.second)
 
-            cert_info.not_after = datetime.datetime(bork.year, bork.month, bork.day, bork.hour, bork.minute, bork.second)
+            not_after = client_cert.get_not_after().get_datetime() # contains tzinfo, which confuses peewee ( https://github.com/coleifer/peewee/issues/914)
+            cert_info.not_after = datetime.datetime(not_after.year, not_after.month, not_after.day, not_after.hour, not_after.minute, not_after.second)
+
             r = werkzeug.wrappers.Response(client_cert.as_pem())
             r.mimetype = 'application/x-x509-user-cert'
 
@@ -741,6 +744,7 @@ class ClientCertForm(poobrains.form.Form):
 
             cert_info.keylength = pkcs12.get_certificate().get_pubkey().bits() 
             cert_info.fingerprint = pkcs12.get_certificate().digest('sha512').replace(':', '')
+            cert_info.not_before = datetime.datetime.strptime(pkcs12.get_certificate().get_notBefore(), '%Y%m%d%H%M%SZ')
             cert_info.not_after = datetime.datetime.strptime(pkcs12.get_certificate().get_notAfter(), '%Y%m%d%H%M%SZ')
 
             #if submit == 'ClientCertForm.tls_submit':
@@ -1740,8 +1744,9 @@ class ClientCert(Administerable):
     #subject_name = poobrains.storage.fields.CharField()
     keylength = poobrains.storage.fields.IntegerField()
     fingerprint = poobrains.storage.fields.CharField()
+    not_before = poobrains.storage.fields.DateTimeField(null=True)
     not_after = poobrains.storage.fields.DateTimeField(null=True)
-    notification = poobrains.storage.fields.IntegerField(form_widget=None, default=0) # HERE
+    notification = poobrains.storage.fields.IntegerField(form_widget=None, default=0) # number of last expiry warning sent
 
     
     def save(self, force_insert=False, only=None):
@@ -1767,6 +1772,29 @@ class ClientCert(Administerable):
             return poobrains.helpers.ThemedPassthrough(f.view('full'))
 
         return self
+
+
+    @property
+    def validity_period(self):
+        return self.not_after - self.not_before
+
+
+    @property
+    def notification_dates(self):
+
+        dates = []
+
+        deltas = [
+            datetime.timedelta(days=30),
+            datetime.timedelta(days=3),
+            datetime.timedelta(days=1),
+        ]
+
+        for delta in deltas:
+            if self.validity_period > delta:
+                dates.append(self.not_after - delta)
+
+        return dates
 
 
 class Owned(Administerable):
@@ -1851,11 +1879,10 @@ app.site.add_view(Page, '/<regex(".*"):path>', mode='full')
 @app.cron
 def bury_tokens():
 
-
     deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
 
     q = ClientCertToken.delete().where(
-        ClientCertToken.created <= deathwall or ClientCertToken.redeemed == 1
+        ClientCertToken.created <= deathwall | ClientCertToken.redeemed == 1
     )
 
     count = q.execute()
@@ -1864,21 +1891,81 @@ def bury_tokens():
     click.secho(msg, fg='green')
     app.logger.info(msg)
 
+
 @app.cron
 def notify_dying_cert_owners():
 
     now = datetime.datetime.now()
-    affected_certs = ClientCert.select().where(ClientCert.not_after > now, ClientCert.not_after >= (now - datetime.timedelta(days=365)))
-
     affected_users = set()
-    for cert_info in affected_certs:
 
-        affected_users.add(cert_info.user)
-        death_in = cert_info.not_after - now
-        days = death_in.days
-        hours = death_in.seconds // 3600
-        minutes = (death_in.seconds - hours * 3600) // 60
-        cert_info.user.notify("Your client certificate '%s' is expiring in %d days, %d hours, %d minutes!" % (cert_info.name, days, hours, minutes))
-        click.echo("Notified user '%s' about certificate '%s'" % (cert_info.user.name, cert_info.name))
+    count_expired = 0
+    count_impending_doom = 0
 
-    click.secho("Notified %d users about %d certificates that will soon expire." % (len(affected_users), affected_certs.count()), fg='green')
+    for cert in ClientCert.select():
+
+        if cert.notification > len(cert.notification_dates): # means expiry notification was already sent
+            pass
+
+        elif len(cert.notification_dates) == cert.notification:
+            
+            death_in = cert.not_after - now
+            days = death_in.days
+            hours = death_in.seconds // 3600
+            minutes = (death_in.seconds - hours * 3600) // 60
+            other_cert_count = cert.user.clientcerts.where(ClientCert.not_after > now).count() - 1
+
+            message = """
+### Client certificate for site {site_name} has expired! ###
+
+*Your client certificate '{cert_name}' expired on {expiry_date}.*
+
+You have {other_cert_count} other valid certificates on this site.
+            """.format(
+                site_name=app.config['SITE_NAME'],
+                cert_name=cert.name,
+                expiry_date=cert.not_after,
+                other_cert_count=other_cert_count
+            )
+
+            cert.user.notify(message)
+            click.echo("Notified user '%s' about expired certificate '%s'" % (cert.user.name, cert.name))
+            affected_users.add(cert.user)
+            count_expired += 1
+
+            cert.notification += 1
+            cert.save()
+
+        elif cert.notification_dates[cert.notification] <= now:
+        
+            #TODO: DRY!
+            death_in = cert.not_after - now
+            days = death_in.days
+            hours = death_in.seconds // 3600
+            minutes = (death_in.seconds - hours * 3600) // 60
+            other_cert_count = cert.user.clientcerts.where(ClientCert.not_after > now).count() - 1
+
+            message = """
+### Client certificate expiry warning for {site_name} ###
+
+*Your client certificate '{cert_name}' will expire in {days} days,  {hours} hours, {minutes} minutes.*
+
+You have {other_cert_count} other valid certificates on this site.
+            """.format(
+                site_name=app.config['SITE_NAME'],
+                cert_name=cert.name,
+                days=days,
+                hours=hours,
+                minutes=minutes,
+                other_cert_count=other_cert_count
+            )
+
+            cert.user.notify(message)
+            click.echo("Notified user '%s' about impending expiry of certificate '%s'" % (cert.user.name, cert.name))
+
+            affected_users.add(cert.user)
+            count_impending_doom += 1
+
+            cert.notification += 1
+            cert.save()
+
+    click.secho("Notified %d users about %d certificates that will soon expire and %d that have expired." % (len(affected_users), count_impending_doom, count_expired), fg='green')
