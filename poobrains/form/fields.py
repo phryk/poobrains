@@ -362,6 +362,14 @@ class Range(Field):
                 raise poobrains.errors.ValidationError("%s: %d is out of range. Must be in range from %d to %d." % (self.name, self.value, self.min, self.max))
 
 
+class Date(Field):
+
+    class Meta:
+        abstract = True
+
+    type = types.DATE
+
+
 class DateTime(Field):
 
     class Meta:

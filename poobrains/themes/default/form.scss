@@ -34,6 +34,7 @@ form {
 
     & > .controls {
 
+        width: 100%; /* avoids controls being squished real smol with floating content around */
         margin-top: 0.5rem;
         display: flex;
         flex-direction: row;

@@ -670,6 +670,7 @@ class ClientCertForm(poobrains.form.Form):
     title = "Be safe, certificatisize yourself!"
     token = poobrains.form.fields.ObfuscatedText(label='Token')
     key = poobrains.form.fields.Keygen()
+    not_after = poobrains.form.fields.Date(label='Expiry on', required=True, help_text="The date this certificate expires on. Expired certificates can not be used to log in.", default=lambda: datetime.date.today() + datetime.timedelta(seconds=app.config['CERT_MAX_LIFETIME']))
     keygen_submit = poobrains.form.Button('submit', label='Client-side: Keygen')
     pgp_submit = poobrains.form.Button('submit', label="Server-side: PGP-mail")
     tls_submit = poobrains.form.Button('submit', label="Server-side: HTTPS")
@@ -703,19 +704,19 @@ class ClientCertForm(poobrains.form.Form):
         cert_info = ClientCert()
         cert_info.user = token.user
         cert_info.name = token.cert_name
+
+        not_after = datetime.datetime(year=self.fields['not_after'].value.year, month=self.fields['not_after'].value.month, day=self.fields['not_after'].value.day)
         
         if self.controls['keygen_submit'].value:
 
             try:
-                client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, session['key_challenge'])
+                client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, session['key_challenge'], not_after)
                 del session['key_challenge']
 
-            except Exception as e: # FIXME: More specific exception matching?
+            except pyspkac.spkac.SPKAC_Decode_Error as e:
 
-                if app.debug:
-                    raise
-
-                return poobrains.rendering.RenderString("Client certificate creation failed.")
+                app.logger.error(e.message)
+                return poobrains.rendering.RenderString("Client certificate creation failed. Pwease no cwacky!")
 
             cert_info.keylength = client_cert.get_pubkey().size() * 8 # .size gives length in byte
             cert_info.fingerprint = client_cert.get_fingerprint('sha512')
@@ -736,7 +737,7 @@ class ClientCertForm(poobrains.form.Form):
 
             try:
 
-                pkcs12 = token.user.gen_keypair_and_clientcert(token.cert_name)
+                pkcs12 = token.user.gen_keypair_and_clientcert(token.cert_name, not_after)
 
 
             except Exception as e:
@@ -1383,7 +1384,11 @@ class User(Named):
         return groups
 
     
-    def gen_clientcert_from_spkac(self, name, spkac, challenge):
+    def gen_clientcert_from_spkac(self, name, spkac, challenge, not_after):
+
+        invalid_after = datetime.datetime.now() + datetime.timedelta(seconds=app.config['CERT_MAX_LIFETIME']) 
+        if not_after > invalid_after:
+            raise poobrains.errors.ExposedError("not_after too far into the future, max allowed %s but got %s" % (invalid_after, not_after))
 
         try:
 
@@ -1405,17 +1410,18 @@ class User(Named):
         #spkac.subject.C = ca_cert.get_subject().C
 
         not_before = int(time.time())
-        not_after = not_before + app.config['CERT_LIFETIME']
+        not_after = int(time.mktime(not_after.timetuple()))
 
         serial = int(time.time())
 
         return spkac.gen_crt(ca_key, ca_cert, serial, not_before, not_after, hash_algo='sha512')
 
 
-    def gen_keypair_and_clientcert(self, name):
-     
-        if not re.match('^[a-zA-Z0-9_\- ]+$', name):
-            raise ValueError("Requested client certificate name is invalid.")
+    def gen_keypair_and_clientcert(self, name, not_after):
+
+        invalid_after = datetime.datetime.now() + datetime.timedelta(seconds=app.config['CERT_MAX_LIFETIME']) # FIXME: DRY!
+        if not_after > invalid_after:
+            raise poobrains.errors.ExposedError("not_after too far into the future, max allowed %s but got %s" % (invalid_after, not_after))
 
         common_name = '%s:%s@%s' % (self.name, name, app.config['SITE_NAME'])
 
@@ -1442,7 +1448,7 @@ class User(Named):
         cert.set_issuer(ca_cert.get_subject())
         cert.set_pubkey(keypair)
         cert.gmtime_adj_notBefore(0)
-        cert.gmtime_adj_notAfter(app.config['CERT_LIFETIME'])
+        cert.set_notAfter(not_after.strftime('%Y%m%d%H%M%SZ'))
         cert.set_serial_number(int(time.time())) # FIXME: This is bad, but probably won't fuck us over for a while ¯\_(ツ)_/¯
         cert.get_subject().CN = common_name
 

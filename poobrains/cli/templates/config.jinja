@@ -1,7 +1,7 @@
 SECRET_KEY = "{{ secret_key }}"
 CRYPTO_KEYLENGTH = {{ keylength }}
 DATABASE = "{{ database }}"
-#CERT_LIFETIME = 30 * 24 * 60 * 60 # generated client certificates live for 30 days.
+#CERT_MAX_LIFETIME = 90 * 24 * 60 * 60 # shortens maximum allowed certificate lifetime to 90 days
 CA_KEY = "tls/key.pem"
 CA_CERT = "tls/cert.pem"
 DOMAIN = "{{ domain }}"

@@ -146,6 +146,12 @@ class TextField(Field, peewee.TextField):
     type = poobrains.form.types.STRING
 
 
+class DateField(Field, peewee.DateField):
+
+    type = poobrains.form.types.DATE
+    form_widget = poobrains.form.fields.Date
+
+
 class DateTimeField(Field, peewee.DateTimeField):
 
     type = poobrains.form.types.DATETIME

@@ -48,7 +48,9 @@ def fake_before_request(function):
 @app.cli.command()
 def test():
     echo("Running test command!")
-
+    import unittest
+    from poobrains import testing
+    testing.run_all()
 
 @app.cli.command()
 @option('--domain', prompt="Domain this site will be run under?", default="localhost")

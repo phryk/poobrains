@@ -13,7 +13,7 @@ PAGINATION_COUNT = 10
 
 TOKEN_VALIDITY = 600
 MAX_TOKENS = 5 # maximum number of allowed clientcert tokens for a single user
-CERT_LIFETIME = 60 * 60 * 24 * 7 # TODO: Shouldn't this be user-selectable at time of certificate provisioning?
+CERT_MAX_LIFETIME = 60 * 60 * 24 * 365 # allow 1 year validity period for client certs
 
 SVG_PLOT_WIDTH = 540 # width of svg plots (the plot itself, not the overall svg
 SVG_PLOT_HEIGHT = 290 # height of svg plots

@@ -874,7 +874,7 @@ class Pooprint(flask.Blueprint):
             return endpoint
 
 
-app = Poobrain(__name__) # TODO: Make app class configurable.
+app = Poobrain('poobrains') # TODO: Make app class configurable.
 app.jinja_env.tests['renderable'] = is_renderable
 app.url_map.converters['regex'] = RegexConverter
 
