@@ -26,33 +26,33 @@ class PooTest(unittest.TestCase):
         poobrains.app.testing = True
         self.client = poobrains.app.test_client()
 
-#    @classmethod
-#    def tearDownClass(cls):
-#
-#        try:
-#            shutil.rmtree(os.path.join(poobrains.app.site_path, 'gnupg'))
-#        except:
-#            pass
-#
-#        try:
-#            os.unlink('config.py')
-#        except:
-#            pass
-#
-#        try:
-#            os.unlink('example.db')
-#        except:
-#            pass
-#
-#        try:
-#            os.unlink('example.ini')
-#        except:
-#            pass
-#
-#        try:
-#            os.unlink('example.nginx.conf')
-#        except:
-#            pass
+    @classmethod
+    def tearDownClass(cls):
+
+        try:
+            shutil.rmtree(os.path.join(poobrains.app.site_path, 'gnupg'))
+        except:
+            pass
+
+        try:
+            os.unlink('config.py')
+        except:
+            pass
+
+        try:
+            os.unlink('example.db')
+        except:
+            pass
+
+        try:
+            os.unlink('example.ini')
+        except:
+            pass
+
+        try:
+            os.unlink('example.nginx.conf')
+        except:
+            pass
 
     def test_cli_install(self):
 
@@ -71,11 +71,14 @@ root@mail.local
 
 y
 """
-        import pudb; pudb.set_trace()
+        if not os.environ.has_key('FLASK_APP'):
+            os.environ['FLASK_APP'] = '__main__'
         runner = CliRunner()
         rv = runner.invoke(poobrains.cli.install, input=input)
+        print rv.output
 
         assert not rv.exception, rv.exception.message
+        assert "Installation complete!" in rv.output, "Installation apparently didn't complete!"
 
 #    def test_redeem_token(self):
 #

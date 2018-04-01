@@ -11,7 +11,7 @@ import flask
 import click
 import jinja2
 
-from click import argument, option, echo, confirm
+from click import argument, option, echo, secho, confirm
 from playhouse import db_url
 db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
 
@@ -47,10 +47,17 @@ def fake_before_request(function):
 
 @app.cli.command()
 def test():
-    echo("Running test command!")
-    import unittest
-    from poobrains import testing
-    testing.run_all()
+
+    if confirm(
+        "This will run through installation and a range of tests, " +
+        click.style("all current data will be lost!\n", fg='red') +
+        click.style("!!!DO NOT DO THIS IN PRODUCTION!!!", bg='red', fg='black')
+    ):
+
+        import unittest
+        from poobrains import testing
+        testing.run_all()
+
 
 @app.cli.command()
 @option('--domain', prompt="Domain this site will be run under?", default="localhost")
@@ -243,7 +250,7 @@ def minica(lifetime):
 
     tls_dir = os.path.join(app.root_path, 'tls')
     if os.path.exists(tls_dir):
-        click.secho("Directory/file '%s' already exists. Move or delete it and re-run." % tls_dir, fg='red')
+        secho("Directory/file '%s' already exists. Move or delete it and re-run." % tls_dir, fg='red')
         raise click.Abort()
 
 
