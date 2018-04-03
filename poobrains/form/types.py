@@ -78,6 +78,6 @@ class DateTimeParamType(ParamType):
 
             else:
 
-                self.fail("'%s' is not a valid datetime. Expected format: %s" % value, self.format)
+                self.fail("'%s' is not a valid datetime. Expected format: %s" % (value, self.format))
 
 DATETIME = DateTimeParamType()
