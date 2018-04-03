@@ -43,7 +43,7 @@ class DateParamType(ParamType):
 
             else:
 
-                self.fail("'%s' is not a valid date. Expected format: %s" % value, self.format)
+                self.fail("'%s' is not a valid date. Expected format: %s" % (value, self.format))
 
 DATE = DateParamType()
 
