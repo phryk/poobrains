@@ -40,17 +40,17 @@ class PooTest(unittest.TestCase):
             pass
 
         try:
-            os.unlink('example.db')
+            os.unlink('%s.db' % poobrains.project_name)
         except:
             pass
 
         try:
-            os.unlink('example.ini')
+            os.unlink('%s.ini' % poobrains.project_name)
         except:
             pass
 
         try:
-            os.unlink('example.nginx.conf')
+            os.unlink('%s.nginx.conf' % poobrains.project_name)
         except:
             pass
 
