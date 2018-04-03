@@ -84,9 +84,11 @@ def install(**options):
             options['secret_key'] = poobrains.helpers.random_string_light(64) # cookie crypto key, config['SECRET_KEY']
 
 
-            with click.progressbar(poobrains.storage.Model.class_children(), label="Creating tables", item_show_func=lambda x: x.__name__ if x else '') as models: # iterates through all non-abstract Models
-                for model in models:
-                    app.db.create_tables([model])
+            #with click.progressbar(poobrains.storage.Model.class_children(), label="Creating tables", item_show_func=lambda x: x.__name__ if x else '') as models: # iterates through all non-abstract Models
+            #    for model in models:
+            #        app.db.create_tables([model])
+
+            app.db.create_tables(poobrains.storage.Model.class_children())
 
             echo("Database tables created!\n")
 
