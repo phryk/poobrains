@@ -1533,42 +1533,48 @@ class User(Named):
 
             for model in self.models_on_profile:
 
-                queries.append(model.list('read', g.user, ordered=False, fields=[peewee.SQL("'%s'" % model.__name__).alias('model'), model.id, model.date.alias('date'), model.title]))
+                try:
+                    queries.append(model.list('read', g.user, ordered=False, fields=[peewee.SQL("'%s'" % model.__name__).alias('model'), model.id, model.date.alias('date'), model.title]))
+                except AccessDenied:
+                    pass # ignore models we aren't allowed to read
 
             # construct the final UNION ALL query, This can be shortened to sum(queries) if https://github.com/coleifer/peewee/issues/1545 gets fixed
-            q = queries[0]
-            for query in queries[1:]:
-                q += query
 
-            q = q.order_by(model.date.alias('date').desc())
-            pagination = poobrains.storage.Pagination([q], offset=offset, limit=app.config['PAGINATION_COUNT'], endpoint='site.user_profile_offset', handle=self.handle_string)
-            q = q.offset(offset).limit(app.config['PAGINATION_COUNT']) # model.date.desc() fails if this model hasn't yielded any results, hence alias is needed
+            if len(queries):
+                q = queries[0]
+                for query in queries[1:]:
+                    q += query
 
-            info_sorted = [] # tuples of (model_name, id) in the same order as in the sql result
-            info_by_model = {} # dict with lists of ids keyed by model name
+                q = q.order_by(model.date.alias('date').desc())
+                pagination = poobrains.storage.Pagination([q], offset=offset, limit=app.config['PAGINATION_COUNT'], endpoint='site.user_profile_offset', handle=self.handle_string)
+                q = q.offset(offset).limit(app.config['PAGINATION_COUNT']) # model.date.desc() fails if this model hasn't yielded any results, hence alias is needed
 
-            for row in q.iterator():
+                info_sorted = [] # tuples of (model_name, id) in the same order as in the sql result
+                info_by_model = {} # dict with lists of ids keyed by model name
 
-                info_sorted.append((row.model, row.id))
+                for row in q.iterator():
 
-                if not info_by_model.has_key(row.model):
-                    info_by_model[row.model] = []
-                    
-                info_by_model[row.model].append(row.id)
+                    info_sorted.append((row.model, row.id))
 
-            posts_by_model = {}
+                    if not info_by_model.has_key(row.model):
+                        info_by_model[row.model] = []
+                        
+                    info_by_model[row.model].append(row.id)
 
-            for model_name, ids in info_by_model.iteritems():
-            
-                model = Owned.class_children_keyed()[model_name]
-                posts_by_model[model_name] = {}
-                for instance in model.select().where(model.id << ids):
-                    posts_by_model[model_name][instance.id] = instance
+                posts_by_model = {}
 
-            for (model_name, id) in info_sorted:
-                self.profile_listing.items.append(posts_by_model[model_name][id])
+                for model_name, ids in info_by_model.iteritems():
+                
+                    model = Owned.class_children_keyed()[model_name]
+                    posts_by_model[model_name] = {}
+                    for instance in model.select().where(model.id << ids):
+                        posts_by_model[model_name][instance.id] = instance
 
-            self.profile_listing.items.append(pagination.menu)
+                for (model_name, id) in info_sorted:
+                    self.profile_listing.items.append(posts_by_model[model_name][id])
+
+                if pagination.menu:
+                    self.profile_listing.items.append(pagination.menu)
 
         return super(User, self).view(mode=mode, handle=handle, **kwargs)
 
