@@ -1199,8 +1199,9 @@ class Administerable(poobrains.storage.Storable, Protected):
 
             except AccessDenied:
                 app.logger.debug("Not generating %s link for %s %s because this user is not authorized for it." % (mode, self.__class__.__name__, self.handle_string))
-            except Exception:
-                app.logger.debug("Couldn't create %s link for %s" % (mode, self.handle_string))
+            except LookupError:
+                pass
+                #app.logger.debug("Couldn't create %s link for %s" % (mode, self.handle_string))
 
         return actions
 
