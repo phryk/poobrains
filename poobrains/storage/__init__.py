@@ -376,10 +376,10 @@ class Pagination(object):
             self.limit = app.config['PAGINATION_COUNT']
 
         self.menu = False
-        self.counts = collections.OrderedDict([(q, q.count()) for q in self.queries])
+        self.counts = [(q, q.count()) for q in self.queries]
         self.results = []
         self.page_info = collections.OrderedDict()
-        self.num_results = sum(self.counts.itervalues())
+        self.num_results = sum([x[1] for x in self.counts])
         self.num_pages = int(math.ceil(float(self.num_results) / self.limit))
         self.current_page = int(math.floor(self.offset / float(self.limit))) + 1
 
@@ -388,7 +388,7 @@ class Pagination(object):
         range_lower = self.offset
         range_upper = self.offset + self.limit - 1
 
-        for query, count in self.counts.iteritems():
+        for query, count in self.counts:
 
             if count > 0:
 
