@@ -12,3 +12,8 @@
 </div>
 {% endif %}
 {% endblock %}
+
+{% block footer %}
+    {{ super() }}
+    <span class="date">{{ content.date_pretty }}</span>
+{% endblock %}

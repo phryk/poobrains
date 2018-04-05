@@ -84,6 +84,11 @@ class Commentable(poobrains.tagging.Taggable):
     notify_owner = poobrains.storage.fields.BooleanField(default=True, verbose_name='Notify owner', help_text='Whether to notify the owner of comments')
     date = poobrains.storage.fields.DateTimeField(default=datetime.datetime.now, verbose_name='Date', help_text='Date of publication, current time if left empty')
 
+    @property
+    def date_pretty(self):
+        if isinstance(self.date, datetime.datetime):
+            return self.date.strftime('%a %b %d %Y - %H:%M:%S')
+        return 'Lost in Time'
 
     @property
     def comments(self):

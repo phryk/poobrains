@@ -883,6 +883,15 @@ article {
 
         nav.menu.actions {
             float: right;
+            clear: both;
+        }
+
+        .date {
+            display: block;
+            float: right;
+            clear: both;
+            font-family: 'Orbitron';
+            font-size: 0.9rem;
         }
 
     }
