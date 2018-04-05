@@ -1892,7 +1892,7 @@ def bury_tokens():
     deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
 
     q = ClientCertToken.delete().where(
-        ClientCertToken.created <= deathwall | ClientCertToken.redeemed == 1
+        (ClientCertToken.created <= deathwall) | (ClientCertToken.redeemed == 1)
     )
 
     count = q.execute()
