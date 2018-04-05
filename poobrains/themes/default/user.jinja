@@ -5,5 +5,16 @@
 {% endblock %}
 
 {% block post %}
-{{ content.profile_listing.render() }}
+
+<ul class="listing">
+    {% for item in content.profile_posts %}
+        <li>{{ item.render('teaser') }}</li>
+    {% endfor %}
+</ul>
+
+{% if content.profile_pagination.menu %}
+    {{ content.profile_pagination.menu.render() }}
+{% endif %}
+
 {% endblock %}
+

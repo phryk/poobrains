@@ -1358,12 +1358,10 @@ class User(Named):
     mail_notifications = poobrains.storage.fields.BooleanField(default=False)
     about = poobrains.md.MarkdownField(null=True)
 
+    profile_posts = None
+    profile_pagination = None
+
     _on_profile = []
-
-    def __init__(self, *args, **kwargs):
-
-        super(User, self).__init__(*args, **kwargs)
-        self.profile_listing = poobrains.rendering.Container()
 
 
     @locked_cached_property
@@ -1528,6 +1526,8 @@ class User(Named):
 
     def view(self, mode='teaser', handle=None, offset=0, **kwargs):
 
+        self.profile_posts = []
+
         if len(self.models_on_profile):
 
             queries = []
@@ -1547,7 +1547,7 @@ class User(Named):
                     q += query
 
                 q = q.order_by(model.date.alias('date').desc())
-                pagination = poobrains.storage.Pagination([q], offset=offset, limit=app.config['PAGINATION_COUNT'], endpoint='site.user_profile_offset', handle=self.handle_string)
+                self.profile_pagination = poobrains.storage.Pagination([q], offset=offset, limit=app.config['PAGINATION_COUNT'], endpoint='site.user_profile_offset', handle=self.handle_string)
                 q = q.offset(offset).limit(app.config['PAGINATION_COUNT']) # model.date.desc() fails if this model hasn't yielded any results, hence alias is needed
 
                 info_sorted = [] # tuples of (model_name, id) in the same order as in the sql result
@@ -1572,10 +1572,7 @@ class User(Named):
                         posts_by_model[model_name][instance.id] = instance
 
                 for (model_name, id) in info_sorted:
-                    self.profile_listing.items.append(posts_by_model[model_name][id])
-
-                if pagination.menu:
-                    self.profile_listing.items.append(pagination.menu)
+                    self.profile_posts.append(posts_by_model[model_name][id])
 
         return super(User, self).view(mode=mode, handle=handle, **kwargs)
 
