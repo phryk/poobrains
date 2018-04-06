@@ -1,7 +1,15 @@
 {% extends "named.jinja" %}
 
 {% block content %}
-{{ content.about.render() }}
+{% if content.offset == 0 %}
+    {{ content.about.render() }}
+{% endif %}
+{% endblock %}
+
+{% block footer %}
+{% if content.offset == 0 %}
+    {{ super() }}
+{% endif %}
 {% endblock %}
 
 {% block post %}

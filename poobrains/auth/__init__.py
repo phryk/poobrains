@@ -1358,6 +1358,7 @@ class User(Named):
     mail_notifications = poobrains.storage.fields.BooleanField(default=False)
     about = poobrains.md.MarkdownField(null=True)
 
+    offset = None
     profile_posts = None
     profile_pagination = None
 
@@ -1526,6 +1527,7 @@ class User(Named):
 
     def view(self, mode='teaser', handle=None, offset=0, **kwargs):
 
+        self.offset = offset
         self.profile_posts = []
 
         if len(self.models_on_profile):

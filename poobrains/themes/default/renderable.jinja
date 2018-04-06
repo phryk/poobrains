@@ -19,17 +19,19 @@
         {% endblock %}
         </header>
     {% endif %}
-    
-    <div class="content">
-    {% block content %}
-        This is the ultimate fallback template. Somebody probably ought to implement one of these templates:
-        <ul>
-            {% for template in content.templates() %}
-                <li>{{ template }}</li>
-            {% endfor %}
-        </ul>
-    {% endblock %}
-    </div>
+   
+    {% if self.content()|trim %} 
+        <div class="content">
+        {% block content %}
+            This is the ultimate fallback template. Somebody probably ought to implement one of these templates:
+            <ul>
+                {% for template in content.templates() %}
+                    <li>{{ template }}</li>
+                {% endfor %}
+            </ul>
+        {% endblock %}
+        </div>
+    {% endif %}
 
     {% if self.footer()|trim %}
     <footer>

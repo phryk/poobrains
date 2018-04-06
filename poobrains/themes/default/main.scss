@@ -388,7 +388,7 @@ main {
                 margin-top: -2rem;
                 margin-bottom: 3rem;
 
-                font-size: 1.2rem;
+                font-size: 1.1rem;
                 letter-spacing: 0.1rem;
 
                 ul {
@@ -649,6 +649,10 @@ ul {
     }
 }
 
+strong {
+    font-weight: bold;
+}
+
 a {
 
     color: $color_font_light;
@@ -809,7 +813,7 @@ article {
 
     line-height: 1.5;
     font-weight: 300;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     text-align: justify;
 
     p:first-child {
@@ -1040,8 +1044,7 @@ p {
     margin-bottom: 1em;
 
     &:first-letter {
-        font-size: 140%;
-        text-transform: uppercase;
+        font-size: 1.2em;
     }
 
     article.mode-full > .content > &:first-of-type {
