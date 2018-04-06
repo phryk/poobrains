@@ -645,6 +645,12 @@ ul {
             /*&:first-child {
                 margin-top: 0;
             }*/
+
+            & > div.comment {
+                /* comments have transparent bg by default, avoid breaking the design when showing them outside of an article */
+                background: $color_background_dark;
+                padding: 1rem;
+            }
         }
     }
 }
@@ -901,7 +907,6 @@ article {
     }
 
     &.content-type-listing,
-    &.content-type-container,
     &.content-type-tag.mode-full {
     
         & > div.content {
@@ -911,14 +916,6 @@ article {
 
         & > footer {
             background: transparent !important;
-        }
-
-        & article {
-
-            & > div.content {
-                background: $color_background_dark;
-                padding: 0.25rem 1rem;
-            }
         }
     }
     

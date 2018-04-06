@@ -2,6 +2,7 @@
 
 # external imports
 import math
+import types
 import collections
 import re
 import copy
@@ -107,10 +108,13 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
 
         q = cls.select()
 
-        if type(handle) not in (tuple, list):
+        if isinstance(handle, types.StringTypes):
+            handle = cls.string_handle(handle)
+
+        elif type(handle) not in (tuple, list):
             handle = [handle]
 
-        assert len(handle) == len(cls._meta.handle_fields)
+        assert len(handle) == len(cls._meta.handle_fields), "Handle length mismatch for %s, expected %d but got %d!" % (cls.__name__, len(cls._meta.handle_fields), len(handle))
 
         for field_name in cls._meta.handle_fields:
             field = getattr(cls, field_name)
@@ -221,7 +225,7 @@ class Storable(Model, poobrains.rendering.Renderable):
     @classmethod
     def class_view(cls, mode='teaser', handle=None, **kwargs):
 
-        instance = cls.load(cls.string_handle(handle))
+        instance = cls.load(handle)
         return instance.view(handle=handle, mode=mode, **kwargs)
 
 

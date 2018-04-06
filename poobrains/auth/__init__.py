@@ -1262,7 +1262,7 @@ class Administerable(poobrains.storage.Storable, Protected):
             instance = cls()
         else:
             try:
-                instance = cls.load(cls.string_handle(handle))
+                instance = cls.load(handle)
             except ValueError as e:
                 raise cls.DoesNotExist("This isn't even the right type!")
 
@@ -1298,7 +1298,7 @@ class Administerable(poobrains.storage.Storable, Protected):
             raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
 
         related_model = related_field.model
-        instance = cls.load(cls.string_handle(handle))
+        instance = cls.load(handle)
 
         actions = poobrains.rendering.Menu('related-add')
         actions.append(instance.related_url(related_field, add=True), 'Add new')
@@ -1332,7 +1332,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     def related_view_add(cls, related_field=None, handle=None):
         
         related_model = related_field.model
-        instance = cls.load(cls.string_handle(handle))
+        instance = cls.load(handle)
 
         f = related_model.class_form('add')
         f.menu_actions = instance.menu_actions
@@ -1364,6 +1364,12 @@ class User(Named):
 
     _on_profile = []
 
+
+    def __init__(self, *args, **kwargs):
+
+        super(User, self).__init__(*args, **kwargs)
+        self.offset = 0
+        self.profile_posts = []
 
     @locked_cached_property
     def own_permissions(self):
@@ -1528,7 +1534,6 @@ class User(Named):
     def view(self, mode='teaser', handle=None, offset=0, **kwargs):
 
         self.offset = offset
-        self.profile_posts = []
 
         if len(self.models_on_profile):
 
@@ -1878,7 +1883,7 @@ class Page(Owned):
 
         else:
             try:
-                instance = cls.load(cls.string_handle(handle))
+                instance = cls.load(handle)
             except ValueError as e:
                 raise cls.DoesNotExist("This isn't even the right type!")
 
