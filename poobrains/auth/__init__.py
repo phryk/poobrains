@@ -1510,6 +1510,7 @@ class User(Named):
         NOTE: the passed model needs to have a datetime field with the name 'date'. This is needed for ordering.
         """
         assert issubclass(model, Owned) and hasattr(model, 'date'), "Only Owned subclasses with a 'date' field can be @User.profile'd. %s does not qualify." % model.__name__
+        assert hasattr(model, 'id') and isinstance(model.id, poobrains.storage.fields.AutoField), "@on_profile model without id: %s" % model.__name__
 
         cls._on_profile.append(model) 
 
@@ -1520,11 +1521,11 @@ class User(Named):
     def models_on_profile(self):
 
         models = []
-
         for model in self._on_profile:
             if model._meta.abstract:
                 for submodel in model.class_children():
-                    models.append(submodel)
+                    if hasattr(submodel, 'id') and isinstance(submodel.id, poobrains.storage.fields.AutoField):
+                        models.append(submodel)
             else:
                 models.append(model)
 
@@ -1542,21 +1543,21 @@ class User(Named):
             for model in self.models_on_profile:
 
                 try:
-                    queries.append(model.list('read', g.user, ordered=False, fields=[peewee.SQL("'%s'" % model.__name__).alias('model'), model.id, model.date.alias('date'), model.title]))
+                    queries.append(model.list('read', g.user, ordered=False, fields=[peewee.SQL("'%s'" % model.__name__).alias('model'), model.id, model.date.alias('date')]))
                 except AccessDenied:
                     pass # ignore models we aren't allowed to read
 
             # construct the final UNION ALL query, This can be shortened to sum(queries) if https://github.com/coleifer/peewee/issues/1545 gets fixed
 
             if len(queries):
+                
                 q = queries[0]
                 for query in queries[1:]:
                     q += query
 
-                q = q.order_by(model.date.alias('date').desc())
+                q = q.order_by(model.date.alias('date').desc()) # model.date.desc() fails if this model hasn't yielded any results, hence alias is needed
                 self.profile_pagination = poobrains.storage.Pagination([q], offset=offset, limit=app.config['PAGINATION_COUNT'], endpoint='site.user_profile_offset', handle=self.handle_string)
-                q = q.offset(offset).limit(app.config['PAGINATION_COUNT']) # model.date.desc() fails if this model hasn't yielded any results, hence alias is needed
-
+                q = q.offset(offset).limit(app.config['PAGINATION_COUNT']) 
                 info_sorted = [] # tuples of (model_name, id) in the same order as in the sql result
                 info_by_model = {} # dict with lists of ids keyed by model name
 
