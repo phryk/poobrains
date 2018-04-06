@@ -7,7 +7,7 @@
     {% if self.header()|trim %}
         <header>
         {% block header %}
-            {% if mode != 'full' %}
+            {% if mode not in ('full', 'inline') %}
                 {% with url = content.url('full', quiet=True) %}
                     {% if url %}
                         <h2><a href="{{ url }}" title="{{ content.title }}">{{ content.title }}</a></h2>

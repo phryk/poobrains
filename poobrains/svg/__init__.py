@@ -87,7 +87,7 @@ class Dataset(poobrains.commenting.Commentable):
     
     def plot(self):
 
-        return Plot(datasets=[self]).render('full')
+        return Plot(datasets=[self]).render('inline')
 
 
 class DatapointFieldset(poobrains.form.Fieldset):
@@ -336,7 +336,7 @@ class MapDataset(poobrains.commenting.Commentable):
     
     def plot(self):
 
-        return Map(datasets=[self]).render('full')
+        return Map(datasets=[self]).render('inline')
 
 
 class MapDatapointFieldset(poobrains.form.Fieldset):
