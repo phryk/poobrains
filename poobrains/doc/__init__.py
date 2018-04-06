@@ -16,7 +16,7 @@ import pkgutil
 import pydoc
 import jinja2
 
-from poobrains import app
+from poobrains import app, Response
 import poobrains.errors
 import poobrains.helpers
 import poobrains.storage
@@ -688,3 +688,12 @@ class Documentation(poobrains.auth.Protected):
 
         else:
             raise poobrains.errors.ExposedError("Whoops.")
+
+
+    def view(self, mode='full', **kwargs):
+
+        r = Response(super(Documentation, self).view(mode=mode, **kwargs))
+        r.cache_control.public = True
+        r.cache_control.max_age = app.config['CACHE_LONG']
+
+        return r
