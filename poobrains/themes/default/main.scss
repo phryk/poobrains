@@ -918,7 +918,14 @@ article {
             background: transparent !important;
         }
     }
-    
+
+    &.content-type-container {
+        article > .content {
+            /* nested containers shouldn't stack background color on top of each other */
+            background: transparent;
+        }
+    }
+
     &.content-type-tag.mode-full {
         & > header {
 
