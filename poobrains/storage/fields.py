@@ -66,7 +66,7 @@ class ForeignKeyChoice(poobrains.form.fields.Text):
 
     def __init__(self, fkfield, choices=None, **kwargs):
 
-        self.storable = fkfield.rel_model
+        self.storable = fkfield.rel_model # FIXME: Not necessarily a Storable, can be direct child of Model, too!
                 
         if not choices:
 
