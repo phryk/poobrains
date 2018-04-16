@@ -63,7 +63,7 @@ class DateTimeParamType(ParamType):
             else:
 
                 try:
-                    return datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S.%f'
+                    return datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S.%f')
 
                 self.fail("'%s' is not a valid datetime. Expected format '%Y-%m-%d %H:%M:%S' or '%Y-%m-%d %H:%M:%S.%f'" % value)
 
