@@ -416,13 +416,12 @@ def export(storable, filepath, skip_pk):
             for field in fields:
                 
                 value = getattr(instance, field.name)
+                    
+                if value is None:
+                    value = ''
 
-                if isinstance(field, poobrains.storage.fields.ForeignKeyField):
-
-                    if value is None:
-                        value = ''
-                    else:
-                        value = value._pk
+                elif isinstance(field, poobrains.storage.fields.ForeignKeyField):
+                    value = value._pk
 
                 record.append(unicode(value))
 
