@@ -67,12 +67,12 @@ class DateTimeParamType(ParamType):
 
                 except ValueError as e:
 
-                if "does not match format" in e.message:
+                    if "does not match format" in e.message:
 
-                    app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
-                    self.fail("We dun goof'd, this field isn't working.")
+                        app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
+                        self.fail("We dun goof'd, this field isn't working.")
 
-                else:
-                    self.fail("'%s' is not a valid datetime. Expected format '%Y-%m-%d %H:%M:%S' or '%Y-%m-%d %H:%M:%S.%f'" % value)
+                    else:
+                        self.fail("'%s' is not a valid datetime. Expected format '%Y-%m-%d %H:%M:%S' or '%Y-%m-%d %H:%M:%S.%f'" % value)
 
 DATETIME = DateTimeParamType()
