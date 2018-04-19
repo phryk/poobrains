@@ -40,6 +40,13 @@ class SVG(poobrains.auth.Protected):
         r = super(SVG, self).templates(mode=mode)
         return ["svg/%s" % template for template in r]
 
+    
+    def instance_url(self, mode='full', quiet=False, **url_params):
+    
+        url_params['handle'] = self.handle
+
+        return super(SVG, self).instance_url(mode=mode, quiet=quiet, **url_params) 
+
 
     @poobrains.helpers.themed
     def view(self, mode=None, handle=None):
