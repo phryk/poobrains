@@ -486,6 +486,8 @@ class Map(SVG):
         self.handle = ','.join([ds.name for ds in self.datasets]) # needed for proper URL generation
 
 
-for cls in set([SVG]).union(SVG.class_children()):
-    rule = os.path.join("/svg/", cls.__name__.lower(), '<handle>', 'raw')
-    app.site.add_view(cls, rule, mode='raw')
+@app.before_first_request
+def register_svg_raw():
+    for cls in set(SVG.class_children()):
+        rule = os.path.join("/svg/", cls.__name__.lower(), '<handle>', 'raw')
+        app.site.add_view(cls, rule, mode='raw')
