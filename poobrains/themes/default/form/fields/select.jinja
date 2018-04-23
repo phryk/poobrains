@@ -24,7 +24,7 @@
                 </optgroup>
             {% else %}
             
-                <option value="{% if value %}{{ content.value_string(value) }}{% endif %}" {% if content.checked(value) %}selected{% endif %}>{{ label }}</option>
+                <option value="{% if not value is none %}{{ content.value_string(value) }}{% endif %}" {% if content.checked(value) %}selected{% endif %}>{{ label }}</option>
             {% endif %}
         {% endfor %}
 
