@@ -54,7 +54,6 @@ def test():
         click.style("!!!DO NOT DO THIS IN PRODUCTION!!!", bg='red', fg='black')
     ):
 
-        import unittest
         from poobrains import testing
         testing.run_all()
 
