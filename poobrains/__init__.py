@@ -42,7 +42,7 @@ import __main__ # to look up project name
 if hasattr(__main__, '__file__'):
     project_name = os.path.splitext(os.path.basename(__main__.__file__))[0] # basically filename of called file - extension
 else:
-    project_name = "REPL" # We're probably in a REPL, right?
+    project_name = "REPL" # We're probably in a REPL, right? <- I think this assumption is wrong.
 
 try:
     import config # imports config relative to main project

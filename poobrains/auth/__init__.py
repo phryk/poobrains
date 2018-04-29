@@ -633,7 +633,7 @@ def protected(func):
 
     @functools.wraps(func)
     def substitute(cls_or_instance, mode=None, *args, **kwargs):
-
+        
         if not mode:
             raise Exception('Need explicit mode in @protected.')
 
@@ -1389,7 +1389,17 @@ class User(Named):
 
         return groups
 
-    
+
+    @classmethod
+    def list(cls, op, user, handles=None, ordered=True, fields=[]):
+
+        app.debugger.set_trace()
+        try:
+            return super(User, cls).list(op, user, handles=handles, ordered=ordered, fields=fields)
+        except AccessDenied:
+            return cls.select().where(cls.name == g.user.name) # [g.user] would kinda-sorta work, but that'd break anything expecting this to be a query object
+
+
     def gen_clientcert_from_spkac(self, name, spkac, challenge, not_after):
 
         invalid_after = datetime.datetime.now() + datetime.timedelta(seconds=app.config['CERT_MAX_LIFETIME']) 
@@ -1638,9 +1648,6 @@ class UserPermission(Administerable):
 
 class Group(Named):
 
-    # TODO: Almost identical to User. DRY.
-
-
     @locked_cached_property
     def own_permissions(self):
 
@@ -1650,7 +1657,21 @@ class Group(Named):
 
         return own_permissions
 
-    
+
+    @classmethod
+    def list(cls, op, user, handles=None, ordered=True, fields=[]):
+
+        app.debugger.set_trace()
+        try:
+            return super(Group, cls).list(op, user, handles=handles, ordered=ordered, fields=fields)
+        except AccessDenied:
+
+            group_names = []
+            for group in g.user.groups:
+                group_names.append(group.name)
+            return cls.select().where(cls.name << [group_names])
+
+
 class UserGroup(Administerable):
 
     class Meta:
@@ -1825,6 +1846,19 @@ class Owned(Administerable):
     owner = poobrains.storage.fields.ForeignKeyField(User, null=False)
     group = poobrains.storage.fields.ForeignKeyField(Group, null=True)
     access = poobrains.storage.fields.CharField(default='', form_widget=AccessField) # TODO: Add RegexpConstraint with ^r{0,1}u{0,1}d{0,1}$ ?
+
+    def __init__(self, *args, **kwargs):
+
+        super(Owned, self).__init__(*args, **kwargs)
+
+        self.owner = g.user
+        self.group = g.user.groups[0] # FIXME: will fail hard if user is in no groups. or more than one group because then it's not guaranteed to be one with right permissions (if any). needs to be selected by a query
+
+        self.permissions = collections.OrderedDict()
+        
+        for mode, perm_class in self.__class__.permissions.iteritems():
+            self.permissions[mode] = perm_class(self)
+
 
     def form(self, mode=None):
 

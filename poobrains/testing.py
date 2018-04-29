@@ -1,9 +1,32 @@
 import os
+import re
 import shutil
-import unittest
+#import unittest
+import pytest
+
+import OpenSSL
 
 import poobrains
 from click.testing import CliRunner
+
+@pytest.fixture
+def client():
+
+        poobrains.app.wsgi_app = FakeHTTPSMiddleware(poobrains.app.wsgi_app)
+        poobrains.app.config['SECRET_KEY'] = 'fnord'
+        poobrains.app.config['TESTING'] = True
+        poobrains.app.debug = True
+        client = poobrains.app.test_client()
+
+        if not os.environ.has_key('FLASK_APP'):
+            os.environ['FLASK_APP'] = '__main__'
+        #poobrains.project_name = os.environ['FLASK_APP']
+
+
+        yield client
+
+        # Everything after yield is teardown? Is that right?
+
 
 class FakeHTTPSMiddleware(object):
 
@@ -17,46 +40,10 @@ class FakeHTTPSMiddleware(object):
         return self.app(environ, start_response)
 
 
-class PooTest(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(self):
+def test_cli_install(client):
 
-        poobrains.app.wsgi_app = FakeHTTPSMiddleware(poobrains.app.wsgi_app)
-        poobrains.app.testing = True
-        self.client = poobrains.app.test_client()
-
-    @classmethod
-    def tearDownClass(cls):
-
-        try:
-            shutil.rmtree(os.path.join(poobrains.app.site_path, 'gnupg'))
-        except:
-            pass
-
-        try:
-            os.unlink('config.py')
-        except:
-            pass
-
-        try:
-            os.unlink('%s.db' % poobrains.project_name)
-        except:
-            pass
-
-        try:
-            os.unlink('%s.ini' % poobrains.project_name)
-        except:
-            pass
-
-        try:
-            os.unlink('%s.nginx.conf' % poobrains.project_name)
-        except:
-            pass
-
-    def test_cli_install(self):
-
-        input = """poobrains.local
+    input = """poobrains.local
 
 
 
@@ -71,23 +58,121 @@ root@mail.local
 
 y
 """
-        if not os.environ.has_key('FLASK_APP'):
-            os.environ['FLASK_APP'] = '__main__'
-        runner = CliRunner()
-        rv = runner.invoke(poobrains.cli.install, input=input)
-        print rv.output
 
-        assert not rv.exception, rv.exception.message
-        assert "Installation complete!" in rv.output, "Installation apparently didn't complete!"
+    runner = CliRunner()
+    rv = runner.invoke(poobrains.cli.install, input=input)
+    print rv.output
 
-#    def test_redeem_token(self):
-#
-#        challenge_request = self.client.get('/cert')
-#        print challenge_request.data
+    assert not rv.exception, rv.exception.message
+    assert "Installation complete!" in rv.output, "Installation apparently didn't complete!"
+
+    import config
+    for name in dir(config):
+        if name.isupper():
+            poobrains.app.config[name] = getattr(config, name)
+
+    client.get('/') # first request that triggers before_first_request to finish booting poobrains
+
+
+def test_cert_page(client):
+
+    rv = client.get('/cert/')
+    assert rv.status_code == 200, "Expected status code 200 at /cert/, got %d" % rv.status_code
+
+
+def test_redeem_token(client):
+
+    token = poobrains.auth.ClientCertToken.get() # loads the token created by test_cli_install
+
+    rv = client.post('/cert/', data={'ClientCertForm.token': token.token, 'submit': 'ClientCertForm.tls_submit'})
+
+    passphrase_request = client.get('/cert/') # one more request, contains a flash() with passphrase
+    match = re.search(u">The passphrase for this delicious bundle of crypto is &#39;(.+)&#39;<", passphrase_request.data)
+
+    assert match, "Couldn't find passphrase flash!"
+
+    passphrase = match.group(1)
+
+    try:
+       OpenSSL.crypto.load_pkcs12(rv.data, passphrase)
+    except Exception:
+        raise AssertionError("Couldn't load PKCS12 with passphrase '%s'" % passphrase)
+
+# TODO: CRUD tests for ALL non-abstract Storables
+def test_create_api(client):
+
+    u = poobrains.auth.User.load('root')
+    g = u.groups[0]
+    cls = poobrains.auth.Page
+
+    instance = cls()
+    instance.owner = u
+    instance.group = g
+    instance.path = '/florp/'
+    instance.title = "Florp"
+    instance.content = "*florp*"
+
+    assert instance.save(force_insert=True) > 0
+
+
+def test_read(client):
+
+    cls = poobrains.auth.Page
+
+    instance = cls.load(1) # loads page created in previous test
+
+    assert instance.content == '*florp*'
+
+
+def test_update(client):
+
+    cls = poobrains.auth.Page
+
+    instance = cls.load(1)
+    instance.content = '*not* florp'
+    instance.save()
+
+    del instance
+
+    instance = cls.load(1)
+
+    assert instance.content == '*not* florp'
+
+
+def test_delete(client):
+
+    cls = poobrains.auth.Page
+
+    instance = cls.load(1)
+    assert instance.delete() > 0
 
 
 def run_all():
 
-    runner = unittest.runner.TextTestRunner(failfast=False)
-    suite = unittest.TestLoader().loadTestsFromTestCase(PooTest)
-    runner.run(suite)
+    # kill any previous install
+    try:
+        shutil.rmtree(os.path.join(poobrains.app.site_path, 'gnupg'))
+    except:
+        pass
+
+    try:
+        os.unlink('config.py')
+    except:
+        pass
+
+    try:
+        os.unlink('%s.db' % poobrains.project_name)
+    except:
+        pass
+
+    try:
+        os.unlink('%s.ini' % poobrains.project_name)
+    except:
+        pass
+
+    try:
+        os.unlink('%s.nginx.conf' % poobrains.project_name)
+    except:
+        pass
+
+    pytest.main([os.path.join(poobrains.app.poobrain_path, 'testing.py')])
