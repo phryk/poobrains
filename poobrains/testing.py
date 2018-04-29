@@ -8,6 +8,13 @@ import OpenSSL
 
 import poobrains
 from click.testing import CliRunner
+    
+ops = {
+    'c': 'create',
+    'r': 'read',
+    'u': 'update',
+    'd': 'delete'
+}
 
 @pytest.fixture
 def client():
@@ -145,6 +152,112 @@ def test_delete(client):
 
     instance = cls.load(1)
     assert instance.delete() > 0
+
+
+def test_ownedpermission_read_user_grant(client):
+
+    u = poobrains.auth.User()
+    u.name = 'test-grant'
+    u.save(force_insert=True)
+
+    cls = poobrains.auth.Page
+
+    up = poobrains.auth.UserPermission()
+    up.user = u
+    up.permission = cls.permissions['read'].__name__
+    up.access = 'grant'
+    up.save(force_insert=True)
+
+    u = poobrains.auth.User.load(u.name)
+
+    instance = cls()
+    instance.owner = u
+    instance.path = '/test-grant/'
+    instance.title = 'Test grant'
+    instance.content = 'test'
+    instance.save()
+
+    instance = cls.get(cls.path == instance.path)
+
+    try:
+        instance.permissions['read'].check(u)
+        instance.delete()
+    except poobrains.auth.AccessDenied:
+        instance.delete()
+        raise AssertionError('User-asigned Permission check for "create" does not allow access!')
+
+
+def test_ownedpermission_read_user_deny(client):
+
+    u = poobrains.auth.User()
+    u.name = 'test-deny'
+    u.save(force_insert=True)
+
+    cls = poobrains.auth.Page
+
+    up = poobrains.auth.UserPermission()
+    up.user = u
+    up.permission = cls.permissions['read'].__name__
+    up.access = 'deny'
+    up.save(force_insert=True)
+
+    u = poobrains.auth.User.load(u.name)
+
+    instance = cls()
+    instance.owner = u
+    instance.path = '/test-deny/'
+    instance.title = 'Test deny'
+    instance.content = 'test'
+    instance.save()
+
+    instance = cls.get(cls.path == instance.path)
+
+    with pytest.raises(poobrains.auth.AccessDenied):
+        instance.permissions['read'].check(u)
+
+
+def test_ownedpermission_read_user_instance(client):
+
+    u = poobrains.auth.User()
+    u.name = 'test-instance'
+    u.save(force_insert=True)
+
+    cls = poobrains.auth.Page
+
+    up = poobrains.auth.UserPermission()
+    up.user = u
+    up.permission = cls.permissions['read'].__name__
+    up.access = 'instance'
+    up.save(force_insert=True)
+
+    u = poobrains.auth.User.load(u.name)
+
+    instance = cls()
+    instance.owner = u
+    instance.path = '/test-instance/'
+    instance.title = 'Test instance'
+    instance.content = 'test'
+    instance.save()
+
+    instance = cls.get(cls.path == instance.path)
+
+    for op, name in ops.iteritems():
+
+        instance.access = ''
+        instance.save()
+        instance = cls.get(cls.path == instance.path)
+
+        with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty instance access failed!" % name):
+            instance.permissions[name].check(u)
+
+        instance.access = op
+        instance.save()
+        instance = cls.get(cls.path == instance.path)
+
+        try:
+            instance.permissions[name].check(u)
+        except poobrains.auth.AccessDenied:
+            raise AssertionError("User-assigned OwnedPermission check for '%s' with instance access '%s' does not allow access!" %(name, op))
 
 
 def run_all():
