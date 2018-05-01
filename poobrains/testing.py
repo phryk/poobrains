@@ -216,21 +216,13 @@ def test_ownedpermission_read_user_deny(client):
         instance.permissions['read'].check(u)
 
 
-def test_ownedpermission_read_user_instance(client):
+def test_ownedpermission_user_instance(client):
 
     u = poobrains.auth.User()
     u.name = 'test-instance'
     u.save(force_insert=True)
 
     cls = poobrains.auth.Page
-
-    up = poobrains.auth.UserPermission()
-    up.user = u
-    up.permission = cls.permissions['read'].__name__
-    up.access = 'instance'
-    up.save(force_insert=True)
-
-    u = poobrains.auth.User.load(u.name)
 
     instance = cls()
     instance.owner = u
@@ -242,6 +234,14 @@ def test_ownedpermission_read_user_instance(client):
     instance = cls.get(cls.path == instance.path)
 
     for op, name in ops.iteritems():
+
+        up = poobrains.auth.UserPermission()
+        up.user = u
+        up.permission = cls.permissions[name].__name__
+        up.access = 'instance'
+        up.save(force_insert=True)
+
+        u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
 
         instance.access = ''
         instance.save()
@@ -255,9 +255,56 @@ def test_ownedpermission_read_user_instance(client):
         instance = cls.get(cls.path == instance.path)
 
         try:
+            #import pudb; pudb.set_trace()
             instance.permissions[name].check(u)
         except poobrains.auth.AccessDenied:
             raise AssertionError("User-assigned OwnedPermission check for '%s' with instance access '%s' does not allow access!" %(name, op))
+
+
+def test_ownedpermission_user_own_instance(client):
+
+    u = poobrains.auth.User()
+    u.name = 'test-own-instance'
+    u.save(force_insert=True)
+    u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
+    poobrains.g.user = u # chep login fake because Owned uses g.user as default owner
+
+    cls = poobrains.auth.Page
+
+    instance = cls()
+    instance.owner = u
+    instance.path = '/test-own-instance/'
+    instance.title = 'Test own-instance'
+    instance.content = 'test'
+    instance.save()
+
+    instance = cls.get(cls.path == instance.path)
+
+    for op, name in ops.iteritems():
+
+        up = poobrains.auth.UserPermission()
+        up.user = u
+        up.permission = cls.permissions[name].__name__
+        up.access = 'own_instance'
+        up.save(force_insert=True)
+
+        u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
+
+        instance.access = ''
+        instance.save()
+        instance = cls.get(cls.path == instance.path)
+
+        with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty own_instance access failed!" % name):
+            instance.permissions[name].check(u)
+
+        instance.access = op
+        instance.save()
+        instance = cls.get(cls.path == instance.path)
+
+        try:
+            instance.permissions[name].check(u)
+        except poobrains.auth.AccessDenied:
+            raise AssertionError("User-assigned OwnedPermission check for '%s' with own_instance access '%s' does not allow access!" %(name, op))
 
 
 def run_all():
@@ -288,4 +335,5 @@ def run_all():
     except:
         pass
 
-    pytest.main([os.path.join(poobrains.app.poobrain_path, 'testing.py')])
+    # run tests
+    pytest.main(['-v', '-s', os.path.join(poobrains.app.poobrain_path, 'testing.py')])

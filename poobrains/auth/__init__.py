@@ -1851,25 +1851,25 @@ class Owned(Administerable):
 
         super(Owned, self).__init__(*args, **kwargs)
 
-        self.owner = g.user
-        self.group = g.user.groups[0] # FIXME: will fail hard if user is in no groups. or more than one group because then it's not guaranteed to be one with right permissions (if any). needs to be selected by a query
+        #self.owner = g.user
+        #self.group = g.user.groups[0] # FIXME: will fail hard if user is in no groups. or more than one group because then it's not guaranteed to be one with right permissions (if any). needs to be selected by a query
 
         self.permissions = collections.OrderedDict()
         
         for mode, perm_class in self.__class__.permissions.iteritems():
             self.permissions[mode] = perm_class(self)
 
-
-    def form(self, mode=None):
+    @classmethod
+    def class_view(cls, mode=None, handle=None, **kwargs):
 
         op = self._meta.modes[mode]
-        f = super(Owned, self).form(mode)
 
         if op == 'create':
-            f.fields['owner'].value = g.user
-            f.fields['group'].value = g.user.groups[0]
+            instance = cls()
+            instance.owner = g.user
+            return instance.view(mode=mode, handle=handle, **kwargs)
 
-        return f
+        return super(Owned, cls).class_view(mode=mode, handle=handle, **kwargs)
 
 
 class NamedOwned(Owned, Named):
@@ -1908,7 +1908,6 @@ class Page(Owned):
         op = cls._meta.modes[mode]
 
         if op == 'create':
-            print "CREATE!"
             instance = cls()
 
         elif op == 'read' and kwargs.has_key('path'):
