@@ -19,20 +19,20 @@ ops = {
 @pytest.fixture
 def client():
 
-        poobrains.app.wsgi_app = FakeHTTPSMiddleware(poobrains.app.wsgi_app)
-        poobrains.app.config['SECRET_KEY'] = 'fnord'
-        poobrains.app.config['TESTING'] = True
-        poobrains.app.debug = True
-        client = poobrains.app.test_client()
+    poobrains.app.wsgi_app = FakeHTTPSMiddleware(poobrains.app.wsgi_app)
+    poobrains.app.config['SECRET_KEY'] = 'fnord'
+    poobrains.app.config['TESTING'] = True
+    poobrains.app.debug = True
+    client = poobrains.app.test_client()
 
-        if not os.environ.has_key('FLASK_APP'):
-            os.environ['FLASK_APP'] = '__main__'
-        #poobrains.project_name = os.environ['FLASK_APP']
+    if not os.environ.has_key('FLASK_APP'):
+        os.environ['FLASK_APP'] = '__main__'
+    #poobrains.project_name = os.environ['FLASK_APP']
 
 
-        yield client
+    yield client
 
-        # Everything after yield is teardown? Is that right?
+    # Everything after yield is teardown? Is that right?
 
 
 class FakeHTTPSMiddleware(object):
@@ -255,7 +255,6 @@ def test_ownedpermission_user_instance(client):
         instance = cls.get(cls.path == instance.path)
 
         try:
-            #import pudb; pudb.set_trace()
             instance.permissions[name].check(u)
         except poobrains.auth.AccessDenied:
             raise AssertionError("User-assigned OwnedPermission check for '%s' with instance access '%s' does not allow access!" %(name, op))
@@ -336,4 +335,4 @@ def run_all():
         pass
 
     # run tests
-    pytest.main(['-v', '-s', os.path.join(poobrains.app.poobrain_path, 'testing.py')])
+    pytest.main(['-v', os.path.join(poobrains.app.poobrain_path, 'testing.py')])
