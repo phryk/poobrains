@@ -90,20 +90,20 @@ ops = list(poobrains.auth.OwnedPermission.op_abbreviations.iteritems()) # crud o
 @pytest.fixture
 def client():
 
-        poobrains.app.wsgi_app = FakeHTTPSMiddleware(poobrains.app.wsgi_app)
-        poobrains.app.config['SECRET_KEY'] = 'fnord'
-        poobrains.app.config['TESTING'] = True
-        poobrains.app.debug = True
-        client = poobrains.app.test_client()
+    poobrains.app.wsgi_app = FakeHTTPSMiddleware(poobrains.app.wsgi_app)
+    poobrains.app.config['SECRET_KEY'] = 'fnord'
+    poobrains.app.config['TESTING'] = True
+    poobrains.app.debug = True
+    client = poobrains.app.test_client()
 
-        if not os.environ.has_key('FLASK_APP'):
-            os.environ['FLASK_APP'] = '__main__'
-        #poobrains.project_name = os.environ['FLASK_APP']
+    if not os.environ.has_key('FLASK_APP'):
+        os.environ['FLASK_APP'] = '__main__'
+    #poobrains.project_name = os.environ['FLASK_APP']
 
 
-        yield client
+    yield client
 
-        # Everything after yield is teardown? Is that right?
+    # Everything after yield is teardown? Is that right?
 
 
 class FakeHTTPSMiddleware(object):
