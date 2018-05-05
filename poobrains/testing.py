@@ -1,20 +1,91 @@
 import os
 import re
 import shutil
-#import unittest
 import pytest
+
+import random
+import datetime
 
 import OpenSSL
 
 import poobrains
 from click.testing import CliRunner
-    
-ops = {
-    'c': 'create',
-    'r': 'read',
-    'u': 'update',
-    'd': 'delete'
+
+
+# helpers
+
+def generate_int():
+
+    return 42
+
+
+def generate_float():
+
+    return 5.55
+
+
+generators = {
+    int: generate_int,
+    float: generate_float,
+    str: poobrains.helpers.random_string_light,
+    datetime.datetime: datetime.datetime.now
 }
+
+fieldmap = { # TODO: there's a proper way of getting this info out of peewee fields, do that.
+    poobrains.storage.fields.IntegerField: int,
+    poobrains.storage.fields.DoubleField: float, 
+    poobrains.storage.fields.DateTimeField: datetime.datetime,
+    poobrains.storage.fields.CharField: str,
+    poobrains.storage.fields.TextField: str,
+    poobrains.storage.fields.MarkdownField: str,
+}
+
+
+def fill_valid(instance):
+
+    for attr_name in dir(instance):
+
+        if hasattr(instance.__class__, attr_name):
+            cls_attr = getattr(instance.__class__, attr_name)
+
+            if isinstance(cls_attr, poobrains.storage.fields.Field):
+                field_class = cls_attr.__class__
+                if not cls_attr.null and cls_attr.default is None:
+
+                    if isinstance(cls_attr, poobrains.storage.fields.ForeignKeyField):
+
+                        if cls_attr.rel_model != poobrains.auth.User:
+
+                            ref = cls_attr.rel_model() # create an instance of the related model to reference in this FK column
+
+                            if isinstance(ref, poobrains.auth.Owned):
+                                ref.owner = instance.owner # Means we MUST set owner/group *before* calling fill_valid
+                                ref.group = instance.group
+
+                            fill_valid(ref) # such recursive much wow
+                            ref.save(force_insert=True)
+                            setattr(instance, attr_name, ref)
+
+                    elif cls_attr.constraints:
+
+                        if isinstance(instance, poobrains.storage.Named) and attr_name == 'name':
+                            setattr(instance, attr_name, generators[fieldmap[field_class]]().lower())
+                        else:
+                            raise AssertionError("Can't guarantee valid fill for class '%s' because of constraints on field '%s'!" % (instance.__class__.__name__, attr_name))
+
+                    elif not fieldmap.has_key(cls_attr.__class__):
+                        raise AssertionError("Can't generate fill for %s.%s of type %s" % (instance.__class__.__name__, attr_name, field_class.__name__))
+                    else:
+                        setattr(instance, attr_name, generators[fieldmap[field_class]]())
+
+                    
+# testing setup stuff
+
+#classes_to_test = [poobrains.auth.Page]
+classes_to_test = list(poobrains.auth.Owned.class_children()) # what currently works
+#classes_to_test = list(poobrains.auth.Administerable.class_children())
+#classes_to_test = list(poobrains.auth.Administerable.class_children() - poobrains.auth.Owned.class_children()) # test all non-owned Administerables (all failing administerables should be in here)
+ops = list(poobrains.auth.OwnedPermission.op_abbreviations.iteritems()) # crud operations and their abbreviations
 
 @pytest.fixture
 def client():
@@ -47,6 +118,8 @@ class FakeHTTPSMiddleware(object):
         return self.app(environ, start_response)
 
 
+
+# tests
 
 def test_cli_install(client):
 
@@ -93,7 +166,7 @@ def test_redeem_token(client):
 
     rv = client.post('/cert/', data={'ClientCertForm.token': token.token, 'submit': 'ClientCertForm.tls_submit'})
 
-    passphrase_request = client.get('/cert/') # one more request, contains a flash() with passphrase
+    passphrase_request = client.get('/cert/') # reply to the next request in the same session contains a flash() with passphrase
     match = re.search(u">The passphrase for this delicious bundle of crypto is &#39;(.+)&#39;<", passphrase_request.data)
 
     assert match, "Couldn't find passphrase flash!"
@@ -106,65 +179,52 @@ def test_redeem_token(client):
         raise AssertionError("Couldn't load PKCS12 with passphrase '%s'" % passphrase)
 
 # TODO: CRUD tests for ALL non-abstract Storables
-def test_create_api(client):
+@pytest.mark.parametrize('cls', classes_to_test)
+def test_crud(client, cls):
 
+    anon = poobrains.auth.User.load('anonymous')
     u = poobrains.auth.User.load('root')
     g = u.groups[0]
-    cls = poobrains.auth.Page
 
     instance = cls()
     instance.owner = u
     instance.group = g
-    instance.path = '/florp/'
-    instance.title = "Florp"
-    instance.content = "*florp*"
+    fill_valid(instance)
 
-    assert instance.save(force_insert=True) > 0
+    assert instance.save(force_insert=True) > 0, "Create failed for class '%s'!" % cls.__name__
 
+    instance = cls.load(instance.handle_string) # reloads instance from database, making sure Read works
+    assert instance.owner == u, "Read failed for class '%s'!" % cls.__name__
 
-def test_read(client):
-
-    cls = poobrains.auth.Page
-
-    instance = cls.load(1) # loads page created in previous test
-
-    assert instance.content == '*florp*'
-
-
-def test_update(client):
-
-    cls = poobrains.auth.Page
-
-    instance = cls.load(1)
-    instance.content = '*not* florp'
+    # make owner anon to test whether updating works properly
+    instance.owner = anon
     instance.save()
 
-    del instance
+    instance = cls.load(instance.handle_string) # reloads again to make sure Update works
+    assert instance.owner == anon, "Update failed for class '%s'!" % cls.__name__
 
-    instance = cls.load(1)
-
-    assert instance.content == '*not* florp'
-
-
-def test_delete(client):
-
-    cls = poobrains.auth.Page
-
-    instance = cls.load(1)
-    assert instance.delete() > 0
+    assert instance.delete() > 0, "Delete failed for class '%s'!" % cls.__name__
 
 
-def test_ownedpermission_read_user_grant(client):
+# TODO: use the Page permission tests as basis for auto-generated permission
+# testing of all Protected subclasses. Will need valid value generators for all
+# NOT NULL fields first
+
+
+@pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('cls', classes_to_test)
+def test_permission_user_grant(client, cls, op_info):
+
+    op = op_info[0]
+    op_abbr = op_info[1]
 
     u = poobrains.auth.User()
-    u.name = 'test-grant'
+    u.name = 'test-%s-%s-grant' % (cls.__name__.lower(), op)
     u.save(force_insert=True)
-
-    cls = poobrains.auth.Page
 
     up = poobrains.auth.UserPermission()
     up.user = u
-    up.permission = cls.permissions['read'].__name__
+    up.permission = cls.permissions[op].__name__
     up.access = 'grant'
     up.save(force_insert=True)
 
@@ -172,32 +232,33 @@ def test_ownedpermission_read_user_grant(client):
 
     instance = cls()
     instance.owner = u
-    instance.path = '/test-grant/'
-    instance.title = 'Test grant'
-    instance.content = 'test'
-    instance.save()
+    fill_valid(instance)
+    instance.save(force_insert=True)
 
-    instance = cls.get(cls.path == instance.path)
+    instance = cls.load(instance.handle_string)
 
     try:
-        instance.permissions['read'].check(u)
+        instance.permissions[op].check(u)
         instance.delete()
     except poobrains.auth.AccessDenied:
         instance.delete()
-        raise AssertionError('User-asigned Permission check for "create" does not allow access!')
+        raise AssertionError('User-asigned Permission check for "%s" does not allow access!' % op)
 
 
-def test_ownedpermission_read_user_deny(client):
+@pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('cls', classes_to_test)
+def test_permission_read_user_deny(client, cls, op_info):
+    
+    op = op_info[0]
+    op_abbr = op_info[1]
 
     u = poobrains.auth.User()
-    u.name = 'test-deny'
+    u.name = 'test-%s-%s-deny' % (cls.__name__.lower(), op)
     u.save(force_insert=True)
-
-    cls = poobrains.auth.Page
 
     up = poobrains.auth.UserPermission()
     up.user = u
-    up.permission = cls.permissions['read'].__name__
+    up.permission = cls.permissions[op].__name__
     up.access = 'deny'
     up.save(force_insert=True)
 
@@ -205,106 +266,102 @@ def test_ownedpermission_read_user_deny(client):
 
     instance = cls()
     instance.owner = u
-    instance.path = '/test-deny/'
-    instance.title = 'Test deny'
-    instance.content = 'test'
-    instance.save()
+    fill_valid(instance)
+    instance.save(force_insert=True)
 
-    instance = cls.get(cls.path == instance.path)
+    instance = cls.load(instance.handle_string)
 
     with pytest.raises(poobrains.auth.AccessDenied):
-        instance.permissions['read'].check(u)
+        instance.permissions[op].check(u)
 
 
-def test_ownedpermission_user_instance(client):
+@pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('cls', classes_to_test)
+def test_ownedpermission_user_instance(client, cls, op_info):
+    
+    op = op_info[0]
+    op_abbr = op_info[1]
 
     u = poobrains.auth.User()
-    u.name = 'test-instance'
+    u.name = 'test-%s-%s-instance' % (cls.__name__.lower(), op)
     u.save(force_insert=True)
-
-    cls = poobrains.auth.Page
 
     instance = cls()
     instance.owner = u
-    instance.path = '/test-instance/'
-    instance.title = 'Test instance'
-    instance.content = 'test'
+    fill_valid(instance)
+    instance.save(force_insert=True)
+
+    instance = cls.load(instance.handle_string)
+
+    up = poobrains.auth.UserPermission()
+    up.user = u
+    up.permission = cls.permissions[op].__name__
+    up.access = 'instance'
+    up.save(force_insert=True)
+
+    u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
+
+    instance.access = ''
     instance.save()
+    instance = cls.load(instance.handle_string)
 
-    instance = cls.get(cls.path == instance.path)
+    with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty instance access failed!" % op):
+        instance.permissions[op].check(u)
 
-    for op, name in ops.iteritems():
+    instance.access = op_abbr
+    instance.save()
+    instance = cls.load(instance.handle_string)
 
-        up = poobrains.auth.UserPermission()
-        up.user = u
-        up.permission = cls.permissions[name].__name__
-        up.access = 'instance'
-        up.save(force_insert=True)
-
-        u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
-
-        instance.access = ''
-        instance.save()
-        instance = cls.get(cls.path == instance.path)
-
-        with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty instance access failed!" % name):
-            instance.permissions[name].check(u)
-
-        instance.access = op
-        instance.save()
-        instance = cls.get(cls.path == instance.path)
-
-        try:
-            #import pudb; pudb.set_trace()
-            instance.permissions[name].check(u)
-        except poobrains.auth.AccessDenied:
-            raise AssertionError("User-assigned OwnedPermission check for '%s' with instance access '%s' does not allow access!" %(name, op))
+    try:
+        #import pudb; pudb.set_trace()
+        instance.permissions[op].check(u)
+    except poobrains.auth.AccessDenied:
+        raise AssertionError("User-assigned OwnedPermission check for '%s' with instance access '%s' does not allow access!" %(op, op_abbr))
 
 
-def test_ownedpermission_user_own_instance(client):
+@pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('cls', classes_to_test)
+def test_ownedpermission_user_own_instance(client, cls, op_info):
+    
+    op = op_info[0]
+    op_abbr = op_info[1]
 
     u = poobrains.auth.User()
-    u.name = 'test-own-instance'
+    u.name = 'test-%s-%s-own-instance' % (cls.__name__.lower(), op)
     u.save(force_insert=True)
     u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
     poobrains.g.user = u # chep login fake because Owned uses g.user as default owner
 
-    cls = poobrains.auth.Page
-
     instance = cls()
     instance.owner = u
-    instance.path = '/test-own-instance/'
-    instance.title = 'Test own-instance'
-    instance.content = 'test'
+    fill_valid(instance)
+    instance.save(force_insert=True)
+
+    instance = cls.load(instance.handle_string)
+
+    up = poobrains.auth.UserPermission()
+    up.user = u
+    up.permission = cls.permissions[op].__name__
+    up.access = 'own_instance'
+    up.save(force_insert=True)
+
+    u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
+
+    instance.access = ''
     instance.save()
+    instance = cls.load(instance.handle_string)
 
-    instance = cls.get(cls.path == instance.path)
+    with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty own_instance access failed!" % op):
+        instance.permissions[op].check(u)
 
-    for op, name in ops.iteritems():
+    instance.access = op_abbr
+    instance.save()
+    instance = cls.load(instance.handle_string)
 
-        up = poobrains.auth.UserPermission()
-        up.user = u
-        up.permission = cls.permissions[name].__name__
-        up.access = 'own_instance'
-        up.save(force_insert=True)
-
-        u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
-
-        instance.access = ''
-        instance.save()
-        instance = cls.get(cls.path == instance.path)
-
-        with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty own_instance access failed!" % name):
-            instance.permissions[name].check(u)
-
-        instance.access = op
-        instance.save()
-        instance = cls.get(cls.path == instance.path)
-
-        try:
-            instance.permissions[name].check(u)
-        except poobrains.auth.AccessDenied:
-            raise AssertionError("User-assigned OwnedPermission check for '%s' with own_instance access '%s' does not allow access!" %(name, op))
+    try:
+        instance.permissions[op].check(u)
+    except poobrains.auth.AccessDenied:
+        raise AssertionError("User-assigned OwnedPermission check for '%s' with own_instance access '%s' does not allow access!" %(op, op_abbr))
 
 
 def run_all():
@@ -336,4 +393,4 @@ def run_all():
         pass
 
     # run tests
-    pytest.main(['-v', '-s', os.path.join(poobrains.app.poobrain_path, 'testing.py')])
+    pytest.main(['-v', '--tb=no', os.path.join(poobrains.app.poobrain_path, 'testing.py')])
