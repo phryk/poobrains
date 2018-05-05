@@ -11,7 +11,6 @@ import OpenSSL
 import poobrains
 from click.testing import CliRunner
 
-
 # helpers
 
 def generate_int():
@@ -46,25 +45,36 @@ def fill_valid(instance):
     for attr_name in dir(instance):
 
         if hasattr(instance.__class__, attr_name):
+
             cls_attr = getattr(instance.__class__, attr_name)
 
+
+
             if isinstance(cls_attr, poobrains.storage.fields.Field):
+
+                #if instance_attr is None or not cls_attr.primary_key:
+                #    import pudb; pudb.set_trace()
+
+
                 field_class = cls_attr.__class__
                 if not cls_attr.null and cls_attr.default is None:
-
                     if isinstance(cls_attr, poobrains.storage.fields.ForeignKeyField):
 
-                        if cls_attr.rel_model != poobrains.auth.User:
+                        try:
+                            instance_attr = getattr(instance, attr_name)
+                        except poobrains.storage.DoesNotExist as e: # only create fk instances if the field hasn't been filled before (i.e. don't mess with existing relations)
 
-                            ref = cls_attr.rel_model() # create an instance of the related model to reference in this FK column
+                            if cls_attr.rel_model != poobrains.auth.User:
 
-                            if isinstance(ref, poobrains.auth.Owned):
-                                ref.owner = instance.owner # Means we MUST set owner/group *before* calling fill_valid
-                                ref.group = instance.group
+                                ref = cls_attr.rel_model() # create an instance of the related model to reference in this FK column
 
-                            fill_valid(ref) # such recursive much wow
-                            ref.save(force_insert=True)
-                            setattr(instance, attr_name, ref)
+                                if isinstance(ref, poobrains.auth.Owned):
+                                    ref.owner = instance.owner # Means we MUST set owner/group *before* calling fill_valid
+                                    ref.group = instance.group
+
+                                fill_valid(ref) # such recursive much wow
+                                ref.save(force_insert=True)
+                                setattr(instance, attr_name, ref)
 
                     elif cls_attr.constraints:
 
@@ -182,7 +192,6 @@ def test_redeem_token(client):
 @pytest.mark.parametrize('cls', classes_to_test)
 def test_crud(client, cls):
 
-    anon = poobrains.auth.User.load('anonymous')
     u = poobrains.auth.User.load('root')
     g = u.groups[0]
 
@@ -197,11 +206,8 @@ def test_crud(client, cls):
     assert instance.owner == u, "Read failed for class '%s'!" % cls.__name__
 
     # make owner anon to test whether updating works properly
-    instance.owner = anon
-    instance.save()
-
-    instance = cls.load(instance.handle_string) # reloads again to make sure Update works
-    assert instance.owner == anon, "Update failed for class '%s'!" % cls.__name__
+    fill_valid(instance) # put some new values into the instance
+    assert instance.save() > 0, "Update failed for class '%s'!" % cls.__name__
 
     assert instance.delete() > 0, "Delete failed for class '%s'!" % cls.__name__
 
@@ -313,7 +319,6 @@ def test_ownedpermission_user_instance(client, cls, op_info):
     instance = cls.load(instance.handle_string)
 
     try:
-        #import pudb; pudb.set_trace()
         instance.permissions[op].check(u)
     except poobrains.auth.AccessDenied:
         raise AssertionError("User-assigned OwnedPermission check for '%s' with instance access '%s' does not allow access!" %(op, op_abbr))
@@ -393,4 +398,4 @@ def run_all():
         pass
 
     # run tests
-    pytest.main(['-v', '--tb=no', os.path.join(poobrains.app.poobrain_path, 'testing.py')])
+    pytest.main(['-v', '-s', '--tb=short', os.path.join(poobrains.app.poobrain_path, 'testing.py')])
