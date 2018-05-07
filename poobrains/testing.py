@@ -13,9 +13,14 @@ from click.testing import CliRunner
 
 # helpers
 
+def generate_bool():
+
+    return bool(random.randint(0, 1))
+
+
 def generate_int():
 
-    return 42
+    return 4 # guaranteed to be random by fair dice roll
 
 
 def generate_float():
@@ -24,6 +29,7 @@ def generate_float():
 
 
 generators = {
+    bool: generate_bool,
     int: generate_int,
     float: generate_float,
     str: poobrains.helpers.random_string_light,
@@ -31,6 +37,7 @@ generators = {
 }
 
 fieldmap = { # TODO: there's a proper way of getting this info out of peewee fields, do that.
+    poobrains.storage.fields.BooleanField: bool,
     poobrains.storage.fields.IntegerField: int,
     poobrains.storage.fields.DoubleField: float, 
     poobrains.storage.fields.DateTimeField: datetime.datetime,
@@ -52,29 +59,24 @@ def fill_valid(instance):
 
             if isinstance(cls_attr, poobrains.storage.fields.Field):
 
-                #if instance_attr is None or not cls_attr.primary_key:
-                #    import pudb; pudb.set_trace()
-
-
                 field_class = cls_attr.__class__
                 if not cls_attr.null and cls_attr.default is None:
                     if isinstance(cls_attr, poobrains.storage.fields.ForeignKeyField):
 
                         try:
                             instance_attr = getattr(instance, attr_name)
+
                         except poobrains.storage.DoesNotExist as e: # only create fk instances if the field hasn't been filled before (i.e. don't mess with existing relations)
 
-                            if cls_attr.rel_model != poobrains.auth.User:
+                            ref = cls_attr.rel_model() # create an instance of the related model to reference in this FK column
 
-                                ref = cls_attr.rel_model() # create an instance of the related model to reference in this FK column
+                            if isinstance(ref, poobrains.auth.Owned):
+                                ref.owner = instance.owner # Means we MUST set owner/group *before* calling fill_valid
+                                ref.group = instance.group
 
-                                if isinstance(ref, poobrains.auth.Owned):
-                                    ref.owner = instance.owner # Means we MUST set owner/group *before* calling fill_valid
-                                    ref.group = instance.group
-
-                                fill_valid(ref) # such recursive much wow
-                                ref.save(force_insert=True)
-                                setattr(instance, attr_name, ref)
+                            fill_valid(ref) # such recursive much wow
+                            ref.save(force_insert=True)
+                            setattr(instance, attr_name, ref)
 
                     elif cls_attr.constraints:
 
@@ -91,10 +93,16 @@ def fill_valid(instance):
                     
 # testing setup stuff
 
-#classes_to_test = [poobrains.auth.Page]
-classes_to_test = list(poobrains.auth.Owned.class_children()) # what currently works
-#classes_to_test = list(poobrains.auth.Administerable.class_children())
-#classes_to_test = list(poobrains.auth.Administerable.class_children() - poobrains.auth.Owned.class_children()) # test all non-owned Administerables (all failing administerables should be in here)
+expected_failures = set([ # set of Storables we know will fail automatic testing while being valid. mostly caused by constraints and minimal table structure (linker tables for example). these types will need their own tests.
+    poobrains.auth.UserGroup, # all columns member of a CompositeKey, meaning updating isn't really a thing
+    poobrains.auth.UserPermission, # similar issue as UserGroup, but has one more field which is basically a runtime enum, i.e. what's valid is determined by poobrains and not the db
+    poobrains.auth.GroupPermission, # ditto
+    poobrains.auth.ClientCertToken, # regexp constraint on cert_name
+])
+
+storables_to_test = list(poobrains.storage.Storable.class_children() - expected_failures)
+administerables_to_test = list(poobrains.auth.Administerable.class_children() - expected_failures)
+owneds_to_test = list(poobrains.auth.Owned.class_children() - expected_failures) # what currently works
 ops = list(poobrains.auth.OwnedPermission.op_abbreviations.iteritems()) # crud operations and their abbreviations
 
 @pytest.fixture
@@ -189,24 +197,30 @@ def test_redeem_token(client):
         raise AssertionError("Couldn't load PKCS12 with passphrase '%s'" % passphrase)
 
 # TODO: CRUD tests for ALL non-abstract Storables
-@pytest.mark.parametrize('cls', classes_to_test)
+@pytest.mark.parametrize('cls', storables_to_test)
 def test_crud(client, cls):
 
     u = poobrains.auth.User.load('root')
     g = u.groups[0]
 
     instance = cls()
-    instance.owner = u
-    instance.group = g
+
+    if isinstance(instance, poobrains.auth.Owned):
+        instance.owner = u
+        instance.group = g
+
     fill_valid(instance)
 
     assert instance.save(force_insert=True) > 0, "Create failed for class '%s'!" % cls.__name__
 
-    instance = cls.load(instance.handle_string) # reloads instance from database, making sure Read works
-    assert instance.owner == u, "Read failed for class '%s'!" % cls.__name__
+    try:
+        instance = cls.load(instance.handle_string) # reloads instance from database, making sure Read works
+    except cls.DoesNotExist:
+        raise AssertionError("Read failed for class '%s'!" % cls.__name__)
 
     # make owner anon to test whether updating works properly
     fill_valid(instance) # put some new values into the instance
+    
     assert instance.save() > 0, "Update failed for class '%s'!" % cls.__name__
 
     assert instance.delete() > 0, "Delete failed for class '%s'!" % cls.__name__
@@ -218,15 +232,23 @@ def test_crud(client, cls):
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
-@pytest.mark.parametrize('cls', classes_to_test)
+@pytest.mark.parametrize('cls', administerables_to_test)
 def test_permission_user_grant(client, cls, op_info):
 
     op = op_info[0]
     op_abbr = op_info[1]
 
+    if not cls.permissions.has_key(op):
+        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
+
     u = poobrains.auth.User()
     u.name = 'test-%s-%s-grant' % (cls.__name__.lower(), op)
     u.save(force_insert=True)
+
+    try:
+        cls.permissions[op]
+    except Exception:
+        import pudb; pudb.set_trace()
 
     up = poobrains.auth.UserPermission()
     up.user = u
@@ -237,7 +259,8 @@ def test_permission_user_grant(client, cls, op_info):
     u = poobrains.auth.User.load(u.name)
 
     instance = cls()
-    instance.owner = u
+    if isinstance(instance, poobrains.auth.Owned):
+        instance.owner = u
     fill_valid(instance)
     instance.save(force_insert=True)
 
@@ -248,15 +271,18 @@ def test_permission_user_grant(client, cls, op_info):
         instance.delete()
     except poobrains.auth.AccessDenied:
         instance.delete()
-        raise AssertionError('User-asigned Permission check for "%s" does not allow access!' % op)
+        raise AssertionError("User-assigned Permission check on %s for '%s' does not allow access!" % (cls.__name__, op))
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
-@pytest.mark.parametrize('cls', classes_to_test)
+@pytest.mark.parametrize('cls', administerables_to_test)
 def test_permission_read_user_deny(client, cls, op_info):
     
     op = op_info[0]
     op_abbr = op_info[1]
+
+    if not cls.permissions.has_key(op):
+        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
     u.name = 'test-%s-%s-deny' % (cls.__name__.lower(), op)
@@ -271,7 +297,8 @@ def test_permission_read_user_deny(client, cls, op_info):
     u = poobrains.auth.User.load(u.name)
 
     instance = cls()
-    instance.owner = u
+    if isinstance(instance, poobrains.auth.Owned):
+        instance.owner = u
     fill_valid(instance)
     instance.save(force_insert=True)
 
@@ -282,11 +309,14 @@ def test_permission_read_user_deny(client, cls, op_info):
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
-@pytest.mark.parametrize('cls', classes_to_test)
+@pytest.mark.parametrize('cls', owneds_to_test)
 def test_ownedpermission_user_instance(client, cls, op_info):
     
     op = op_info[0]
     op_abbr = op_info[1]
+
+    if not cls.permissions.has_key(op):
+        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
     u.name = 'test-%s-%s-instance' % (cls.__name__.lower(), op)
@@ -311,7 +341,7 @@ def test_ownedpermission_user_instance(client, cls, op_info):
     instance.save()
     instance = cls.load(instance.handle_string)
 
-    with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty instance access failed!" % op):
+    with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check on %s for '%s' with empty instance access failed!" % (cls.__name__, op)):
         instance.permissions[op].check(u)
 
     instance.access = op_abbr
@@ -321,15 +351,18 @@ def test_ownedpermission_user_instance(client, cls, op_info):
     try:
         instance.permissions[op].check(u)
     except poobrains.auth.AccessDenied:
-        raise AssertionError("User-assigned OwnedPermission check for '%s' with instance access '%s' does not allow access!" %(op, op_abbr))
+        raise AssertionError("User-assigned OwnedPermission check on %s for '%s' with instance access '%s' does not allow access!" %(cls.__name__, op, op_abbr))
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
-@pytest.mark.parametrize('cls', classes_to_test)
+@pytest.mark.parametrize('cls', owneds_to_test)
 def test_ownedpermission_user_own_instance(client, cls, op_info):
     
     op = op_info[0]
     op_abbr = op_info[1]
+
+    if not cls.permissions.has_key(op):
+        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
     u.name = 'test-%s-%s-own-instance' % (cls.__name__.lower(), op)
@@ -356,7 +389,7 @@ def test_ownedpermission_user_own_instance(client, cls, op_info):
     instance.save()
     instance = cls.load(instance.handle_string)
 
-    with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check for '%s' with empty own_instance access failed!" % op):
+    with pytest.raises(poobrains.auth.AccessDenied, message="!!! FALSE NEGATIVE IN PERMISSION SYSTEM !!! User-assigned OwnedPermission check on %s for '%s' with empty own_instance access failed!" % (cls.__name__, op)):
         instance.permissions[op].check(u)
 
     instance.access = op_abbr
@@ -366,7 +399,7 @@ def test_ownedpermission_user_own_instance(client, cls, op_info):
     try:
         instance.permissions[op].check(u)
     except poobrains.auth.AccessDenied:
-        raise AssertionError("User-assigned OwnedPermission check for '%s' with own_instance access '%s' does not allow access!" %(op, op_abbr))
+        raise AssertionError("User-assigned OwnedPermission check on %s for '%s' with own_instance access '%s' does not allow access!" %(cls.__name__, op, op_abbr))
 
 
 def run_all():

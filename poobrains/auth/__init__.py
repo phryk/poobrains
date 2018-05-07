@@ -799,12 +799,12 @@ class OwnedPermission(Permission):
         ('grant', 'For all instances')
     ]
 
-    op_abbreviations = {
-        'create': 'c',
-        'read': 'r',
-        'update': 'u',
-        'delete': 'd'
-    }
+    op_abbreviations = collections.OrderedDict([
+        ('create', 'c'),
+        ('read', 'r'),
+        ('update', 'u'),
+        ('delete', 'd')
+    ])
     
     class Meta:
         abstract = True

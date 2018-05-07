@@ -86,7 +86,9 @@ class NonExposedB(NonExposed):
     pass
 
 class AVeryVeryLongNameToTestMenuPositioning(poobrains.auth.Administerable):
-    pass
+    
+    florp = poobrains.storage.fields.BooleanField()
+
 
 #class MultiPK(poobrains.auth.Administerable):
 #
