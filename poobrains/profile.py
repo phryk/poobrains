@@ -16,6 +16,7 @@ import poobrains.storage
 import poobrains.auth
 
 import time
+import datetime
 
 class Dashbar(poobrains.rendering.Container):
 
@@ -78,6 +79,7 @@ class CertControl(poobrains.auth.Protected):
     class Meta:
 
         modes = collections.OrderedDict([
+            ('add', 'create'),
             ('full', 'read'),
             ('delete', 'delete')
         ])
@@ -87,9 +89,12 @@ class CertControl(poobrains.auth.Protected):
 
     def __init__(self, handle=None, cert_handle=None, **kwargs):
 
-        super(CertControl, self).__init__(**kwargs)
+        super(CertControl, self).__init__(handle=handle, **kwargs)
         self.user = poobrains.auth.User.load(handle)
         #self.title = self.user.name
+
+        self.pre = poobrains.rendering.Menu('certtoken-add')
+        self.pre.append(self.url(mode='add'), 'Add new')
 
         if len(flask.request.environ['SSL_CLIENT_CERT']):
             cert_current = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, flask.request.environ['SSL_CLIENT_CERT'])
@@ -110,9 +115,24 @@ class CertControl(poobrains.auth.Protected):
             self.cert_table.append(cert_info.name, cert_info.keylength, cert_info.fingerprint, actions,_classes=classes)
     
     @poobrains.helpers.themed
-    def view(self, handle=None, cert_handle=None, **kwargs):
+    def view(self, handle=None, cert_handle=None, mode='full', **kwargs):
 
-        if cert_handle is not None:
+        if mode == 'add':
+            token = poobrains.auth.ClientCertToken()
+            token.user = self.user
+            f = token.form('add')
+            f.fields['user'].readonly = True
+            f.created = poobrains.form.fields.Value(value=datetime.datetime.now())
+            f.redeemed = poobrains.form.fields.Value(value=False)
+
+            r = poobrains.helpers.ThemedPassthrough(f.view(**kwargs))
+
+            if flask.request.method == 'POST':
+                return flask.redirect(CertControl.url(mode='full', handle=handle))
+
+            return r
+
+        if cert_handle is not None and mode == 'delete':
             cert = poobrains.auth.ClientCert.load(cert_handle)
             if self.user == cert.user:
                 cert.permissions['read'].check(g.user)
@@ -123,10 +143,11 @@ class CertControl(poobrains.auth.Protected):
 
                 return poobrains.helpers.ThemedPassthrough(r)
 
-        return poobrains.helpers.ThemedPassthrough(super(CertControl, self).view(handle=handle, cert_handle=cert_handle, **kwargs))
+        return poobrains.helpers.ThemedPassthrough(super(CertControl, self).view(handle=handle, cert_handle=cert_handle, mode=mode, **kwargs))
 
-app.site.add_view(CertControl, '/~<handle>/cert/', endpoint='certcontrol', mode='full')
-app.site.add_view(CertControl, '/~<handle>/cert/<cert_handle>', mode='delete')
+app.site.add_view(CertControl, '/~<handle>/cert/', mode='full', endpoint='certcontrol')
+app.site.add_view(CertControl, '/~<handle>/cert/add/', mode='add', endpoint='certcontrol_add')
+app.site.add_view(CertControl, '/~<handle>/cert/<cert_handle>', mode='delete', endpoint='certcontrol_delete')
 
 
 class PGPControl(poobrains.auth.Protected):
@@ -203,7 +224,7 @@ class NotificationControl(poobrains.auth.Protected):
         self.results = pagination.results
         self.pagination = pagination.menu
 
-        self.table = poobrains.rendering.Table()
+        self.table = poobrains.rendering.Table(css_class='notifications')
 
         for notification in pagination.results:
 

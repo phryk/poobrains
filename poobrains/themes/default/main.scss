@@ -601,7 +601,8 @@ nav.menu {
         }
     }
 
-    &.related-add {
+    &.related-add,
+    &.certtoken-add {
 
         margin: 1rem 0;
 
@@ -693,6 +694,16 @@ table {
     tr.active {
         background: opacify(lighten($color_highlight, 10%), -0.4);
         color: $color_font_dark;
+    }
+
+    &.notifications {
+        td:last-child {
+            width: 5rem;
+
+            div.checkbox {
+                text-align: center;
+            }
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 {% if config.DEBUG %}<span class="debug-hint" title="{{ self }}">?</span>{% endif %}
-<table class="{{ content.name }}">
+<table class="{{ content.css_class }}">
+
+    {% if content.columns|length %}
     <thead>
         <tr>
         {% for column in content.columns %}
@@ -7,6 +9,8 @@
         {% endfor %}
         </tr>
     </thead>
+    {% endif %}
+
     <tbody>
     {% for row in content.rows %}
     <tr {% if row.classes %}class="{{ row.classes }}"{% endif %}>

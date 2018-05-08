@@ -120,12 +120,15 @@ class BoundForm(poobrains.form.Form):
         self.mode = mode
 
 
-class AddForm(BoundForm):
+class AutoForm(BoundForm):
 
     preview = None
 
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
-        f = super(AddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
+        
+        f = super(AutoForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
+
+        op = f.model._meta.modes[mode]
 
         for field in f.model._meta.sorted_fields:
 
@@ -134,6 +137,11 @@ class AddForm(BoundForm):
                 not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field))): # second clause is to avoid problems with name collisions (for instance on "name")
 
                     setattr(f, field.name, field.form())
+
+        if op == 'create':
+            for pkfield in f.model._meta.get_primary_keys():
+                if f.fields.has_key(pkfield.name):
+                    f.fields[pkfield.name].readonly = True # Make any primary key fields read-only
 
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
         f.controls['preview'] = poobrains.form.Button('submit', name='preview', value='preview', label='Preview')
@@ -147,7 +155,7 @@ class AddForm(BoundForm):
         if not name:
             name = '%s-%s' % (self.model.__name__, self.instance.handle_string.replace('.', '-'))
     
-        super(AddForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
+        super(AutoForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
 
         if not title:
     
@@ -255,25 +263,7 @@ class AddForm(BoundForm):
 
         return self
 
-poobrains.form.AddForm = AddForm
-
-
-class EditForm(AddForm):
-    
-    def __new__(cls, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        f = super(EditForm, cls).__new__(cls, model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-        for pkfield in f.model._meta.get_primary_keys():
-            if f.fields.has_key(pkfield.name):
-                f.fields[pkfield.name].readonly = True # Make any primary key fields read-only
-
-        return f
-
-   
-
-    def __init__(self, model_or_instance, mode='edit', prefix=None, name=None, title=None, method=None, action=None):
-        super(EditForm, self).__init__(model_or_instance, mode=mode, prefix=prefix, name=name, title=title, method=method, action=action)
-
-poobrains.form.EditForm = EditForm
+poobrains.form.AutoForm = AutoForm
 
 
 class DeleteForm(BoundForm):
@@ -1037,12 +1027,12 @@ class RelatedForm(poobrains.form.Form):
         return self
 
 
-class UserPermissionAddForm(AddForm):
+class UserPermissionAutoForm(AutoForm):
 
     
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
 
-        f = super(UserPermissionAddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
+        f = super(UserPermissionAutoForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
         del(f.fields['access'])
         del(f.fields['permission'])
         f.permission = FormPermissionField()
@@ -1064,12 +1054,12 @@ class UserPermissionAddForm(AddForm):
         return self
 
 
-class GroupPermissionAddForm(AddForm):
+class GroupPermissionAutoForm(AutoForm):
 
     
     def __new__(cls, model_or_instance, mode='add', prefix=None, name=None, title=None, method=None, action=None):
 
-        f = super(GroupPermissionAddForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
+        f = super(GroupPermissionAutoForm, cls).__new__(cls, model_or_instance, prefix=prefix, name=name, title=title, method=method, action=action)
         del(f.fields['access'])
         del(f.fields['permission'])
         f.permission = FormPermissionField()
@@ -1092,7 +1082,7 @@ class GroupPermissionAddForm(AddForm):
         return self
 
 
-class GroupPermissionEditForm(EditForm):
+class GroupPermissionEditForm(AutoForm):
 
     def __new__(cls, model_or_instance, *args, **kwargs):
 
@@ -1154,8 +1144,8 @@ class Administerable(poobrains.storage.Storable, Protected):
     
     __metaclass__ = BaseAdministerable
 
-    form_add = AddForm # TODO: move form_ into class Meta?
-    form_edit = EditForm
+    form_add = AutoForm # TODO: move form_ into class Meta?
+    form_edit = AutoForm
     form_delete = DeleteForm
 
     related_form = RelatedForm # TODO: make naming consistent
@@ -1393,7 +1383,6 @@ class User(Named):
     @classmethod
     def list(cls, op, user, handles=None, ordered=True, fields=[]):
 
-        app.debugger.set_trace()
         try:
             return super(User, cls).list(op, user, handles=handles, ordered=ordered, fields=fields)
         except AccessDenied:
@@ -1553,7 +1542,7 @@ class User(Named):
             for model in self.models_on_profile:
 
                 try:
-                    queries.append(model.list('read', g.user, ordered=False, fields=[peewee.SQL("'%s'" % model.__name__).alias('model'), model.id, model.date.alias('date')]))
+                    queries.append(model.list('read', g.user, ordered=False, fields=[peewee.SQL("'%s'" % model.__name__).alias('model'), model.id, model.date.alias('date')]).where(model.owner == self))
                 except AccessDenied:
                     pass # ignore models we aren't allowed to read
 
@@ -1600,7 +1589,7 @@ app.site.add_view(User, '/~<handle>/+<int:offset>/', mode='full', endpoint='user
 
 class UserPermission(Administerable):
 
-    form_add = UserPermissionAddForm
+    form_add = UserPermissionAutoForm
 
     class Meta:
         primary_key = peewee.CompositeKey('user', 'permission')
@@ -1661,7 +1650,6 @@ class Group(Named):
     @classmethod
     def list(cls, op, user, handles=None, ordered=True, fields=[]):
 
-        app.debugger.set_trace()
         try:
             return super(Group, cls).list(op, user, handles=handles, ordered=ordered, fields=fields)
         except AccessDenied:
@@ -1684,7 +1672,7 @@ class UserGroup(Administerable):
 
 class GroupPermission(Administerable):
 
-    form_add = GroupPermissionAddForm
+    form_add = GroupPermissionAutoForm
     form_edit = GroupPermissionEditForm
 
     class Meta:
@@ -1723,7 +1711,20 @@ class GroupPermission(Administerable):
         return "%s-%s" % (self.group.name, self.permission)
 
 
+class ClientCertTokenAddForm(AutoForm):
+
+    def process(self, submit, exceptions=False):
+
+        r = super(ClientCertTokenAddForm, self).process(submit, exceptions=exceptions)
+
+        self.instance.user.notify("A new certificate token was created in your name!  \n The token is *%s*.  \nIt will expire on %s.  \nThe certificate will be named '%s'" % (self.instance.token, self.instance.expiry_date, self.instance.cert_name)) # TODO: check if token was actually saved
+
+        return r
+
+
 class ClientCertToken(Administerable, Protected):
+
+    form_add = ClientCertTokenAddForm 
 
     validity = None
     user = poobrains.storage.fields.ForeignKeyField(User, related_name='clientcerttokens')
@@ -1739,9 +1740,16 @@ class ClientCertToken(Administerable, Protected):
         self.validity = app.config['TOKEN_VALIDITY']
         super(ClientCertToken, self).__init__(*args, **kw)
 
+
+    @property
+    def expiry_date(self):
+        return self.created + datetime.timedelta(seconds=self.validity)
+
+
     @property
     def redeemable(self):
-        return (not self.redeemed) and ((self.created + datetime.timedelta(seconds=self.validity)) < datetime.datetime.now())
+        return (not self.redeemed) and self.expiry_date < datetime.datetime.now()
+
 
     def save(self, force_insert=False, only=None):
 
@@ -1862,7 +1870,7 @@ class Owned(Administerable):
     @classmethod
     def class_view(cls, mode=None, handle=None, **kwargs):
 
-        op = self._meta.modes[mode]
+        op = cls._meta.modes[mode]
 
         if op == 'create':
             instance = cls()

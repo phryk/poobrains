@@ -103,6 +103,9 @@ expected_failures = set([ # set of Storables we know will fail automatic testing
 storables_to_test = list(poobrains.storage.Storable.class_children() - expected_failures)
 administerables_to_test = list(poobrains.auth.Administerable.class_children() - expected_failures)
 owneds_to_test = list(poobrains.auth.Owned.class_children() - expected_failures) # what currently works
+
+permission_holders = ['user', 'group']
+
 ops = list(poobrains.auth.OwnedPermission.op_abbreviations.iteritems()) # crud operations and their abbreviations
 
 @pytest.fixture
@@ -232,35 +235,54 @@ def test_crud(client, cls):
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('permission_holder', permission_holders)
 @pytest.mark.parametrize('cls', administerables_to_test)
-def test_permission_user_grant(client, cls, op_info):
+def test_permission_grant(client, cls, permission_holder, op_info):
 
     op = op_info[0]
     op_abbr = op_info[1]
 
     if not cls.permissions.has_key(op):
-        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
+        pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
-    u.name = 'test-%s-%s-grant' % (cls.__name__.lower(), op)
+    u.name = 'test-%s-%s-%s-grant' % (cls.__name__.lower(), permission_holder, op)
     u.save(force_insert=True)
-
-    try:
-        cls.permissions[op]
-    except Exception:
-        import pudb; pudb.set_trace()
-
-    up = poobrains.auth.UserPermission()
-    up.user = u
-    up.permission = cls.permissions[op].__name__
-    up.access = 'grant'
-    up.save(force_insert=True)
-
-    u = poobrains.auth.User.load(u.name)
 
     instance = cls()
     if isinstance(instance, poobrains.auth.Owned):
         instance.owner = u
+
+    if permission_holder == 'user':
+
+        up = poobrains.auth.UserPermission()
+        up.user = u
+        up.permission = cls.permissions[op].__name__
+        up.access = 'grant'
+        up.save(force_insert=True)
+
+    else: # group
+        
+        g = poobrains.auth.Group()
+        g.name = '%s-%s-group-grant' % (cls.__name__.lower(), op)
+        g.save(force_insert=True)
+
+        ug = poobrains.auth.UserGroup()
+        ug.user = u
+        ug.group = g
+        ug.save(force_insert=True)
+
+        gp = poobrains.auth.GroupPermission()
+        gp.group = g
+        gp.permission = cls.permissions[op].__name__
+        gp.access = 'grant'
+        gp.save(force_insert=True)
+
+        if isinstance(instance, poobrains.auth.Owned):
+            instance.group = g
+
+    u = poobrains.auth.User.load(u.name)
+
     fill_valid(instance)
     instance.save(force_insert=True)
 
@@ -268,37 +290,59 @@ def test_permission_user_grant(client, cls, op_info):
 
     try:
         instance.permissions[op].check(u)
-        instance.delete()
     except poobrains.auth.AccessDenied:
-        instance.delete()
-        raise AssertionError("User-assigned Permission check on %s for '%s' does not allow access!" % (cls.__name__, op))
+        raise AssertionError("%s-assigned Permission check on %s for '%s' does not allow access!" % (permission_holder, cls.__name__, op))
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('permission_holder', permission_holders)
 @pytest.mark.parametrize('cls', administerables_to_test)
-def test_permission_read_user_deny(client, cls, op_info):
+def test_permission_deny(client, cls, permission_holder, op_info):
     
     op = op_info[0]
     op_abbr = op_info[1]
 
     if not cls.permissions.has_key(op):
-        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
+        pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
-    u.name = 'test-%s-%s-deny' % (cls.__name__.lower(), op)
+    u.name = 'test-%s-%s-%s-deny' % (cls.__name__.lower(), permission_holder, op)
     u.save(force_insert=True)
-
-    up = poobrains.auth.UserPermission()
-    up.user = u
-    up.permission = cls.permissions[op].__name__
-    up.access = 'deny'
-    up.save(force_insert=True)
-
-    u = poobrains.auth.User.load(u.name)
-
+    
     instance = cls()
     if isinstance(instance, poobrains.auth.Owned):
         instance.owner = u
+    
+    if permission_holder == 'user':
+
+        up = poobrains.auth.UserPermission()
+        up.user = u
+        up.permission = cls.permissions[op].__name__
+        up.access = 'deny'
+        up.save(force_insert=True)
+
+    else: # group
+        
+        g = poobrains.auth.Group()
+        g.name = '%s-%s-group-deny' % (cls.__name__.lower(), op)
+        g.save(force_insert=True)
+
+        ug = poobrains.auth.UserGroup()
+        ug.user = u
+        ug.group = g
+        ug.save(force_insert=True)
+
+        gp = poobrains.auth.GroupPermission()
+        gp.group = g
+        gp.permission = cls.permissions[op].__name__
+        gp.access = 'deny'
+        gp.save(force_insert=True)
+
+        if isinstance(instance, poobrains.auth.Owned):
+            instance.group = g
+
+    u = poobrains.auth.User.load(u.name)
+
     fill_valid(instance)
     instance.save(force_insert=True)
 
@@ -309,17 +353,18 @@ def test_permission_read_user_deny(client, cls, op_info):
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('permission_holder', permission_holders)
 @pytest.mark.parametrize('cls', owneds_to_test)
-def test_ownedpermission_user_instance(client, cls, op_info):
+def test_ownedpermission_instance(client, cls, permission_holder, op_info):
     
     op = op_info[0]
     op_abbr = op_info[1]
 
     if not cls.permissions.has_key(op):
-        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
+        pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
-    u.name = 'test-%s-%s-instance' % (cls.__name__.lower(), op)
+    u.name = 'test-%s-%s-%s-instance' % (cls.__name__.lower(), permission_holder, op)
     u.save(force_insert=True)
 
     instance = cls()
@@ -328,12 +373,33 @@ def test_ownedpermission_user_instance(client, cls, op_info):
     instance.save(force_insert=True)
 
     instance = cls.load(instance.handle_string)
+    
+    if permission_holder == 'user':
 
-    up = poobrains.auth.UserPermission()
-    up.user = u
-    up.permission = cls.permissions[op].__name__
-    up.access = 'instance'
-    up.save(force_insert=True)
+        up = poobrains.auth.UserPermission()
+        up.user = u
+        up.permission = cls.permissions[op].__name__
+        up.access = 'instance'
+        up.save(force_insert=True)
+    
+    else: # group
+        
+        g = poobrains.auth.Group()
+        g.name = '%s-%s-group-instance' % (cls.__name__.lower(), op)
+        g.save(force_insert=True)
+
+        ug = poobrains.auth.UserGroup()
+        ug.user = u
+        ug.group = g
+        ug.save(force_insert=True)
+
+        gp = poobrains.auth.GroupPermission()
+        gp.group = g
+        gp.permission = cls.permissions[op].__name__
+        gp.access = 'instance'
+        gp.save(force_insert=True)
+
+        instance.group = g
 
     u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
 
@@ -351,21 +417,22 @@ def test_ownedpermission_user_instance(client, cls, op_info):
     try:
         instance.permissions[op].check(u)
     except poobrains.auth.AccessDenied:
-        raise AssertionError("User-assigned OwnedPermission check on %s for '%s' with instance access '%s' does not allow access!" %(cls.__name__, op, op_abbr))
+        raise AssertionError("%s-assigned OwnedPermission check on %s for '%s' with instance access '%s' does not allow access!" % (permission_holder, cls.__name__, op, op_abbr))
 
 
 @pytest.mark.parametrize('op_info', ops, ids=lambda x: x[0])
+@pytest.mark.parametrize('permission_holder', permission_holders)
 @pytest.mark.parametrize('cls', owneds_to_test)
-def test_ownedpermission_user_own_instance(client, cls, op_info):
+def test_ownedpermission_own_instance(client, cls, permission_holder, op_info):
     
     op = op_info[0]
     op_abbr = op_info[1]
 
     if not cls.permissions.has_key(op):
-        return # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
+        pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
-    u.name = 'test-%s-%s-own-instance' % (cls.__name__.lower(), op)
+    u.name = 'test-%s-%s-%s-own-instance' % (cls.__name__.lower(), permission_holder, op)
     u.save(force_insert=True)
     u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
     poobrains.g.user = u # chep login fake because Owned uses g.user as default owner
@@ -376,12 +443,33 @@ def test_ownedpermission_user_own_instance(client, cls, op_info):
     instance.save(force_insert=True)
 
     instance = cls.load(instance.handle_string)
+    
+    if permission_holder == 'user':
 
-    up = poobrains.auth.UserPermission()
-    up.user = u
-    up.permission = cls.permissions[op].__name__
-    up.access = 'own_instance'
-    up.save(force_insert=True)
+        up = poobrains.auth.UserPermission()
+        up.user = u
+        up.permission = cls.permissions[op].__name__
+        up.access = 'own_instance'
+        up.save(force_insert=True)
+    
+    else: # group
+        
+        g = poobrains.auth.Group()
+        g.name = '%s-%s-group-own-instance' % (cls.__name__.lower(), op)
+        g.save(force_insert=True)
+
+        ug = poobrains.auth.UserGroup()
+        ug.user = u
+        ug.group = g
+        ug.save(force_insert=True)
+
+        gp = poobrains.auth.GroupPermission()
+        gp.group = g
+        gp.permission = cls.permissions[op].__name__
+        gp.access = 'own_instance'
+        gp.save(force_insert=True)
+
+        instance.group = g
 
     u = poobrains.auth.User.load(u.name) # reload user to update own_permissions
 
@@ -399,7 +487,7 @@ def test_ownedpermission_user_own_instance(client, cls, op_info):
     try:
         instance.permissions[op].check(u)
     except poobrains.auth.AccessDenied:
-        raise AssertionError("User-assigned OwnedPermission check on %s for '%s' with own_instance access '%s' does not allow access!" %(cls.__name__, op, op_abbr))
+        raise AssertionError("%s-assigned OwnedPermission check on %s for '%s' with own_instance access '%s' does not allow access!" % (permission_holder, cls.__name__, op, op_abbr))
 
 
 def run_all():

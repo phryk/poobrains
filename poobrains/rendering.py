@@ -15,6 +15,8 @@ import poobrains.helpers
 
 class Renderable(poobrains.helpers.ChildAware):
 
+    handle_string = None # string which uniquely identifies each instance of a Renderable
+
     name = None
     css_class = None
 
@@ -36,6 +38,9 @@ class Renderable(poobrains.helpers.ChildAware):
         self.css_class = css_class
         if self.css_class is None:
             self.css_class = ''
+
+        if kwargs.has_key('handle'):
+            self.handle_string = kwargs['handle']
 
 
     @property
@@ -61,8 +66,8 @@ class Renderable(poobrains.helpers.ChildAware):
 
     def instance_url(self, mode='full', quiet=False, **url_params):
  
-        if getattr(self, 'handle', False): 
-            url_params['handle'] = self.handle
+        if getattr(self, 'handle_string', False): 
+            url_params['handle'] = self.handle_string
 
         if quiet:
             try:
