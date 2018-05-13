@@ -675,7 +675,6 @@ class ClientCertForm(poobrains.form.Form):
     def process(self, submit):
 
         time.sleep(random.random() * 0.1) # should make timing side channel attacks harder
-
         try:
             # creation time older than this means token is dead.
             deathwall = datetime.datetime.now() - datetime.timedelta(seconds=app.config['TOKEN_VALIDITY'])
@@ -697,7 +696,7 @@ class ClientCertForm(poobrains.form.Form):
 
         not_after = datetime.datetime(year=self.fields['not_after'].value.year, month=self.fields['not_after'].value.month, day=self.fields['not_after'].value.day)
         
-        if self.controls['keygen_submit'].value:
+        if submit == 'keygen_submit':
 
             try:
                 client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, session['key_challenge'], not_after)
@@ -720,8 +719,7 @@ class ClientCertForm(poobrains.form.Form):
             r = werkzeug.wrappers.Response(client_cert.as_pem())
             r.mimetype = 'application/x-x509-user-cert'
 
-        #elif submit in ('ClientCertForm.pgp_submit', 'ClientCertForm.tls_submit'):
-        elif self.controls['pgp_submit'].value or self.controls['tls_submit'].value:
+        elif submit in ('pgp_submit', 'tls_submit'):
 
             passphrase = poobrains.helpers.random_string_light()
 
