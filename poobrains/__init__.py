@@ -53,7 +53,6 @@ except ImportError as e:
     #config = False
 
     config = types.ModuleType('config')
-    config.DATABASE = "sqlite:///%s.db" % project_name # NOTE: If you change this, you'll also have to change the --database default in cli/__init__.py or else install will fuck up
 
 
 
@@ -287,7 +286,8 @@ class Poobrain(flask.Flask):
 
             import optparse # Pretty fucking ugly, but at least its in the stdlib. TODO: Can we *somehow* make this work with prompt in cli/__init__.py install command?
             parser = optparse.OptionParser()
-            parser.add_option('--database', default="sqlite:///%s.db" % project_name, dest='database')
+            parser.add_option('--database', default="sqlite:///%s.db" % project_name, dest='database') # NOTE: If you change this, you'll also have to change the --database default in cli/__init__.py or else install will fuck up
+
             (options, _) = parser.parse_args()
             self.logger.warning("No DATABASE in config, using generated default or --database parameter '%s'. This should only happen before the install command is executed." % options.database)
             self.db = db_url.connect(options.database)

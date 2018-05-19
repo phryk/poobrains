@@ -46,7 +46,8 @@ def fake_before_request(function):
 
 
 @app.cli.command()
-def test():
+@option('--database', default="sqlite:///%s.db" % project_name) # NOTE: If you change this you'll have to change in the main __init__.py as well
+def test(database):
 
     if confirm(
         "This will run through installation and a range of tests, " +
