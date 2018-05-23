@@ -12,7 +12,7 @@ import flask
 
 # parent imports
 #import poobrains
-from poobrains import app
+from poobrains import current_app
 import poobrains.errors
 import poobrains.helpers
 import poobrains.rendering
@@ -371,7 +371,7 @@ class Form(BaseForm):
 
 
             if not flask.request.form['submit'].startswith(self.ref_id): # means the right form was submitted, should be implied by the path tho…
-                app.logger.error("Form %s: submit button of another form used: %s" % (self.name, flask.request.form['submit']))
+                current_app.logger.error("Form %s: submit button of another form used: %s" % (self.name, flask.request.form['submit']))
                 flask.flash("The form you just used might be broken. Bug someone if this problem persists.", 'error')
 
         return self

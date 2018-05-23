@@ -8,7 +8,7 @@ import jinja2
 
 # local imports 
 #import poobrains
-from poobrains import app
+from poobrains import current_app
 import poobrains.helpers
 #import poobrains.form
 
@@ -57,11 +57,11 @@ class Renderable(poobrains.helpers.ChildAware):
 
         if quiet:
             try:
-                return app.get_url(cls, mode=mode, **url_params)
+                return current_app.get_url(cls, mode=mode, **url_params)
             except:
                 return False
 
-        return app.get_url(cls, mode=mode, **url_params)
+        return current_app.get_url(cls, mode=mode, **url_params)
 
 
     def instance_url(self, mode='full', quiet=False, **url_params):
@@ -71,11 +71,11 @@ class Renderable(poobrains.helpers.ChildAware):
 
         if quiet:
             try:
-                return app.get_url(self.__class__, mode=mode, **url_params)
+                return current_app.get_url(self.__class__, mode=mode, **url_params)
             except:
                 return False
 
-        return app.get_url(self.__class__, mode=mode, **url_params)
+        return current_app.get_url(self.__class__, mode=mode, **url_params)
 
 
     def templates(self, mode=None):

@@ -26,7 +26,7 @@ from scss.source import SourceFile
 from pathlib import PurePosixPath
 
 # comfort imports to expose flask functionality directly through poobrains
-from flask import Response, request, session, redirect, flash, abort, url_for, g
+from flask import Response, current_app, request, session, redirect, flash, abort, url_for, g
 from flask.helpers import locked_cached_property
 from jinja2 import Markup
 
@@ -874,13 +874,15 @@ class Pooprint(flask.Blueprint):
             return endpoint
 
 
-app = Poobrain('poobrains') # TODO: Make app class configurable.
-app.jinja_env.tests['renderable'] = is_renderable
-app.url_map.converters['regex'] = RegexConverter
+def create_app():
 
-if app.config['PROFILE']:
-    from werkzeug.contrib.profiler import ProfilerMiddleware
-    app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir='profiling')
+    return Poobrain('poobrains') # TODO: Make app class configurable.
+    app.jinja_env.tests['renderable'] = is_renderable
+    app.url_map.converters['regex'] = RegexConverter
+
+    if app.config['PROFILE']:
+        from werkzeug.contrib.profiler import ProfilerMiddleware
+        app.wsgi_app = ProfilerMiddleware(app.wsgi_app, profile_dir='profiling')
 
 # delayed internal imports which may depend on app
 from . import mailing

@@ -6,7 +6,7 @@ import flask
 
 # parent imports
 #import poobrains
-from poobrains import app
+from poobrains import current_app
 import poobrains.helpers
 import poobrains.errors
 import poobrains.rendering
@@ -451,7 +451,7 @@ class Keygen(Field):
 
         try:
             if flask.request.method == 'GET':
-                app.logger.debug("Keygen new challenge")
+                current_app.logger.debug("Keygen new challenge")
                 self.challenge = poobrains.helpers.random_string()
         except RuntimeError as e:
             pass

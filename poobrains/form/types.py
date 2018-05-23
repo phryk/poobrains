@@ -9,9 +9,9 @@
 
 import datetime
 
-from click.types import * # You thought I wrote code for this? :>
+from click.types import *
 
-from poobrains import app
+from poobrains import current_app
 
 class DateParamType(ParamType):
 
@@ -30,7 +30,7 @@ class DateParamType(ParamType):
 
             if "does not match format" in e.message: # TODO: find out what this means again and comment it
 
-                app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
+                current_app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
                 self.fail("We dun goof'd, this field isn't working.")
 
             else:
@@ -57,7 +57,7 @@ class DateTimeParamType(ParamType):
 
             if "does not match format" in e.message:
 
-                app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
+                current_app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
                 self.fail("We dun goof'd, this field isn't working.")
 
             else:
@@ -69,7 +69,7 @@ class DateTimeParamType(ParamType):
 
                     if "does not match format" in e.message:
 
-                        app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
+                        current_app.logger.error("%s.convert failed: %s" % (type(e).__name__, e.message))
                         self.fail("We dun goof'd, this field isn't working.")
 
                     else:

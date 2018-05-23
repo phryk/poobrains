@@ -11,10 +11,10 @@ import gnupg
 
 import flask
 #import poobrains
-from poobrains import app
+from poobrains import current_app
 
 def getgpg():
-    return gnupg.GPG(binary=app.config['GPG_BINARY'], homedir=app.config['GPG_HOME'])
+    return gnupg.GPG(binary=current_app.config['GPG_BINARY'], homedir=current_app.config['GPG_HOME'])
 
 
 class MailError(Exception):
@@ -31,7 +31,7 @@ class Mail(MIMEMultipart):
         MIMEMultipart.__init__(self, **kwargs)
         self.fingerprint = fingerprint
         self.crypto = getgpg()
-        self['From'] = app.config['SMTP_FROM']
+        self['From'] = current_app.config['SMTP_FROM']
         self['Date'] = formatdate() 
 
 
@@ -55,10 +55,10 @@ class Mail(MIMEMultipart):
             'symmetric': False # IIUC symmetric=True makes us at risk for leaking private keys
         }
 
-        if  app.config['GPG_PASSPHRASE'] is not None and \
-            app.config['GPG_SIGNKEY'] is not None:
-                crypto_kw['passphrase'] = app.config['GPG_PASSPHRASE']
-                crypto_kw['default_key'] = app.config['GPG_SIGNKEY']
+        if  current_app.config['GPG_PASSPHRASE'] is not None and \
+            current_app.config['GPG_SIGNKEY'] is not None:
+                crypto_kw['passphrase'] = current_app.config['GPG_PASSPHRASE']
+                crypto_kw['default_key'] = current_app.config['GPG_SIGNKEY']
 
         ciphertext = str(self.crypto.encrypt(self_string, str(self.fingerprint), **crypto_kw))
         if ciphertext != '':
@@ -69,10 +69,10 @@ class Mail(MIMEMultipart):
 
 
         if hasattr(cryptinfo.stderr):
-            app.logger.error("Problem encrypting mail. stderr follows.")
-            app.logger.error(cryptinfo.stderr)
+            current_app.logger.error("Problem encrypting mail. stderr follows.")
+            current_app.logger.error(cryptinfo.stderr)
         else:
-            app.logger.error("Problem encrypting mail. No further information.")
+            current_app.logger.error("Problem encrypting mail. No further information.")
 
         raise MailError("Problem encrypting mail.")
 
@@ -85,13 +85,13 @@ class Mail(MIMEMultipart):
         if self['To'] is None:
             raise MailError('Recipient for mail not set!')
 
-        if app.config['SMTP_STARTTLS']:
-            smtp = smtplib.SMTP(app.config['SMTP_HOST'], port=app.config['SMTP_PORT'])
+        if current_app.config['SMTP_STARTTLS']:
+            smtp = smtplib.SMTP(current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'])
             smtp.starttls() # FIXME: We'll want to check if this actually worked
 
         else:
-            smtp = smtplib.SMTP_SSL(app.config['SMTP_HOST'], port=app.config['SMTP_PORT'])
+            smtp = smtplib.SMTP_SSL(current_app.config['SMTP_HOST'], port=current_app.config['SMTP_PORT'])
 
         smtp.ehlo()
-        smtp.login(app.config['SMTP_ACCOUNT'], app.config['SMTP_PASSWORD'])
+        smtp.login(current_app.config['SMTP_ACCOUNT'], current_app.config['SMTP_PASSWORD'])
         smtp.sendmail(self['From'], self['To'], self.as_string())

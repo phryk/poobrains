@@ -6,7 +6,8 @@ import poobrains
 from flask import redirect
 
 
-app = poobrains.app
+#app = poobrains.app
+app = poobrains.create_app()
 
 @app.route('/')
 def front():
