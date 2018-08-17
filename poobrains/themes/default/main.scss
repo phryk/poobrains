@@ -847,7 +847,9 @@ article {
     img,
     video,
     object {
+        display: block;
         max-width: 100%;
+        margin: 0 auto;
         opacity: 0.8;
         transition: opacity 0.3s ease-in;
 
