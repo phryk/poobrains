@@ -3,7 +3,7 @@
 The documentation system.
 """
 
-import __builtin__
+#import __builtin__
 
 import os
 import re
@@ -379,19 +379,19 @@ class PooDoc(pydoc.HTMLDoc, object):
         result += '<div class="module">' % components
         result += '  <div class="docstring">%(doc)s</div>' % components
 
-        if components.has_key('modules'):
+        if 'modules' in components:
             result += '  <div class="modules">%(modules)s</div>' % components
 
-        if components.has_key('classes'):
+        if 'classes' in components:
             result += '  <div class="classes">%(classes)s</div>' % components
 
-        if components.has_key('funcs'):
+        if 'funcs' in components:
             result += '  <div class="functions">%(funcs)s</div>' % components
 
-        if components.has_key('author'):
+        if 'author' in components:
             result += '<div class="author">%(author)s</div>' % components
 
-        if components.has_key('credits'):
+        if 'credits' in components:
             result += '<div class="credits">%(credits)s</div>' % components
 
         result += '</div>'
@@ -506,7 +506,8 @@ class PooDoc(pydoc.HTMLDoc, object):
                 thisclass = attrs[0][2]
             attrs, inherited = pydoc._split_list(attrs, lambda t: t[2] is thisclass)
 
-            if thisclass is __builtin__.object:
+            #if thisclass is __builtin__.object: # 2.7 only, no clue why it wasn't just `object` in the first place.
+            if thisclass is object:
                 attrs = inherited
                 continue
             elif thisclass is object:
@@ -550,7 +551,7 @@ class PooDoc(pydoc.HTMLDoc, object):
         result = '<dt class="class">%s</dt>' % self.heading(level, title)
 
         result += '<dd class="class">'
-        if components.has_key('mro'):
+        if 'mro' in components:
             result += '  <div class="mro">%(mro)s</div>' % components
 
         result += '\n  '.join(components['docs'])
@@ -679,7 +680,7 @@ class Documentation(poobrains.auth.Protected):
             self.title = handle.title()
             self.text = poobrains.md.MarkdownString(codecs.open(md_path, 'r', encoding='utf-8').read())
 
-        elif sys.modules.has_key(handle):
+        elif handle in sys.modules:
             
             doc = PooDoc()
             subject = sys.modules[handle]

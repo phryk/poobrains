@@ -6,7 +6,7 @@
     <div class="direct-reply">
         {{ content.comment_form().render('full') }}
     </div>
-    {% for comment, children in content.comments_threaded.iteritems() %}
+    {% for comment, children in content.comments_threaded.items() %}
         {{ comment.render('full') }}
     {% endfor %}
 </div>

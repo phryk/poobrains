@@ -39,7 +39,7 @@ class Renderable(poobrains.helpers.ChildAware):
         if self.css_class is None:
             self.css_class = ''
 
-        if kwargs.has_key('handle'):
+        if 'handle' in kwargs:
             self.handle_string = kwargs['handle']
 
 
@@ -256,7 +256,7 @@ class TableRow(object):
 
         super(TableRow, self).__setattr__('_columns', columns)
 
-        if kwdata.has_key('_classes'):
+        if '_classes' in kwdata:
             self.classes = kwdata.pop('_classes')
 
         self._data = []
@@ -267,7 +267,7 @@ class TableRow(object):
         for i in range(0, len(data)):
             self[i] = data[i]
 
-        for key, value in kwdata.iteritems():
+        for key, value in kwdata.items():
             self[key] = value
 
 

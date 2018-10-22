@@ -19,7 +19,7 @@ class BoundFieldMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.Clas
     pass
 
 
-class BaseField(object):
+class BaseField(object, metaclass=poobrains.helpers.MetaCompatibility):
 
     __metaclass__ = poobrains.helpers.MetaCompatibility
 
@@ -47,7 +47,8 @@ class BaseField(object):
 
     def __new__(cls, *args, **kwargs):
 
-        instance = super(BaseField, cls).__new__(cls, **kwargs)
+        #instance = super(BaseField, cls).__new__(cls, **kwargs)
+        instance = super(BaseField, cls).__new__(cls)
         instance._created = time.time()
 
         return instance
@@ -111,7 +112,7 @@ class BaseField(object):
 
     def __setattr__(self, name, value):
 
-        if name == 'name' and isinstance(value, basestring):
+        if name == 'name' and isinstance(value, str):
             assert not '.' in value, "Form Field names *must* not contain dots: %s" % value
 
         super(BaseField, self).__setattr__(name, value)
@@ -272,7 +273,7 @@ class BaseField(object):
             return value.handle_string
 
         else:
-            return unicode(value)
+            return str(value)
 
 
 class Value(BaseField):

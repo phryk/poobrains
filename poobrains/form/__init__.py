@@ -31,7 +31,7 @@ class FormMeta(poobrains.helpers.MetaCompatibility, poobrains.helpers.ClassOrIns
         return super(FormMeta, cls).__setattr__(name, value)
 
 
-class BaseForm(poobrains.rendering.Renderable):
+class BaseForm(poobrains.rendering.Renderable, metaclass=FormMeta):
 
     __metaclass__ = FormMeta
 
@@ -97,7 +97,7 @@ class BaseForm(poobrains.rendering.Renderable):
     
     def __setattr__(self, name, value):
 
-        if name == 'name' and isinstance(value, basestring):
+        if name == 'name' and isinstance(value, str):
             assert not '.' in value, "Form names *must* not contain dots: %s" % value
             super(BaseForm, self).__setattr__(name, value)
 
@@ -108,10 +108,10 @@ class BaseForm(poobrains.rendering.Renderable):
             else:
                 child_prefix = self.name
 
-            for field in self.fields.itervalues():
+            for field in self.fields.values():
                 field.prefix = child_prefix
 
-            for button in self.controls.itervalues():
+            for button in self.controls.values():
                 button.prefix = child_prefix
 
         elif isinstance(value, fields.BaseField) or isinstance(value, Fieldset):
@@ -134,7 +134,7 @@ class BaseForm(poobrains.rendering.Renderable):
         Iterate over this forms renderable fields.
         """
 
-        for field in self.fields.itervalues():
+        for field in self.fields.values():
             if isinstance(field, (fields.Field, Fieldset)) and field.name not in self._external_fields:
                 yield field
 
@@ -146,7 +146,7 @@ class BaseForm(poobrains.rendering.Renderable):
         Fields like this can be created by passing a Form object to the Field constructor.
         """
 
-        if isinstance(field, fields.Checkbox) and self.fields.has_key(field.name) and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
+        if isinstance(field, fields.Checkbox) and field.name in self.fields and type(field) == type(self.fields[field.name]): # checkboxes/radio inputs can pop up multiple times, but belong to the same name
             self.fields[field.name].choices.extend(field.choices)
 
         else:
@@ -216,7 +216,7 @@ class BaseForm(poobrains.rendering.Renderable):
                 if not field.readonly:
                     
                     source = files if isinstance(field, fields.File) else values
-                    if not source.has_key(field.name):
+                    if not field.name in source:
 
                         if field.multi or isinstance(field, Fieldset):
                             field_values = werkzeug.datastructures.MultiDict()
@@ -232,7 +232,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
                     try:
                         if isinstance(field, Fieldset):
-                            sub_files = files[field.name] if files.has_key(field.name) else werkzeug.datastructures.MultiDict()
+                            sub_files = files[field.name] if field.name in files else werkzeug.datastructures.MultiDict()
                             field.bind(field_values, sub_files)
                         else:
                             field.bind(field_values)
@@ -242,7 +242,7 @@ class BaseForm(poobrains.rendering.Renderable):
                         for e in ce.errors:
                             compound_error.append(e)
 
-            for name, control in self.controls.iteritems():
+            for name, control in self.controls.items():
                 if isinstance(control, Button):
                     control.value = values.get(name, False)
 
@@ -274,7 +274,7 @@ class BaseForm(poobrains.rendering.Renderable):
 
         rendered_controls = u''
 
-        for control in self.controls.itervalues():
+        for control in self.controls.values():
             rendered_controls += control.render()
 
         return rendered_controls
@@ -430,11 +430,11 @@ class Fieldset(BaseForm):
     def __setattr__(self, name, value):
 
         if name == 'value':
-            for field in self.fields.itervalues():
+            for field in self.fields.values():
                 if hasattr(value, field.name):
                     field.value = getattr(value, field.name)
 
-        elif name == 'name' and isinstance(value, basestring):
+        elif name == 'name' and isinstance(value, str):
             assert not '.' in value, "Form Field names *must* not contain dots: %s" % value
             super(Fieldset, self).__setattr__(name, value)
 
@@ -481,7 +481,8 @@ class Button(poobrains.rendering.Renderable):
     
     def __new__(cls, *args, **kwargs):
 
-        instance = super(Button, cls).__new__(cls, *args, **kwargs)
+        #instance = super(Button, cls).__new__(cls, *args, **kwargs)
+        instance = super(Button, cls).__new__(cls)
         instance._created = time.time()
 
         return instance

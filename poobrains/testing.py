@@ -85,7 +85,7 @@ def fill_valid(instance):
                         else:
                             raise AssertionError("Can't guarantee valid fill for class '%s' because of constraints on field '%s'!" % (instance.__class__.__name__, attr_name))
 
-                    elif not fieldmap.has_key(cls_attr.__class__):
+                    elif not cls_attr.__class__ in fieldmap:
                         raise AssertionError("Can't generate fill for %s.%s of type %s" % (instance.__class__.__name__, attr_name, field_class.__name__))
                     else:
                         setattr(instance, attr_name, generators[fieldmap[field_class]]())
@@ -106,7 +106,7 @@ owneds_to_test = list(poobrains.auth.Owned.class_children() - expected_failures)
 
 permission_holders = ['user', 'group']
 
-ops = list(poobrains.auth.OwnedPermission.op_abbreviations.iteritems()) # crud operations and their abbreviations
+ops = list(poobrains.auth.OwnedPermission.op_abbreviations.items()) # crud operations and their abbreviations
 
 @pytest.fixture
 def client():
@@ -117,7 +117,7 @@ def client():
     poobrains.app.debug = True
     client = poobrains.app.test_client()
 
-    if not os.environ.has_key('FLASK_APP'):
+    if not 'FLASK_APP' in os.environ:
         os.environ['FLASK_APP'] = '__main__'
     #poobrains.project_name = os.environ['FLASK_APP']
 
@@ -162,7 +162,7 @@ y
 
     runner = CliRunner()
     rv = runner.invoke(poobrains.cli.install, input=input)
-    print rv.output
+    print(rv.output)
 
     assert not rv.exception, rv.exception.message
     assert "Installation complete!" in rv.output, "Installation apparently didn't complete!"
@@ -187,8 +187,8 @@ def test_redeem_token(client):
 
     rv = client.post('/cert/', data={'ClientCertForm.token': token.token, 'submit': 'ClientCertForm.tls_submit'})
 
-    passphrase_request = client.get('/cert/') # reply to the next request in the same session contains a flash() with passphrase
-    match = re.search(u">The passphrase for this delicious bundle of crypto is &#39;(.+)&#39;<", passphrase_request.data)
+    passphrase_response = client.get('/cert/') # reply to the next request in the same session contains a flash() with passphrase
+    match = re.search(u">The passphrase for this delicious bundle of crypto is &#39;(.+)&#39;<", passphrase_response.data.decode('ascii'))
 
     assert match, "Couldn't find passphrase flash!"
 
@@ -226,7 +226,7 @@ def test_crud(client, cls):
     
     assert instance.save() > 0, "Update failed for class '%s'!" % cls.__name__
 
-    assert instance.delete() > 0, "Delete failed for class '%s'!" % cls.__name__
+    assert instance.delete_instance() > 0, "Delete failed for class '%s'!" % cls.__name__
 
 
 # TODO: use the Page permission tests as basis for auto-generated permission
@@ -242,7 +242,7 @@ def test_permission_grant(client, cls, permission_holder, op_info):
     op = op_info[0]
     op_abbr = op_info[1]
 
-    if not cls.permissions.has_key(op):
+    if not op in cls.permissions:
         pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
@@ -302,7 +302,7 @@ def test_permission_deny(client, cls, permission_holder, op_info):
     op = op_info[0]
     op_abbr = op_info[1]
 
-    if not cls.permissions.has_key(op):
+    if not op in cls.permissions:
         pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
@@ -360,7 +360,7 @@ def test_ownedpermission_instance(client, cls, permission_holder, op_info):
     op = op_info[0]
     op_abbr = op_info[1]
 
-    if not cls.permissions.has_key(op):
+    if not op in cls.permissions:
         pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()
@@ -428,7 +428,7 @@ def test_ownedpermission_own_instance(client, cls, permission_holder, op_info):
     op = op_info[0]
     op_abbr = op_info[1]
 
-    if not cls.permissions.has_key(op):
+    if not op in cls.permissions:
         pytest.skip() # this op has been explicitly disabled and isn't exposed (for which there should also be a test)
 
     u = poobrains.auth.User()

@@ -104,14 +104,14 @@ class Tag(poobrains.auth.Named):
 
         for binding in bindings:
 
-            if not bindings_by_model.has_key(binding.model):
+            if not binding.model in bindings_by_model:
                 bindings_by_model[binding.model] = []
 
             bindings_by_model[binding.model].append(binding)
 
         #bindings_by_model = sorted(bindings_by_model) # re-order by model name
 
-        for model_name, bindings in bindings_by_model.iteritems():
+        for model_name, bindings in bindings_by_model.items():
 
             try:
                 model = poobrains.storage.Storable.class_children_keyed()[model_name]

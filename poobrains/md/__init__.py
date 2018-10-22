@@ -18,7 +18,7 @@ def magic_markdown_loader(storable, handle):
 
     storables = poobrains.storage.Storable.class_children_keyed(lower=True)
 
-    if storables.has_key(storable.lower()):
+    if storable.lower() in storables:
         cls = storables[storable.lower()]
         return cls.load(handle)
 
@@ -30,7 +30,7 @@ def magic_markdown_loader(storable, handle):
     return False
 
 
-class MarkdownString(unicode):
+class MarkdownString(str):
 
     def render(self, mode='inline'): # mode is ignored anyways
         return jinja2.Markup(md.convert(self))
@@ -83,11 +83,11 @@ class DisplayRenderable(markdown.inlinepatterns.Pattern):
                         
                         except:
                             return jinja2.Markup(md.convert("*You are not allowed to view an instance of %s that was placed here.*" % cls.__name__))
-                    if instance._meta.modes.has_key('inline'):
+                    if 'inline' in instance._meta.modes:
                         return instance.render('inline')
-                    elif instance._meta.modes.has_key('teaser'):
+                    elif 'teaser' in instance._meta.modes:
                         return instance.render('teaser')
-                    elif instance._meta.modes.has_key('full'):
+                    elif 'full' in instance._meta.modes:
                         return instance.render('full')
                     else:
                         return instance.render()

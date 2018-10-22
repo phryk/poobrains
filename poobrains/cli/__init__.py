@@ -6,10 +6,11 @@ import functools
 import codecs
 import peewee
 import OpenSSL
-import gnupg
 import flask
 import click
 import jinja2
+
+from pretty_bad_protocol import gnupg
 
 from click import argument, option, echo, secho, confirm
 from playhouse import db_url
@@ -316,7 +317,7 @@ def list(storable):
 
     for instance in storable.select():
 
-        print "%s: %s - %s" % (instance.handle_string, instance.title, instance)
+        print("%s: %s - %s" % (instance.handle_string, instance.title, instance))
 
 
 @app.cli.command()
@@ -376,7 +377,7 @@ def import_(storable, filepath, skip_pk):
 
                 else:
 
-                    if record.has_key(field.name): # only fill fields for which we actually have values
+                    if field.name in record: # only fill fields for which we actually have values
 
                         if field.null and record[field.name] == u'':
                             setattr(instance, field.name, None) # insert NULL for empty strings if allowed, cleaner than just spamming the db with empty strings
@@ -423,7 +424,7 @@ def export(storable, filepath, skip_pk):
                 elif isinstance(field, poobrains.storage.fields.ForeignKeyField):
                     value = value._pk
 
-                record.append(unicode(value))
+                record.append(str(value))
 
             writer.write_record(record)
 

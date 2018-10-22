@@ -7,7 +7,7 @@ from email.mime.application import MIMEApplication
 from email.utils import formatdate
 
 import smtplib
-import gnupg
+from pretty_bad_protocol import gnupg
 
 import flask
 #import poobrains
@@ -79,7 +79,7 @@ class Mail(MIMEMultipart):
 
     def send(self):
 
-        if not isinstance(self.fingerprint, basestring):
+        if not isinstance(self.fingerprint, str):
             raise MailError('Trying to send mail without selecting public key fingerprint.')
 
         if self['To'] is None:

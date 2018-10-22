@@ -144,7 +144,7 @@ class File(poobrains.auth.NamedOwned):
 
     def __setattr__(self, name, value):
 
-        if name == 'filename' and isinstance(value, basestring):
+        if name == 'filename' and isinstance(value, str):
             value = werkzeug.utils.secure_filename(value)
 
         return super(File, self).__setattr__(name, value)
@@ -189,11 +189,15 @@ class File(poobrains.auth.NamedOwned):
 
     def delete_instance(self, *args, **kwargs):
 
-        if super(File, self).delete_instance(*args, **kwargs):
+        r = super(File, self).delete_instance(*args, **kwargs)
+
+        if r:
             try:
                 os.remove(os.path.join(self.path, self.filename))
             except OSError as e:
                 flask.flash(u"Could not delete %s '%s'." % (self.__class__.__name__, self.filename))
+
+        return r
 
 
 class Image(File):

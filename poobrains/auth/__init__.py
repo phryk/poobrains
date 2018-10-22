@@ -13,8 +13,6 @@ import os
 import random
 import re
 import OpenSSL as openssl
-import M2Crypto
-import pyspkac
 import time
 import datetime
 import werkzeug
@@ -49,18 +47,18 @@ def admin_setup():
 
             app.admin.add_listing(cls, rule, title=cls.__name__, mode='teaser', action_func=actions, force_secure=True)
 
-            if cls._meta.modes.has_key('add'):
+            if 'add' in cls._meta.modes:
                 app.admin.add_view(cls, os.path.join(rule, 'add/'), mode='add', force_secure=True)
 
             rule = os.path.join(rule, '<handle>/')
 
-            if cls._meta.modes.has_key('edit'):
+            if 'edit' in cls._meta.modes:
                 app.admin.add_view(cls, rule, mode='edit', force_secure=True)
 
-            if cls._meta.modes.has_key('delete'):
+            if 'delete' in cls._meta.modes:
                 app.admin.add_view(cls, os.path.join(rule, 'delete'), mode='delete', force_secure=True)
 
-            for related_model, related_fields in cls._meta.model_backrefs.iteritems(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+            for related_model, related_fields in cls._meta.model_backrefs.items(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
 
                 if issubclass(related_model, Administerable):
                     app.admin.add_related_view(cls, related_fields[0], rule, force_secure=True)
@@ -132,7 +130,7 @@ class AutoForm(BoundForm):
 
         for field in f.model._meta.sorted_fields:
 
-            if  (not f.fields.has_key(field.name)    and # means this field was already defined in the class definition for this form
+            if  (not field.name in f.fields    and # means this field was already defined in the class definition for this form
                 not field.form_widget is None       and # means this field should by ignored
                 not (hasattr(cls, field.name) and isinstance(getattr(cls, field.name), poobrains.form.fields.Field))): # second clause is to avoid problems with name collisions (for instance on "name")
 
@@ -140,7 +138,7 @@ class AutoForm(BoundForm):
 
         if op == 'create':
             for pkfield in f.model._meta.get_primary_keys():
-                if f.fields.has_key(pkfield.name):
+                if pkfield.name in f.fields:
                     f.fields[pkfield.name].readonly = True # Make any primary key fields read-only
 
         f.controls['reset'] = poobrains.form.Button('reset', label='Reset')
@@ -176,7 +174,7 @@ class AutoForm(BoundForm):
                 except Exception as e:
                     self.title = "%s %s" % (self.mode, self.model.__name__)
 
-        for name, field in self.fields.iteritems():
+        for name, field in self.fields.items():
             if hasattr(self.instance, name):
                 try:
                     field.value = getattr(self.instance, name)
@@ -285,7 +283,7 @@ class DeleteForm(BoundForm):
             if hasattr(self.instance, 'title') and self.instance.title:
                 self.title = "Delete %s %s" % (self.model.__name__, self.instance.title)
             else:
-                self.title = "Delete %s %s" % (self.model.__name__, unicode(self.instance._pk))
+                self.title = "Delete %s %s" % (self.model.__name__, str(self.instance._pk))
 
     
     def process(self, submit):
@@ -293,7 +291,7 @@ class DeleteForm(BoundForm):
         if hasattr(self.instance, 'title') and self.instance.title:
             message = "Deleted %s '%s'." % (self.model.__name__, self.instance.title)
         else:
-            message = "Deleted %s '%s'." % (self.model.__name__, unicode(self.instance._pk))
+            message = "Deleted %s '%s'." % (self.model.__name__, str(self.instance._pk))
         self.instance.delete_instance(recursive=True)
         flash(message)
 
@@ -397,7 +395,7 @@ class Permission(poobrains.helpers.ChildAware):
     def check(cls, user):
 
         # check user-assigned permission state
-        if user.own_permissions.has_key(cls.__name__):
+        if cls.__name__ in user.own_permissions:
             access = user.own_permissions[cls.__name__]
 
             if access == 'deny':
@@ -410,7 +408,7 @@ class Permission(poobrains.helpers.ChildAware):
         # group_deny = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'deny').count()
         group_deny = False
         for group in user.groups:
-            if group.own_permissions.has_key(cls.__name__) and group.own_permissions[cls.__name__] == 'deny':
+            if cls.__name__ in group.own_permissions and group.own_permissions[cls.__name__] == 'deny':
                 group_deny = True
                 break
 
@@ -420,7 +418,7 @@ class Permission(poobrains.helpers.ChildAware):
         #group_grant = GroupPermission.select().join(Group).join(UserGroup).join(User).where(UserGroup.user == user, GroupPermission.permission == cls.__name__, GroupPermission.access == 'grant').count()
         group_grant = False
         for group in user.groups:
-            if group.own_permissions.has_key(cls.__name__) and group.own_permissions[cls.__name__] == 'grant':
+            if cls.__name__ in group.own_permissions and group.own_permissions[cls.__name__] == 'grant':
                 group_grant = True
                 break
 
@@ -437,7 +435,7 @@ class Permission(poobrains.helpers.ChildAware):
     @classmethod
     def list(cls, protected, q, op, user): # FIXME: should op be implied, not directly passed?
 
-        if user.own_permissions.has_key(cls.__name__):
+        if cls.__name__ in user.own_permissions:
             access = user.own_permissions[cls.__name__]
 
             if access == 'deny':
@@ -472,7 +470,7 @@ class PermissionInjection(poobrains.helpers.MetaCompatibility):
         cls.permissions = collections.OrderedDict()
 
         #for op in ['create', 'read', 'update', 'delete']:
-        for op in set(cls._meta.modes.itervalues()):
+        for op in set(cls._meta.modes.values()):
             perm_name = "%s_%s" % (cls.__name__, op)
             perm_label = "%s %s" % (op.capitalize(), cls.__name__)
             #cls._meta.permissions[mode] = type(perm_name, (cls._meta.permission_class,), {})
@@ -547,7 +545,7 @@ class FormPermissionField(poobrains.form.fields.Select):
 def admin_listing_actions(cls):
 
     m = poobrains.rendering.Menu('actions')
-    if cls._meta.modes.has_key('add'):
+    if 'add' in cls._meta.modes:
         m.append(cls.url('add'), 'add new %s' % (cls.__name__,))
 
     return m
@@ -562,9 +560,9 @@ def admin_menu():
         menu = poobrains.rendering.Menu('main')
         menu.title = 'Administration'
 
-        for administerable, listings in app.admin.listings.iteritems():
+        for administerable, listings in app.admin.listings.items():
 
-            for mode, endpoints in listings.iteritems():
+            for mode, endpoints in listings.items():
 
                 for endpoint in endpoints: # iterates through endpoints.keys()
                     menu.append(url_for('admin.%s' % endpoint), administerable.__name__)
@@ -585,11 +583,11 @@ def admin_index():
 
         container = poobrains.rendering.Container(title='Administration', mode='full')
         
-        for administerable, listings in app.admin.listings.iteritems():
+        for administerable, listings in app.admin.listings.items():
 
             subcontainer = poobrains.rendering.Container(css_class='administerable-actions', mode='full')
             menu = poobrains.rendering.Menu('listings-%s' % administerable.__name__)
-            for mode, endpoints in listings.iteritems():
+            for mode, endpoints in listings.items():
 
                 for endpoint in endpoints: # iterates through endpoints.keys()
                     menu.append(url_for('admin.%s' % endpoint), administerable.__name__)
@@ -636,13 +634,13 @@ def protected(func):
         if not (issubclass(cls, Protected) or isinstance(cls_or_instance, Protected)):
             raise ValueError("@protected used with non-protected class '%s'." % cls.__name__)
 
-        if not cls._meta.modes.has_key(mode):
+        if not mode in cls._meta.modes:
             raise AccessDenied("Unknown mode '%s' for accessing %s." % (mode, cls.__name__))
 
         op = cls._meta.modes[mode]
         if not op in ['create', 'read', 'update', 'delete']:
             raise AccessDenied("Unknown access op '%s' for accessing %s." (op, cls.__name__))
-        if not cls_or_instance.permissions.has_key(op):
+        if not op in cls_or_instance.permissions:
             raise NotImplementedError("Did not find permission for op '%s' in cls_or_instance of class '%s'." % (op, cls.__name__))
         
 
@@ -696,30 +694,7 @@ class ClientCertForm(poobrains.form.Form):
 
         not_after = datetime.datetime(year=self.fields['not_after'].value.year, month=self.fields['not_after'].value.month, day=self.fields['not_after'].value.day)
         
-        if submit == 'keygen_submit':
-
-            try:
-                client_cert = token.user.gen_clientcert_from_spkac(token.cert_name, self.fields['key'].value, session['key_challenge'], not_after)
-                del session['key_challenge']
-
-            except pyspkac.spkac.SPKAC_Decode_Error as e:
-
-                app.logger.error(e.message)
-                return poobrains.rendering.RenderString("Client certificate creation failed. Pwease no cwacky!")
-
-            cert_info.keylength = client_cert.get_pubkey().size() * 8 # .size gives length in byte
-            cert_info.fingerprint = client_cert.get_fingerprint('sha512')
-
-            not_before = client_cert.get_not_before().get_datetime() # contains tzinfo, which confuses peewee ( https://github.com/coleifer/peewee/issues/914)
-            cert_info.not_before = datetime.datetime(not_before.year, not_before.month, not_before.day, not_before.hour, not_before.minute, not_before.second)
-
-            not_after = client_cert.get_not_after().get_datetime() # contains tzinfo, which confuses peewee ( https://github.com/coleifer/peewee/issues/914)
-            cert_info.not_after = datetime.datetime(not_after.year, not_after.month, not_after.day, not_after.hour, not_after.minute, not_after.second)
-
-            r = werkzeug.wrappers.Response(client_cert.as_pem())
-            r.mimetype = 'application/x-x509-user-cert'
-
-        elif submit in ('pgp_submit', 'tls_submit'):
+        if submit in ('pgp_submit', 'tls_submit'):
 
             passphrase = poobrains.helpers.random_string_light()
 
@@ -742,7 +717,7 @@ class ClientCertForm(poobrains.form.Form):
                 r.mimetype = 'application/pkcs-12'
                 flash(u"The passphrase for this delicious bundle of crypto is '%s'" % passphrase)
 
-            else: # means pgp
+            else: # means pgp mail
 
                 text = "Hello %s. Here's your new set of keys to the gates of Shambala.\nYour passphrase is '%s'." % (token.user.name, passphrase)
 
@@ -800,7 +775,7 @@ class OwnedPermission(Permission):
     @classmethod
     def check(cls, user):
 
-        if user.own_permissions.has_key(cls.__name__):
+        if cls.__name__ in user.own_permissions:
             access = user.own_permissions[cls.__name__]
 
             if access == 'deny':
@@ -830,7 +805,7 @@ class OwnedPermission(Permission):
 
         op_abbr = self.op_abbreviations[self.op]
 
-        if user.own_permissions.has_key(self.__class__.__name__):
+        if self.__class__.__name__ in user.own_permissions:
 
             access = user.own_permissions[self.__class__.__name__]
 
@@ -899,9 +874,9 @@ class OwnedPermission(Permission):
 
         group_access = collections.OrderedDict()
         for group in user.groups:
-            if group.own_permissions.has_key(cls.__name__):
+            if cls.__name__ in group.own_permissions:
                 access = group.own_permissions[cls.__name__]
-                if not group_access.has_key(access):
+                if not access in group_access:
                     group_access[access] = []
                 group_access[access].append(group)
 
@@ -915,7 +890,7 @@ class OwnedPermission(Permission):
 
         op_abbr = op[0]
 
-        if user.own_permissions.has_key(cls.__name__):
+        if cls.__name__ in user.own_permissions:
 
             access = user.own_permissions[cls.__name__]
             if access == 'deny':
@@ -988,7 +963,7 @@ class RelatedForm(poobrains.form.Form):
                 # Fieldset to edit an existing related instance of this instance
                 setattr(f, key, related_instance.fieldset('edit'))
 
-                if f.fields[key].fields.has_key(related_field.name):
+                if related_field.name in f.fields[key].fields:
                     setattr(f.fields[key], related_field.name, poobrains.form.fields.Value(value=instance._pk))
 
             except AccessDenied as e:
@@ -1098,7 +1073,7 @@ class BaseAdministerable(PermissionInjection, poobrains.storage.ModelBase):
     pass
 
 
-class Protected(poobrains.rendering.Renderable):
+class Protected(poobrains.rendering.Renderable, metaclass=PermissionInjection):
 
     __metaclass__ = PermissionInjection
 
@@ -1109,10 +1084,11 @@ class Protected(poobrains.rendering.Renderable):
 
     def __new__(instance, *args, **kwargs):
 
-        instance = super(Protected, instance).__new__(instance, *args, **kwargs)
+        #instance = super(Protected, instance).__new__(instance, *args, **kwargs)
+        instance = super(Protected, instance).__new__(instance)
         instance.permissions = collections.OrderedDict()
         
-        for mode, perm_class in instance.__class__.permissions.iteritems():
+        for mode, perm_class in instance.__class__.permissions.items():
             instance.permissions[mode] = perm_class(instance)
         return instance
 
@@ -1138,7 +1114,7 @@ class Protected(poobrains.rendering.Renderable):
 #    pass # let's just hope this works out of the box
 
 
-class Administerable(poobrains.storage.Storable, Protected):
+class Administerable(poobrains.storage.Storable, Protected, metaclass=BaseAdministerable):
     
     __metaclass__ = BaseAdministerable
 
@@ -1205,7 +1181,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         user = g.user
         menu = poobrains.rendering.Menu('related')
 
-        for related_field, related_model in self._meta.backrefs.iteritems(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+        for related_field, related_model in self._meta.backrefs.items(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
 
             if related_model is not self.__class__ and issubclass(related_model, Administerable) and not related_model._meta.abstract:
                 try:
@@ -1283,7 +1259,7 @@ class Administerable(poobrains.storage.Storable, Protected):
     def related_view(cls, related_field=None, handle=None, offset=0):
 
         if related_field is None:
-            raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, unicode(field)))
+            raise TypeError("%s.related_view needs Field instance for parameter 'related_field'. Got %s (%s) instead." % (cls.__name__, type(field).__name__, str(field)))
 
         related_model = related_field.model
         instance = cls.load(handle)
@@ -1326,7 +1302,7 @@ class Administerable(poobrains.storage.Storable, Protected):
         f.menu_actions = instance.menu_actions
         f.menu_related = instance.menu_related
 
-        if f.fields.has_key(related_field.name):
+        if related_field.name in f.fields:
             f.fields[related_field.name].value = instance
 
         return f.view()
@@ -1385,39 +1361,6 @@ class User(Named):
             return super(User, cls).list(op, user, handles=handles, ordered=ordered, fields=fields)
         except AccessDenied:
             return cls.select().where(cls.name == g.user.name) # [g.user] would kinda-sorta work, but that'd break anything expecting this to be a query object
-
-
-    def gen_clientcert_from_spkac(self, name, spkac, challenge, not_after):
-
-        invalid_after = datetime.datetime.now() + datetime.timedelta(seconds=app.config['CERT_MAX_LIFETIME']) 
-        if not_after > invalid_after:
-            raise poobrains.errors.ExposedError("not_after too far into the future, max allowed %s but got %s" % (invalid_after, not_after))
-
-        try:
-
-            ca_key = M2Crypto.EVP.load_key(app.config['CA_KEY'])
-            ca_cert = M2Crypto.X509.load_cert(app.config['CA_CERT'])
-
-        except Exception as e:
-
-            app.logger.error("Client certificate could not be generated. Invalid CA_KEY or CA_CERT.")
-            app.logger.debug(e)
-            flash(u"Plumbing issue. Invalid CA_KEY or CA_CERT.")
-            raise e
-
-        common_name = '%s:%s@%s' % (self.name, name, app.config['SITE_NAME'])
-        spkac = pyspkac.SPKAC(spkac, challenge, CN=common_name) # TODO: Make sure CN is unique
-        spkac.push_extension(M2Crypto.X509.new_extension('keyUsage', 'digitalSignature, keyEncipherment, keyAgreement', critical=True))
-        spkac.push_extension(M2Crypto.X509.new_extension('extendedKeyUsage', 'clientAuth, emailProtection, nsSGC'))
-
-        #spkac.subject.C = ca_cert.get_subject().C
-
-        not_before = int(time.time())
-        not_after = int(time.mktime(not_after.timetuple()))
-
-        serial = int(time.time())
-
-        return spkac.gen_crt(ca_key, ca_cert, serial, not_before, not_after, hash_algo='sha512')
 
 
     def gen_keypair_and_clientcert(self, name, not_after):
@@ -1562,14 +1505,14 @@ class User(Named):
 
                     info_sorted.append((row.model, row.id))
 
-                    if not info_by_model.has_key(row.model):
+                    if not row.model in info_by_model:
                         info_by_model[row.model] = []
                         
                     info_by_model[row.model].append(row.id)
 
                 posts_by_model = {}
 
-                for model_name, ids in info_by_model.iteritems():
+                for model_name, ids in info_by_model.items():
                 
                     model = Owned.class_children_keyed()[model_name]
                     posts_by_model[model_name] = {}
@@ -1862,7 +1805,7 @@ class Owned(Administerable):
 
         self.permissions = collections.OrderedDict()
         
-        for mode, perm_class in self.__class__.permissions.iteritems():
+        for mode, perm_class in self.__class__.permissions.items():
             self.permissions[mode] = perm_class(self)
 
     @classmethod
@@ -1916,7 +1859,7 @@ class Page(Owned):
         if op == 'create':
             instance = cls()
 
-        elif op == 'read' and kwargs.has_key('path'):
+        elif op == 'read' and 'path' in kwargs:
 
             path = '/%s' % kwargs['path']
             instance = cls.get(cls.path == path)

@@ -49,7 +49,7 @@ def flatten_nested_multidict(v):
 
 def choose_primary(d):
     
-    for k,v in d.iteritems():
+    for k,v in d.items():
 
         if v['primary']:
            return v
@@ -62,8 +62,8 @@ def clean_string(s):
     allowed_chars = string.ascii_lowercase + string.digits + '-'
     clean = ""
 
-    if not isinstance(s, unicode):
-        s = unicode(s.decode('utf-8'))
+    #if not isinstance(s, unicode):
+    #    s = unicode(s.decode('utf-8'))
 
     s = s.lower()
 
@@ -75,7 +75,7 @@ def clean_string(s):
         u'ß': u'ss'
     }
 
-    for pattern, substitute in substitutions.iteritems():
+    for pattern, substitute in substitutions.items():
         s = s.replace(pattern, substitute)
 
     for char in s:
@@ -126,7 +126,7 @@ def themed(f):
         else:
             user = None
 
-        if kwargs.has_key('mode'):
+        if 'mode' in kwargs:
             mode = kwargs['mode']
         else:
             #mode = content._meta.modes.keys()[0] # TODO: Default mode option in _meta?
@@ -235,18 +235,18 @@ class MetaCompatibility(type):
             cls._meta = FakeMetaOptions()
 
             #if hasattr(cls, 'Meta'):
-            if attrs.has_key('Meta'):
-                
+            if 'Meta' in attrs:
+                print(f"Meta for  {name}")
                 for option_name in recognized_options:
                     if hasattr(attrs['Meta'], option_name):
                         setattr(cls._meta, option_name, getattr(attrs['Meta'], option_name))
-                    elif defaults.has_key(option_name):
+                    elif option_name in defaults:
                         setattr(cls._meta, option_name, defaults[option_name])
 
                 delattr(cls, 'Meta')
 
             else:
-                for option_name, default in defaults.iteritems():
+                for option_name, default in defaults.items():
                     setattr(cls._meta, option_name, default)
 
         else:
@@ -261,7 +261,7 @@ class MetaCompatibility(type):
         return cls
 
 
-class ChildAware(object):
+class ChildAware(object, metaclass=MetaCompatibility):
 
     __metaclass__ = MetaCompatibility
 
@@ -311,9 +311,9 @@ class ChildAware(object):
 
             tiered[_level].append(base)
             if hasattr(base, 'ancestors'):
-                for lvl, ancestors in base.ancestors(_level+1).iteritems():
+                for lvl, ancestors in base.ancestors(_level+1).items():
 
-                    if not tiered.has_key(lvl):
+                    if not lvl in tiered:
                         tiered[lvl] = []
                     tiered[lvl] += ancestors
 
@@ -321,7 +321,7 @@ class ChildAware(object):
             return tiered
 
         r = []
-        for ancestors in tiered.itervalues():
+        for ancestors in tiered.values():
             r += ancestors
 
         return r
@@ -331,7 +331,7 @@ class TrueDict(OrderedDict):
 
     def __setitem__(self, key, value):
 
-        if value == True and True in self.itervalues() and self[name] != True:
+        if value == True and True in self.values() and self[name] != True:
             raise ValueError('Only one item may be True.')
 
         return super(TrueDict, self).__setitem__(key, value)
@@ -340,7 +340,7 @@ class TrueDict(OrderedDict):
     def choose(self):
 
         if True in self.values():
-            for choice, primary in self.iteritems():
+            for choice, primary in self.items():
                 if primary == True:
                     break
         else:
@@ -362,7 +362,7 @@ class CustomOrderedDict(dict):
 
         repr = '{'
 
-        for k, v in self.iteritems():
+        for k, v in self.items():
             repr += '%s: %s' % (k.__repr__(), v.__repr__())
 
         repr += '}'
@@ -387,13 +387,13 @@ class CustomOrderedDict(dict):
             yield key
 
 
-    def iteritems(self):
+    def items(self):
 
         for key in self.keys():
             yield key, self[key]
 
 
-    def itervalues(self):
+    def values(self):
 
         for key in self.keys():
             yield self[key]
@@ -474,8 +474,8 @@ class ASVWriter(object):
 
     fd = None
 
-    unit_separator = unicode(chr(0x1F)) # probably needed in order not to fail the join on records with unicode chars
-    record_terminator = unicode(chr(0x1E)) # unicode for consistency
+    unit_separator = chr(0x1F)
+    record_terminator = chr(0x1E)
 
 
     def __init__(self, filepath):

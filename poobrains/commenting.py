@@ -54,7 +54,7 @@ class Comment(poobrains.auth.Administerable):
     def reply_form(self):
 
         children = Commentable.class_children_keyed()
-        if children.has_key(self.model):
+        if self.model in children:
 
             model = Commentable.class_children_keyed()[self.model]
             comments_enabled = model.load(self.handle).comments_enabled
@@ -145,7 +145,7 @@ class CommentForm(poobrains.form.Form):
             cls = Commentable.class_children_keyed()[model]
             instance = cls.load(handle)
 
-        reply_to = kwargs.pop('reply_to') if kwargs.has_key('reply_to') else None
+        reply_to = kwargs.pop('reply_to') if 'reply_to' in kwargs else None
         if isinstance(reply_to, int):
             reply_to = Comment.load(reply_to)
         super(CommentForm, self).__init__(**kwargs)

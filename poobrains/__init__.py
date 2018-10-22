@@ -31,9 +31,9 @@ from flask.helpers import locked_cached_property
 from jinja2 import Markup
 
 # internal imports
-import helpers
-import errors
-import defaults
+from . import helpers
+from . import errors
+from . import defaults
 
 db_url.schemes['sqlite'] = db_url.schemes['sqliteext'] # Make sure we get the extensible sqlite database, so we can make regular expressions case-sensitive. see https://github.com/coleifer/peewee/issues/1221
 
@@ -79,7 +79,7 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
             'files': werkzeug.datastructures.MultiDict()
         }
 
-        for subject, data in flat_data.iteritems():
+        for subject, data in flat_data.items():
 
             for key in data.keys():
 
@@ -87,7 +87,7 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
                 segments = key.split('.')
 
                 for segment in segments[:-1]:
-                    if not current.has_key(segment):
+                    if not segment in current:
                         current[segment] = werkzeug.datastructures.MultiDict()
 
                     current = current[segment]
@@ -95,13 +95,13 @@ class FormDataParser(werkzeug.formparser.FormDataParser):
                 #current[segments[-1]] = values
                 current.setlist(segments[-1], data.getlist(key))
 
-            #if form_flat.has_key('submit'):
-            if subject == 'form' and data.has_key('submit'):
+            #if 'submit' in form_flat:
+            if subject == 'form' and 'submit' in data:
                 current = processed_data[subject]
                 segments = form_flat['submit'].split('.')
 
                 for segment in segments[:-1]:
-                    if not current.has_key(segment):
+                    if not segment in current:
                         current[segment] = werkzeug.datastructures.MultiDict()
 
                     current = current[segment]
@@ -216,7 +216,7 @@ class Poobrain(flask.Flask):
 
     def __init__(self, *args, **kwargs):
 
-        if not kwargs.has_key('root_path'):
+        if not 'root_path' in kwargs:
             kwargs['root_path'] = str(pathlib.Path('.').absolute()) #TODO: pathlib probably isn't really needed here
 
         super(Poobrain, self).__init__(*args, **kwargs)
@@ -230,7 +230,7 @@ class Poobrain(flask.Flask):
                     self.config[name] = getattr(config, name)
 
         for name in dir(defaults):
-            if name.isupper and not self.config.has_key(name):
+            if name.isupper and not name in self.config:
                 self.config[name] = getattr(defaults, name)
 
         try:
@@ -262,12 +262,12 @@ class Poobrain(flask.Flask):
                 import pudb
                 if hasattr(signal, 'SIGINFO'):
                     pudb.set_interrupt_handler(signal.SIGINFO)
-                    print "%s: a graphical debugger can be invoked with SIGINFO (^T)" % (self.name.upper())
+                    print("%s: a graphical debugger can be invoked with SIGINFO (^T)" % (self.name.upper()))
 
                 self.debugger = pudb
 
             except ImportError:
-                print "pudb not installed, falling back to pdb!"
+                print("pudb not installed, falling back to pdb!")
 
                 import signal # shouldn't be needed but feels hacky to leave out
                 import pdb
@@ -279,7 +279,7 @@ class Poobrain(flask.Flask):
 
         self.scss_compiler = scss.Compiler(extensions=(SCSSCore,), root=pathlib.Path('/'), search_path=self.theme_paths)
 
-        if self.config.has_key('DATABASE'):
+        if 'DATABASE' in self.config:
             self.db = db_url.connect(self.config['DATABASE'], autocommit=True, autorollback=True)
 
         else:
@@ -408,7 +408,7 @@ class Poobrain(flask.Flask):
 
         flask.g.user = None
 
-        if not flask.request.environ.has_key('SSL_CLIENT_VERIFY'):
+        if not 'SSL_CLIENT_VERIFY' in flask.request.environ:
             if self.debug:
                 flask.request.environ['SSL_CLIENT_VERIFY'] = 'FAILURE'
             else:
@@ -441,7 +441,7 @@ class Poobrain(flask.Flask):
 
     def box_setup(self):
         
-        for name, f in self.boxes.iteritems():
+        for name, f in self.boxes.items():
             flask.g.boxes[name] = f()
 
     
@@ -461,7 +461,7 @@ class Poobrain(flask.Flask):
                 self.site.add_listing(cls, rule, mode='teaser', title=title, force_secure=force_secure)
                 self.site.add_view(cls, os.path.join(rule, '<handle>/'), mode=mode, force_secure=force_secure)
 
-                for related_model, related_fields in cls._meta.model_backrefs.iteritems(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
+                for related_model, related_fields in cls._meta.model_backrefs.items(): # Add Models that are associated by ForeignKeyField, like /user/foo/userpermissions
 
                     if len(related_fields) > 1:
                         self.logger.debug("!!! Apparent multi-field relation for %s: %s !!!" % (related_model.__name__, related_fields))
@@ -595,10 +595,10 @@ class Pooprint(flask.Blueprint):
 
     def add_view(self, cls, rule, endpoint=None, view_func=None, mode='full', force_secure=False, **options):
 
-        if not self.views.has_key(cls):
+        if not cls in self.views:
             self.views[cls] = collections.OrderedDict()
 
-        if not self.views[cls].has_key(mode):
+        if not mode in self.views[cls]:
             self.views[cls][mode] = []
 
         # Why the fuck does HTML not support DELETE!?
@@ -627,19 +627,19 @@ class Pooprint(flask.Blueprint):
         if not endpoint:
             endpoint = self.next_endpoint(cls, related_field, 'related')
 
-        if not self.related_views.has_key(cls):
+        if not cls in self.related_views:
             self.related_views[cls] = collections.OrderedDict()
 
-        if not self.related_views[cls].has_key(related_field):
+        if not related_field in self.related_views[cls]:
             url_segment = '%s:%s' % (related_model.__name__.lower(), related_field.name.lower())
             rule = os.path.join(rule, url_segment, "") # empty string to get trailing slash
             self.related_views[cls][related_field] = []
 
 
-        if not self.related_views_add.has_key(cls):
+        if not cls in self.related_views_add:
             self.related_views_add[cls] = collections.OrderedDict()
         
-        if not self.related_views_add[cls].has_key(related_field):
+        if not related_field in self.related_views_add[cls]:
             self.related_views_add[cls][related_field] = []
 
 
@@ -669,7 +669,7 @@ class Pooprint(flask.Blueprint):
 
     def box_setup(self):
         
-        for name, f in self.boxes.iteritems():
+        for name, f in self.boxes.items():
             flask.g.boxes[name] = f()
 
     
@@ -692,10 +692,10 @@ class Pooprint(flask.Blueprint):
 
         rule = os.path.join(rule, '') # make sure rule has trailing slash
 
-        if not self.listings.has_key(cls):
+        if not cls in self.listings:
             self.listings[cls] = collections.OrderedDict()
 
-        if not self.listings[cls].has_key(mode):
+        if not mode in self.listings[cls]:
             self.listings[cls][mode] = []
 
         if view_func is None:
@@ -761,7 +761,7 @@ class Pooprint(flask.Blueprint):
         
         if not issubclass(cls, storage.Model) or \
         mode == 'add' or \
-        (url_params.has_key('handle') and (mode is None or not mode.startswith('teaser'))):
+        'handle' in (url_params and (mode is None or not mode.startswith('teaser'))):
             return self.get_view_url(cls, mode=mode, **url_params)
 
         return self.get_listing_url(cls, mode=mode, **url_params)
@@ -772,10 +772,10 @@ class Pooprint(flask.Blueprint):
         if mode == None:
             mode = 'full'
 
-        if not self.views.has_key(cls):
+        if not cls in self.views:
             raise LookupError("No registered views for class %s." % (cls.__name__,))
 
-        if not self.views[cls].has_key(mode):
+        if not mode in self.views[cls]:
             raise LookupError("No registered views for class %s with mode %s." % (cls.__name__, mode))
 
 
@@ -807,10 +807,10 @@ class Pooprint(flask.Blueprint):
 
             offset = cls.select().where(*clauses).count() - 1
 
-        if not self.listings.has_key(cls):
+        if not cls in self.listings:
             raise LookupError("No registered listings for class %s." % (cls.__name__,))
 
-        if not self.listings[cls].has_key(mode):
+        if not mode in self.listings[cls]:
             raise LookupError("No registered listings for class %s with mode %s." % (cls.__name__, mode))
 
         endpoints = ['%s.%s' % (self.name, x) for x in self.listings[cls][mode]]
@@ -836,10 +836,10 @@ class Pooprint(flask.Blueprint):
             lookup = self.related_views
 
 
-        if not lookup.has_key(cls):
+        if not cls in lookup:
             raise LookupError("No registered related views for class %s." % (cls.__name__,))
 
-        if not lookup[cls].has_key(related_field):
+        if not related_field in lookup[cls]:
             raise LookupError("No registered related views for %s[%s]<-%s.%s." % (cls.__name__, handle, related_field.model.__name__, related_field.name))
 
         endpoints = ['%s.%s' % (self.name, x) for x in lookup[cls][related_field]]
@@ -917,7 +917,7 @@ class ErrorPage(rendering.Renderable):
         else:
             # default to 500, but use more specific code if a matching exception is found in app.error_codes
             self.code = 500
-            for cls, code in app.error_codes.iteritems():
+            for cls, code in app.error_codes.items():
                 if isinstance(error, cls):
                     self.code = code
                     break

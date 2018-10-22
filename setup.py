@@ -5,17 +5,16 @@ setup(
     author='phryk',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
-        'Programming Language :: Python :: 2.7',
+        #'Programming Language :: Python :: 2.7',
     ],
     install_requires=[
         'flask',
         'peewee',
-        'pyspkac',
-        'pyOpenSSL', # because apparently this is marked neither by pyspkac nor by m2crypto as dependency…
+        'pyOpenSSL', # to create TLS client certs
         'pyScss',
         'pillow',
         'markdown',
-        'gnupg'],
+        'pretty-bad-protocol'], # formerly 'gnupg'
     extras_require={
         'dev': ['pudb'], 
     },

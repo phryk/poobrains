@@ -2,7 +2,6 @@
 
 # external imports
 import math
-import types
 import collections
 import re
 import copy
@@ -92,7 +91,7 @@ class ModelBase(poobrains.helpers.MetaCompatibility, peewee.ModelBase):
         return cls
 
 
-class Model(peewee.Model, poobrains.helpers.ChildAware):
+class Model(peewee.Model, poobrains.helpers.ChildAware, metaclass=ModelBase):
 
     __metaclass__ = ModelBase
 
@@ -108,7 +107,7 @@ class Model(peewee.Model, poobrains.helpers.ChildAware):
 
         q = cls.select()
 
-        if isinstance(handle, types.StringTypes):
+        if isinstance(handle, str):
             handle = cls.string_handle(handle)
 
         elif type(handle) not in (tuple, list):
@@ -461,7 +460,7 @@ class StorableParamType(poobrains.form.types.ParamType):
 
         storables = self.baseclass.class_children_keyed(lower=True)
 
-        if storables.has_key(value.lower()):
+        if value.lower() in storables:
             return storables[value.lower()] # holy shit it's lined up! D:
 
         self.fail(u'Not a valid storable: %s. Try one of %s' % (value, storables.keys()))

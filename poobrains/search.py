@@ -32,10 +32,10 @@ class SearchForm(poobrains.form.Form):
 
     def __init__(self, *args, **kwargs):
 
-        if not kwargs.has_key('action'):
+        if not 'action' in kwargs:
             kwargs['action'] = app.site.get_view_url(Search, mode='full')
 
-        if not self.fields['pattern'].value and flask.session.has_key('search_pattern'):
+        if not self.fields['pattern'].value and 'search_pattern' in flask.session:
             self.fields['pattern'].value = flask.session['search_pattern']
 
         super(SearchForm, self).__init__(*args, **kwargs)
@@ -68,7 +68,7 @@ class Search(poobrains.auth.Protected):
             
             pattern = flask.request.form[self.form.name]['pattern']
 
-            if flask.request.form.has_key('clear'):
+            if 'clear' in flask.request.form:
                 flask.session.pop('search_pattern', None)
                 return flask.redirect(app.site.get_view_url(self.__class__, mode='full'))
 
@@ -76,7 +76,7 @@ class Search(poobrains.auth.Protected):
             flask.session['search_pattern'] = pattern
             return flask.redirect(self.url('full'))
 
-        if len(self.handle) == 0 and flask.session.has_key('search_pattern'):
+        if len(self.handle) == 0 and 'search_pattern' in flask.session:
             if len(flask.session['search_pattern']) >= 3:
                 # redirect requests with empty search handle to the saved search
                 self.handle = flask.session['search_pattern']

@@ -53,7 +53,7 @@ class StorableInstanceParamType(poobrains.form.types.ParamType):
 poobrains.form.types.StorableInstanceParamType = StorableInstanceParamType
 
 
-class ForeignKeyChoice(poobrains.form.fields.Text):
+class ForeignKeyChoice(poobrains.form.fields.Text, metaclass=poobrains.form.fields.BoundFieldMeta):
 
     """
     Note: This field expects to be bound to a ForeignKeyField.
@@ -90,7 +90,7 @@ class Field(poobrains.helpers.ChildAware):
 
     def __init__(self, *args, **kwargs):
 
-        if kwargs.has_key('form_widget'):
+        if 'form_widget' in kwargs:
             self.form_widget = kwargs.pop('form_widget')
 
         super(Field, self).__init__(*args, **kwargs)
